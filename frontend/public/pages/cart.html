@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giỏ hàng - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-search"><i class="fas fa-search"></i><input type="text" placeholder="Tìm kiếm..." onkeypress="if(event.key==='Enter') location.href='/pages/products.html?search='+this.value"></div>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+
+    <div class="page-container">
+        <div class="page-header"><h1><i class="fas fa-shopping-cart"></i> Giỏ hàng</h1></div>
+        <div id="cart-content"><div class="spinner" style="margin:3rem auto;"></div></div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()) location.href='/pages/login.html';
+
+    async function loadCart() {
+        const r = await api.get('/cart');
+        const el = document.getElementById('cart-content');
+        if(!r.success || r.data.length===0) {
+            el.innerHTML = `<div class="glass-card" style="padding:4rem;text-align:center;">
+                <i class="fas fa-shopping-cart" style="font-size:4rem;color:var(--dark-600);margin-bottom:1rem;"></i>
+                <h3 style="margin-bottom:0.5rem;">Giỏ hàng trống</h3>
+                <p style="color:var(--dark-400);margin-bottom:1.5rem;">Hãy thêm sản phẩm yêu thích vào giỏ hàng</p>
+                <a href="/pages/products.html" class="btn btn-primary">Mua sắm ngay</a>
+            </div>`;
+            return;
+        }
+        let total = 0;
+        let html = '';
+        r.data.forEach(shop => {
+            html += `<div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding-bottom:0.8rem;border-bottom:1px solid var(--dark-700);">
+                    <i class="fas fa-store" style="color:var(--primary-light)"></i>
+                    <strong>${shop.ten_gian_hang}</strong>
+                </div>`;
+            shop.items.forEach(item => {
+                const price = item.gia_khuyen_mai && item.gia_khuyen_mai < item.gia ? item.gia_khuyen_mai : item.gia;
+                const subtotal = price * item.so_luong;
+                total += subtotal;
+                html += `<div style="display:flex;gap:1rem;align-items:center;padding:0.8rem 0;border-bottom:1px solid rgba(255,255,255,0.03);" id="item-${item.id}">
+                    <img src="${getProductImage(item.hinh_anh)}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;">
+                    <div style="flex:1;">
+                        <a href="/pages/product-detail.html?id=${item.san_pham_id}" style="font-weight:600;font-size:0.9rem;color:var(--white);">${item.ten_san_pham}</a>
+                        <div style="color:var(--danger);font-weight:700;margin-top:4px;">${formatPrice(price)}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;border:1px solid var(--dark-700);border-radius:8px;">
+                        <button onclick="updateQty(${item.id},${item.so_luong-1})" style="width:30px;height:30px;background:var(--dark-700);border:none;color:white;cursor:pointer;">-</button>
+                        <span style="width:40px;text-align:center;font-size:0.85rem;">${item.so_luong}</span>
+                        <button onclick="updateQty(${item.id},${item.so_luong+1})" style="width:30px;height:30px;background:var(--dark-700);border:none;color:white;cursor:pointer;">+</button>
+                    </div>
+                    <div style="width:120px;text-align:right;font-weight:700;color:var(--white);">${formatPrice(subtotal)}</div>
+                    <button onclick="removeItem(${item.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1.1rem;" title="Xóa"><i class="fas fa-trash"></i></button>
+                </div>`;
+            });
+            html += '</div>';
+        });
+
+        html += `<div class="glass-card" style="padding:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+            <button onclick="clearAll()" class="btn btn-outline btn-sm"><i class="fas fa-trash"></i> Xóa tất cả</button>
+            <div style="display:flex;align-items:center;gap:2rem;">
+                <div>Tổng cộng: <span style="font-family:'Outfit';font-size:1.5rem;font-weight:800;color:var(--danger);">${formatPrice(total)}</span></div>
+                <a href="/pages/checkout.html" class="btn btn-primary btn-lg"><i class="fas fa-credit-card"></i> Thanh toán</a>
+            </div>
+        </div>`;
+        el.innerHTML = html;
+    }
+
+    async function updateQty(id, qty) {
+        if(qty < 1) { removeItem(id); return; }
+        const r = await api.put(`/cart/${id}`, {so_luong: qty});
+        if(r.success) loadCart(); else showToast(r.message,'error');
+    }
+
+    async function removeItem(id) {
+        const r = await api.delete(`/cart/${id}`);
+        if(r.success) { showToast('Đã xóa'); loadCart(); updateCartCount(); }
+    }
+
+    async function clearAll() {
+        if(!confirm('Xóa tất cả sản phẩm?')) return;
+        await api.delete('/cart/clear');
+        loadCart(); updateCartCount();
+    }
+
+    loadCart();
+    </script>
+</body>
+</html>

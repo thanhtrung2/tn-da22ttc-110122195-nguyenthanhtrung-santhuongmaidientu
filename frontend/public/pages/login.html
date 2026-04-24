@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-card glass">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <a href="/" class="navbar-brand" style="justify-content:center;font-size:1.8rem;">
+                    <i class="fas fa-shopping-bag"></i> Vipo
+                </a>
+            </div>
+            <h2>Đăng nhập</h2>
+            <p class="subtitle">Chào mừng bạn trở lại!</p>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Nhập email..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <div style="position:relative;">
+                        <input type="password" class="form-control" id="password" placeholder="Nhập mật khẩu..." required>
+                        <button type="button" onclick="togglePassword()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--dark-400);cursor:pointer;">
+                            <i class="fas fa-eye" id="toggle-pw-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div style="text-align:right; margin-top:-10px; margin-bottom:15px;">
+                    <a href="#" style="color:var(--primary-light);font-size:0.9rem;text-decoration:none;">Quên mật khẩu?</a>
+                </div>
+                <div id="error-msg" style="color:var(--danger);font-size:0.85rem;margin-bottom:1rem;display:none;"></div>
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;" id="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </button>
+            </form>
+
+            <p style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--dark-400);">
+                Chưa có tài khoản? <a href="/pages/register.html" style="color:var(--primary-light);font-weight:600;">Đăng ký ngay</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (isLoggedIn()) window.location.href = '/';
+
+        function togglePassword() {
+            const pw = document.getElementById('password');
+            const icon = document.getElementById('toggle-pw-icon');
+            if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+            else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('error-msg');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            errorMsg.style.display = 'none';
+
+            const result = await api.post('/auth/login', {
+                email: document.getElementById('email').value,
+                mat_khau: document.getElementById('password').value
+            });
+
+            if (result.success) {
+                auth.login(result.data.token, result.data.user);
+                showToast('Đăng nhập thành công!');
+                const user = result.data.user;
+                setTimeout(() => {
+                    if (user.vai_tro === 'admin') window.location.href = '/pages/admin/dashboard.html';
+                    else if (user.vai_tro === 'seller') window.location.href = '/pages/seller/dashboard.html';
+                    else window.location.href = '/';
+                }, 500);
+            } else {
+                errorMsg.textContent = result.message;
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập';
+            }
+        }
+    </script>
+</body>
+</html>

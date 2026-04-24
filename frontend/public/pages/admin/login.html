@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập Admin - KLTN2026 Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+        
+        .admin-login-card {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        
+        .admin-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ef4444, #f59e0b);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            color: #1e293b;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .form-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        
+        .form-input::placeholder {
+            color: #94a3b8;
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 4px;
+        }
+        
+        .password-toggle:hover {
+            color: #1e293b;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        }
+        
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+        }
+        
+        .checkbox-label {
+            font-size: 0.9rem;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <div class="admin-login-card">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div class="admin-icon">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <h2 style="color: #1e293b; margin-bottom: 0.5rem; font-size: 1.5rem;">Đăng nhập Admin</h2>
+                <p style="color: #64748b; font-size: 0.9rem;">Truy cập hệ thống quản trị KLTN2026 Shop</p>
+            </div>
+
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email Admin</label>
+                    <input type="email" id="email" class="form-input" placeholder="admin@kltn2026.com" required autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="password">Mật khẩu</label>
+                    <div class="password-container">
+                        <input type="password" id="password" class="form-input" placeholder="Nhập mật khẩu admin" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="password-toggle-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="checkbox-container">
+                    <input type="checkbox" id="remember">
+                    <label class="checkbox-label" for="remember">Ghi nhớ đăng nhập</label>
+                </div>
+
+                <button type="submit" class="login-btn" id="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập Admin
+                </button>
+            </form>
+
+            <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0.5rem;">
+                    <i class="fas fa-shield-alt"></i> Chỉ dành cho quản trị viên hệ thống
+                </p>
+                <a href="/" style="font-size: 0.85rem; color: #6366f1; text-decoration: none;">
+                    <i class="fas fa-arrow-left"></i> Về trang chủ
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification container -->
+    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Redirect if already logged in as admin
+        if (isLoggedIn() && getUser().vai_tro === 'admin') {
+            location.href = '/pages/admin/dashboard.html';
+        }
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('password-toggle-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.className = 'fas fa-eye';
+            }
+        }
+
+        // Simple toast function
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#6366f1'
+            };
+            
+            toast.style.cssText = `
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                font-size: 0.9rem;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease;
+            `;
+            
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => container.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+            const loginBtn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                showToast('Vui lòng nhập đầy đủ thông tin!', 'warning');
+                return;
+            }
+
+            // Show loading
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...';
+            loginBtn.disabled = true;
+
+            try {
+                const result = await api.post('/auth/login', {
+                    email: email,
+                    mat_khau: password
+                });
+
+                if (result.success) {
+                    // Check if user is admin
+                    if (result.data.user.vai_tro !== 'admin') {
+                        showToast('Tài khoản này không có quyền truy cập admin!', 'error');
+                        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập Admin';
+                        loginBtn.disabled = false;
+                        return;
+                    }
+
+                    // Store login info
+                    localStorage.setItem('token', result.data.token);
+                    localStorage.setItem('user', JSON.stringify(result.data.user));
+                    
+                    if (remember) {
+                        localStorage.setItem('remember_admin', 'true');
+                    }
+
+                    showToast('Đăng nhập admin thành công!', 'success');
+                    
+                    // Redirect to admin dashboard
+                    setTimeout(() => {
+                        location.href = '/pages/admin/dashboard.html';
+                    }, 1000);
+                } else {
+                    showToast(result.message || 'Email hoặc mật khẩu không đúng!', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('Có lỗi xảy ra, vui lòng thử lại!', 'error');
+            }
+
+            // Reset button
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập Admin';
+            loginBtn.disabled = false;
+        });
+
+        // Auto fill if remembered
+        if (localStorage.getItem('remember_admin')) {
+            document.getElementById('remember').checked = true;
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { opacity: 0; transform: translateX(100%); }
+                to { opacity: 1; transform: translateX(0); }
+            }
+            @keyframes slideOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(100%); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

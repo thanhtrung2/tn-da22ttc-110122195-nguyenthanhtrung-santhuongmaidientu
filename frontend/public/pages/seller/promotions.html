@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khuyến mãi - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass"><nav class="sidebar-menu">
+            <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+            <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/seller/promotions.html" class="active"><i class="fas fa-tags"></i> Khuyến mãi</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav></aside>
+        <main class="dashboard-content">
+            <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;">
+                <h1>🏷️ Khuyến mãi</h1>
+                <button class="btn btn-primary" onclick="document.getElementById('promo-form').style.display='block'"><i class="fas fa-plus"></i> Tạo mới</button>
+            </div>
+            <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;display:none;" id="promo-form">
+                <form onsubmit="savePromo(event)">
+                    <input type="hidden" id="p-id">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="form-group"><label>Tên khuyến mãi</label><input class="form-control" id="p-ten" required></div>
+                        <div class="form-group"><label>Loại</label><select class="form-control" id="p-loai"><option value="phan_tram">Phần trăm (%)</option><option value="co_dinh">Cố định (VND)</option></select></div>
+                        <div class="form-group"><label>Giá trị</label><input type="number" class="form-control" id="p-val" required></div>
+                        <div class="form-group"><label>Mô tả</label><input class="form-control" id="p-mota"></div>
+                        <div class="form-group"><label>Ngày bắt đầu</label><input type="date" class="form-control" id="p-start" required></div>
+                        <div class="form-group"><label>Ngày kết thúc</label><input type="date" class="form-control" id="p-end" required></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('promo-form').style.display='none'">Hủy</button>
+                </form>
+            </div>
+            <div id="promo-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+
+    async function loadPromos() {
+        const r = await api.get('/promotions');
+        const el = document.getElementById('promo-list');
+        if(!r.success||r.data.length===0) { el.innerHTML='<p style="text-align:center;color:var(--dark-400);padding:3rem;">Chưa có khuyến mãi</p>'; return; }
+        el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
+            <th>Tên</th><th>Loại</th><th>Giá trị</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th><th>Thao tác</th>
+        </tr></thead><tbody>${r.data.map(p => `<tr>
+            <td style="font-weight:500;color:var(--white);">${p.ten_khuyen_mai}</td>
+            <td>${p.loai==='phan_tram'?'Phần trăm':'Cố định'}</td>
+            <td style="color:var(--success);font-weight:600;">${p.loai==='phan_tram'?p.gia_tri+'%':formatPrice(p.gia_tri)}</td>
+            <td>${p.ngay_bat_dau}</td><td>${p.ngay_ket_thuc}</td>
+            <td><span class="status ${p.trang_thai==='active'?'status-active':'status-locked'}">${p.trang_thai==='active'?'Hoạt động':'Tắt'}</span></td>
+            <td><button class="btn btn-sm btn-danger" onclick="delPromo(${p.id})"><i class="fas fa-trash"></i></button></td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    async function savePromo(e) {
+        e.preventDefault();
+        const data = {
+            ten_khuyen_mai: document.getElementById('p-ten').value,
+            loai: document.getElementById('p-loai').value,
+            gia_tri: document.getElementById('p-val').value,
+            mo_ta: document.getElementById('p-mota').value,
+            ngay_bat_dau: document.getElementById('p-start').value,
+            ngay_ket_thuc: document.getElementById('p-end').value
+        };
+        const r = await api.post('/promotions', data);
+        if(r.success) { showToast('Tạo thành công!'); document.getElementById('promo-form').style.display='none'; loadPromos(); }
+        else showToast(r.message,'error');
+    }
+
+    async function delPromo(id) {
+        if(!confirm('Xóa khuyến mãi này?')) return;
+        const r = await api.delete(`/promotions/${id}`);
+        if(r.success) { showToast('Đã xóa!'); loadPromos(); }
+    }
+
+    loadPromos();
+    </script>
+</body>
+</html>

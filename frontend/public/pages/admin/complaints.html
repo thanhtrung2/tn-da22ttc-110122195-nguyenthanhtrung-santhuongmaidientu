@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khiếu nại - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass"><nav class="sidebar-menu">
+            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/admin/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/admin/complaints.html" class="active"><i class="fas fa-flag"></i> Khiếu nại</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav></aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">🚩 Quản lý khiếu nại</h1>
+            <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;">
+                <button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="load('')">Tất cả</button>
+                <button class="btn btn-sm btn-outline" onclick="load('cho_xu_ly')">Chờ xử lý</button>
+                <button class="btn btn-sm btn-outline" onclick="load('dang_xu_ly')">Đang xử lý</button>
+                <button class="btn btn-sm btn-outline" onclick="load('da_xu_ly')">Đã xử lý</button>
+                <button class="btn btn-sm btn-outline" onclick="load('tu_choi')">Từ chối</button>
+            </div>
+            <div id="complaints-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+
+            <!-- Handle Modal -->
+            <div id="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;display:none;align-items:center;justify-content:center;">
+                <div class="glass" style="width:500px;padding:2rem;">
+                    <h3 style="margin-bottom:1rem;">Xử lý khiếu nại #<span id="m-id"></span></h3>
+                    <div class="form-group"><label>Trạng thái</label>
+                        <select class="form-control" id="m-status">
+                            <option value="dang_xu_ly">Đang xử lý</option>
+                            <option value="da_xu_ly">Đã xử lý</option>
+                            <option value="tu_choi">Từ chối</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Phản hồi</label><textarea class="form-control" id="m-reply" rows="3" placeholder="Nhập phản hồi..."></textarea></div>
+                    <div style="display:flex;gap:1rem;">
+                        <button class="btn btn-primary" onclick="handleComplaint()"><i class="fas fa-save"></i> Lưu</button>
+                        <button class="btn btn-outline" onclick="closeModal()">Hủy</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+
+    const loaiLabels = {san_pham_loi:'SP lỗi',khong_dung_mo_ta:'Sai mô tả',cham_giao:'Chậm giao',thanh_toan:'Thanh toán',khac:'Khác'};
+    const ttLabels = {cho_xu_ly:'Chờ xử lý',dang_xu_ly:'Đang xử lý',da_xu_ly:'Đã xử lý',tu_choi:'Từ chối'};
+    const ttClass = {cho_xu_ly:'status-pending',dang_xu_ly:'status-shipping',da_xu_ly:'status-completed',tu_choi:'status-cancelled'};
+
+    async function load(status) {
+        const q = status ? `?trang_thai=${status}` : '';
+        const r = await api.get(`/complaints/all${q}`);
+        const el = document.getElementById('complaints-list');
+        if(!r.success||r.data.length===0) { el.innerHTML='<p style="text-align:center;color:var(--dark-400);padding:3rem;">Không có khiếu nại</p>'; return; }
+
+        el.innerHTML = r.data.map(c => `
+        <div class="glass-card" style="padding:1.5rem;margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <div>
+                    <strong>#${c.id}</strong> - Đơn #${c.don_hang_id}
+                    <span style="margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,0.15);color:#fbbf24;font-size:0.7rem;">${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span>
+                </div>
+                <span class="status ${ttClass[c.trang_thai]}">${ttLabels[c.trang_thai]}</span>
+            </div>
+            <div style="font-size:0.85rem;margin-bottom:8px;">
+                <strong>Người gửi:</strong> ${c.ten_nguoi_gui} (${c.email}) | <strong>Tổng tiền:</strong> ${formatPrice(c.tong_tien)}
+            </div>
+            <p style="font-size:0.85rem;color:var(--dark-300);padding:10px;background:var(--dark-900);border-radius:8px;margin-bottom:8px;">${c.mo_ta}</p>
+            ${c.phan_hoi_admin ? `<div style="font-size:0.85rem;padding:10px;background:rgba(99,102,241,0.1);border-radius:8px;"><strong style="color:var(--primary-light);">Phản hồi:</strong> ${c.phan_hoi_admin}</div>` : ''}
+            <div style="display:flex;justify-content:space-between;margin-top:8px;">
+                <span style="font-size:0.75rem;color:var(--dark-500);">${formatDate(c.ngay_tao)}</span>
+                <button class="btn btn-sm btn-primary" onclick="openModal(${c.id})"><i class="fas fa-edit"></i> Xử lý</button>
+            </div>
+        </div>`).join('');
+    }
+
+    let currentComplaintId = null;
+    function openModal(id) {
+        currentComplaintId = id;
+        document.getElementById('m-id').textContent = id;
+        document.getElementById('modal').style.display = 'flex';
+    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    async function handleComplaint() {
+        const r = await api.put(`/complaints/${currentComplaintId}`, {
+            trang_thai: document.getElementById('m-status').value,
+            phan_hoi_admin: document.getElementById('m-reply').value
+        });
+        if(r.success) { showToast('Cập nhật thành công!'); closeModal(); load(''); }
+        else showToast(r.message,'error');
+    }
+
+    load('');
+    </script>
+</body>
+</html>

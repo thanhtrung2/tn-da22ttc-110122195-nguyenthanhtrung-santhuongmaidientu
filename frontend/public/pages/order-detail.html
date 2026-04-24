@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết đơn hàng - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <div class="breadcrumb"><a href="/">Trang chủ</a> / <a href="/pages/orders.html">Đơn hàng</a> / <span>Chi tiết</span></div>
+            <h1 id="order-title">Chi tiết đơn hàng</h1>
+        </div>
+        <div id="order-content"><div class="spinner" style="margin:3rem auto;"></div></div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()) location.href='/pages/login.html';
+    const oid = new URLSearchParams(location.search).get('id');
+
+    // Check payment result
+    const payResult = new URLSearchParams(location.search).get('payment');
+    if(payResult === 'success') showToast('Thanh toán thành công!');
+    else if(payResult === 'failed') showToast('Thanh toán thất bại','error');
+
+    async function load() {
+        if(!oid) { location.href='/pages/orders.html'; return; }
+        const r = await api.get(`/orders/${oid}`);
+        if(!r.success) { location.href='/pages/orders.html'; return; }
+        const o = r.data;
+        document.getElementById('order-title').textContent = `Đơn hàng #${o.id}`;
+
+        const steps = ['cho_xac_nhan','da_xac_nhan','dang_giao','hoan_thanh'];
+        const stepLabels = ['Chờ xác nhận','Đã xác nhận','Đang giao','Hoàn thành'];
+        const stepIcons = ['fas fa-clock','fas fa-check','fas fa-truck','fas fa-flag-checkered'];
+        const currentIdx = o.trang_thai === 'da_huy' ? -1 : steps.indexOf(o.trang_thai);
+
+        document.getElementById('order-content').innerHTML = `
+        ${o.trang_thai !== 'da_huy' ? `
+        <div class="glass-card" style="padding:2rem;margin-bottom:1.5rem;">
+            <div class="order-timeline">
+                ${steps.map((s,i) => `
+                <div class="timeline-step ${i<currentIdx?'completed':''} ${i===currentIdx?'active':''}">
+                    <div class="step-icon"><i class="${stepIcons[i]}"></i></div>
+                    <div class="step-label">${stepLabels[i]}</div>
+                </div>`).join('')}
+            </div>
+        </div>` : '<div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;text-align:center;"><span class="status status-cancelled" style="font-size:1rem;padding:8px 20px;">Đã hủy</span></div>'}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+            <div class="glass-card" style="padding:1.5rem;">
+                <h3 style="font-size:1rem;margin-bottom:1rem;"><i class="fas fa-map-marker-alt" style="color:var(--danger)"></i> Thông tin giao hàng</h3>
+                <p style="font-size:0.85rem;color:var(--dark-300);line-height:1.8;">
+                    <strong>Địa chỉ:</strong> ${o.dia_chi_giao}<br>
+                    <strong>SĐT:</strong> ${o.so_dien_thoai}<br>
+                    ${o.ghi_chu ? `<strong>Ghi chú:</strong> ${o.ghi_chu}` : ''}
+                </p>
+            </div>
+            <div class="glass-card" style="padding:1.5rem;">
+                <h3 style="font-size:1rem;margin-bottom:1rem;"><i class="fas fa-info-circle" style="color:var(--primary-light)"></i> Thông tin đơn</h3>
+                <p style="font-size:0.85rem;color:var(--dark-300);line-height:1.8;">
+                    <strong>Gian hàng:</strong> ${o.ten_gian_hang}<br>
+                    <strong>Thanh toán:</strong> ${o.phuong_thuc_thanh_toan.toUpperCase()}<br>
+                    <strong>Trạng thái TT:</strong> <span style="color:${o.trang_thai_thanh_toan==='paid'?'var(--success)':'var(--warning)'}">${o.trang_thai_thanh_toan==='paid'?'Đã thanh toán':'Chưa thanh toán'}</span><br>
+                    <strong>Ngày tạo:</strong> ${formatDate(o.ngay_tao)}
+                </p>
+            </div>
+        </div>
+
+        <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+            <h3 style="font-size:1rem;margin-bottom:1rem;">Sản phẩm</h3>
+            ${o.items.map(item => `
+            <div style="display:flex;gap:1rem;align-items:center;padding:10px 0;border-bottom:1px solid var(--dark-700);">
+                <img src="${getProductImage(item.hinh_anh)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
+                <div style="flex:1;"><div style="font-weight:500;font-size:0.9rem;">${item.ten_san_pham}</div><div style="font-size:0.8rem;color:var(--dark-400);">x${item.so_luong}</div></div>
+                <div style="font-weight:700;color:var(--danger);">${formatPrice(item.gia * item.so_luong)}</div>
+            </div>`).join('')}
+            <div style="display:flex;justify-content:flex-end;padding-top:1rem;">
+                <div><strong style="font-family:'Outfit';font-size:1.3rem;color:var(--danger);">Tổng: ${formatPrice(o.tong_tien)}</strong></div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+            ${o.trang_thai === 'cho_xac_nhan' ? `<button class="btn btn-danger" onclick="cancelOrder()"><i class="fas fa-times"></i> Hủy đơn</button>` : ''}
+            ${o.trang_thai === 'hoan_thanh' ? `<a href="/pages/complaint.html?order_id=${o.id}" class="btn btn-warning"><i class="fas fa-flag"></i> Khiếu nại</a>` : ''}
+            ${o.trang_thai === 'hoan_thanh' ? `<button class="btn btn-primary" onclick="showReviewForm()"><i class="fas fa-star"></i> Đánh giá</button>` : ''}
+            <a href="/pages/orders.html" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+        </div>
+
+        <!-- Review Form -->
+        <div id="review-form" style="display:none;margin-top:1.5rem;">
+            <div class="glass-card" style="padding:1.5rem;">
+                <h3 style="margin-bottom:1rem;"><i class="fas fa-star" style="color:var(--warning)"></i> Đánh giá sản phẩm</h3>
+                ${o.items.map(item => `
+                <div style="padding:1rem 0;border-bottom:1px solid var(--dark-700);" id="review-item-${item.san_pham_id}">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <img src="${getProductImage(item.hinh_anh)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
+                        <strong style="font-size:0.85rem;">${item.ten_san_pham}</strong>
+                    </div>
+                    <div class="star-rating" data-pid="${item.san_pham_id}">
+                        ${[1,2,3,4,5].map(s => `<span class="star" data-v="${s}" onclick="setRating(${item.san_pham_id},${s})">★</span>`).join('')}
+                    </div>
+                    <textarea class="form-control" style="margin-top:8px;" placeholder="Viết bình luận..." id="comment-${item.san_pham_id}"></textarea>
+                    <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="submitReview(${item.san_pham_id})">Gửi đánh giá</button>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    }
+
+    function showReviewForm() { document.getElementById('review-form').style.display = 'block'; }
+
+    const ratings = {};
+    function setRating(pid, val) {
+        ratings[pid] = val;
+        document.querySelectorAll(`[data-pid="${pid}"] .star`).forEach(s => {
+            s.classList.toggle('filled', parseInt(s.dataset.v) <= val);
+        });
+    }
+
+    async function submitReview(pid) {
+        if(!ratings[pid]) { showToast('Vui lòng chọn số sao','warning'); return; }
+        const r = await api.post('/reviews', {
+            san_pham_id: pid, don_hang_id: oid,
+            so_sao: ratings[pid],
+            binh_luan: document.getElementById(`comment-${pid}`).value
+        });
+        if(r.success) {
+            showToast('Đánh giá thành công!');
+            document.getElementById(`review-item-${pid}`).innerHTML = '<p style="color:var(--success);"><i class="fas fa-check"></i> Đã đánh giá</p>';
+        } else showToast(r.message,'error');
+    }
+
+    async function cancelOrder() {
+        if(!confirm('Bạn chắc chắn muốn hủy đơn?')) return;
+        const r = await api.put(`/orders/${oid}/cancel`);
+        if(r.success) { showToast('Đã hủy đơn hàng'); load(); }
+        else showToast(r.message,'error');
+    }
+
+    load();
+    </script>
+</body>
+</html>

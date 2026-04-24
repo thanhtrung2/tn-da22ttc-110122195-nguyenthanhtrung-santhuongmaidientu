@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html" class="active"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/admin/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">🎯 Admin Dashboard</h1>
+            <div class="stats-grid" id="stats"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;">
+                <div class="glass-card" style="padding:1.5rem;">
+                    <h3 style="font-size:1rem;margin-bottom:1rem;">Đơn hàng gần đây</h3>
+                    <div id="recent-orders"></div>
+                </div>
+                <div class="glass-card" style="padding:1.5rem;">
+                    <h3 style="font-size:1rem;margin-bottom:1rem;">Doanh thu hệ thống</h3>
+                    <div id="revenue-chart"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    // Check admin access
+    if(!isLoggedIn() || getUser().vai_tro !== 'admin') {
+        location.href = '/pages/admin/login.html';
+    }
+
+    async function load() {
+        const r = await api.get('/admin/dashboard');
+        if(!r.success) return;
+        const d = r.data;
+
+        const userStats = {};
+        (d.users||[]).forEach(u => userStats[u.vai_tro] = u.total);
+        const orderStats = {};
+        (d.orders||[]).forEach(o => orderStats[o.trang_thai] = o.total);
+        const totalOrders = (d.orders||[]).reduce((a,b)=>a+b.total,0);
+
+        document.getElementById('stats').innerHTML = `
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--success);"><i class="fas fa-dollar-sign"></i></div>
+                <div class="stat-info"><h3>${formatPrice(d.revenue)}</h3><p>Tổng doanh thu</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light);"><i class="fas fa-users"></i></div>
+                <div class="stat-info"><h3>${(userStats.customer||0)+(userStats.seller||0)+(userStats.admin||0)}</h3><p>Người dùng</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fas fa-store"></i></div>
+                <div class="stat-info"><h3>${d.shops}</h3><p>Gian hàng</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--secondary);"><i class="fas fa-box"></i></div>
+                <div class="stat-info"><h3>${d.products}</h3><p>Sản phẩm</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent);"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info"><h3>${totalOrders}</h3><p>Đơn hàng</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(239,68,68,0.15);color:var(--danger);"><i class="fas fa-flag"></i></div>
+                <div class="stat-info"><h3>${d.pendingComplaints}</h3><p>Khiếu nại chờ</p></div></div>`;
+
+        document.getElementById('recent-orders').innerHTML = (d.recentOrders||[]).slice(0,8).map(o => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--dark-700);font-size:0.8rem;">
+                <span>#${o.id} ${o.ho_ten}</span>
+                <span class="status ${getStatusClass(o.trang_thai)}" style="font-size:0.7rem;">${getStatusLabel(o.trang_thai)}</span>
+                <span style="font-weight:600;color:var(--danger);">${formatPrice(o.tong_tien)}</span>
+            </div>`).join('') || '<p style="color:var(--dark-500);">Chưa có</p>';
+
+        document.getElementById('revenue-chart').innerHTML = (d.monthlyRevenue||[]).map(m => {
+            const max = Math.max(...d.monthlyRevenue.map(x=>x.doanh_thu));
+            const pct = max>0?(m.doanh_thu/max*100):0;
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="width:60px;font-size:0.75rem;">${m.thang}</span>
+                <div style="flex:1;height:20px;background:var(--dark-700);border-radius:4px;overflow:hidden;">
+                    <div style="height:100%;width:${pct}%;background:var(--gradient-primary);border-radius:4px;"></div>
+                </div>
+                <span style="font-size:0.7rem;width:100px;text-align:right;">${formatPrice(m.doanh_thu)}</span>
+            </div>`;
+        }).join('') || '<p style="color:var(--dark-500);">Chưa có</p>';
+    }
+    load();
+    </script>
+</body>
+</html>

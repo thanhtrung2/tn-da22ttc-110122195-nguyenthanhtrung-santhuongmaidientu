@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý sản phẩm - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+    <div class="dashboard-layout" style="padding-left:2rem;padding-right:2rem;">
+        <aside class="sidebar glass">
+            <nav class="sidebar-menu">
+                <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+                <a href="/pages/seller/products.html" class="active"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+                <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                <h1>📦 Quản lý sản phẩm</h1>
+                <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Thêm sản phẩm</button>
+            </div>
+
+            <!-- Add/Edit Form -->
+            <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;display:none;" id="product-form">
+                <h3 id="form-title" style="margin-bottom:1rem;">Thêm sản phẩm mới</h3>
+                <form onsubmit="saveProduct(event)" enctype="multipart/form-data">
+                    <input type="hidden" id="edit-id">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="form-group"><label>Tên sản phẩm *</label><input class="form-control" id="f-ten" required></div>
+                        <div class="form-group"><label>Danh mục</label><select class="form-control" id="f-dm"></select></div>
+                        <div class="form-group"><label>Giá (VND) *</label><input type="number" class="form-control" id="f-gia" required></div>
+                        <div class="form-group"><label>Giá khuyến mãi</label><input type="number" class="form-control" id="f-giakm"></div>
+                        <div class="form-group"><label>Số lượng tồn *</label><input type="number" class="form-control" id="f-sl" required></div>
+                        <div class="form-group"><label>Hình ảnh</label><input type="file" class="form-control" id="f-img" accept="image/*"></div>
+                    </div>
+                    <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="f-mota" rows="3"></textarea></div>
+                    <div style="display:flex;gap:1rem;">
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+                        <button type="button" class="btn btn-outline" onclick="hideForm()">Hủy</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-container" id="products-table"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+
+    async function loadCategories() {
+        const r = await api.get('/products/categories');
+        if(r.success) {
+            document.getElementById('f-dm').innerHTML = '<option value="">-- Chọn --</option>' +
+                r.data.map(c => `<option value="${c.id}">${c.ten_danh_muc}</option>`).join('');
+        }
+    }
+
+    async function loadProducts() {
+        const r = await api.get('/products/my-products');
+        const el = document.getElementById('products-table');
+        if(!r.success||r.data.length===0) { el.innerHTML='<div class="glass-card" style="padding:3rem;text-align:center;"><p style="color:var(--dark-400);">Chưa có sản phẩm. Nhấn "Thêm sản phẩm" để bắt đầu!</p></div>'; return; }
+
+        el.innerHTML = `<table class="data-table"><thead><tr>
+            <th>Hình</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Giá</th><th>Tồn kho</th><th>Trạng thái</th><th>Thao tác</th>
+        </tr></thead><tbody>${r.data.map(p => `<tr>
+            <td><img src="${getProductImage(p.hinh_anh)}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;"></td>
+            <td style="font-weight:500;color:var(--white);">${p.ten_san_pham}</td>
+            <td>${p.ten_danh_muc||'-'}</td>
+            <td style="color:var(--danger);font-weight:600;">${formatPrice(p.gia)}${p.gia_khuyen_mai?'<br><small style="color:var(--success)">KM: '+formatPrice(p.gia_khuyen_mai)+'</small>':''}</td>
+            <td>${p.so_luong_ton}</td>
+            <td><span class="status ${p.trang_thai==='active'?'status-active':'status-locked'}">${p.trang_thai==='active'?'Đang bán':'Ẩn'}</span></td>
+            <td><button class="btn btn-sm btn-outline" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})" style="margin-left:4px;"><i class="fas fa-trash"></i></button></td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+
+    function showAddForm() { document.getElementById('product-form').style.display='block'; document.getElementById('form-title').textContent='Thêm sản phẩm mới'; document.getElementById('edit-id').value=''; }
+    function hideForm() { document.getElementById('product-form').style.display='none'; }
+
+    async function editProduct(id) {
+        const r = await api.get(`/products/${id}`);
+        if(!r.success) return;
+        const p = r.data;
+        document.getElementById('edit-id').value = id;
+        document.getElementById('f-ten').value = p.ten_san_pham;
+        document.getElementById('f-dm').value = p.danh_muc_id||'';
+        document.getElementById('f-gia').value = p.gia;
+        document.getElementById('f-giakm').value = p.gia_khuyen_mai||'';
+        document.getElementById('f-sl').value = p.so_luong_ton;
+        document.getElementById('f-mota').value = p.mo_ta||'';
+        document.getElementById('form-title').textContent = 'Sửa sản phẩm';
+        document.getElementById('product-form').style.display = 'block';
+    }
+
+    async function saveProduct(e) {
+        e.preventDefault();
+        const id = document.getElementById('edit-id').value;
+        const fd = new FormData();
+        fd.append('ten_san_pham', document.getElementById('f-ten').value);
+        fd.append('danh_muc_id', document.getElementById('f-dm').value);
+        fd.append('gia', document.getElementById('f-gia').value);
+        fd.append('gia_khuyen_mai', document.getElementById('f-giakm').value);
+        fd.append('so_luong_ton', document.getElementById('f-sl').value);
+        fd.append('mo_ta', document.getElementById('f-mota').value);
+        const file = document.getElementById('f-img').files[0];
+        if(file) fd.append('hinh_anh', file);
+
+        const r = id ? await api.put(`/products/${id}`, fd) : await api.post('/products', fd);
+        if(r.success) { showToast(id?'Cập nhật thành công!':'Thêm sản phẩm thành công!'); hideForm(); loadProducts(); }
+        else showToast(r.message,'error');
+    }
+
+    async function deleteProduct(id) {
+        if(!confirm('Xóa sản phẩm này?')) return;
+        const r = await api.delete(`/products/${id}`);
+        if(r.success) { showToast('Đã xóa!'); loadProducts(); } else showToast(r.message,'error');
+    }
+
+    loadCategories(); loadProducts();
+    </script>
+</body>
+</html>

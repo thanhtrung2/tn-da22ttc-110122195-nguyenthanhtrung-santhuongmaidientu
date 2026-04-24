@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn hàng - Seller - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <nav class="sidebar-menu">
+                <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+                <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/seller/orders.html" class="active"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+                <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">🛒 Quản lý đơn hàng</h1>
+            <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="loadOrders('')">Tất cả</button>
+                <button class="btn btn-sm btn-outline" onclick="loadOrders('cho_xac_nhan')">Chờ xác nhận</button>
+                <button class="btn btn-sm btn-outline" onclick="loadOrders('da_xac_nhan')">Đã xác nhận</button>
+                <button class="btn btn-sm btn-outline" onclick="loadOrders('dang_giao')">Đang giao</button>
+                <button class="btn btn-sm btn-outline" onclick="loadOrders('hoan_thanh')">Hoàn thành</button>
+            </div>
+            <div id="orders-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+
+    async function loadOrders(status) {
+        const q = status ? `?trang_thai=${status}` : '';
+        const r = await api.get(`/orders/shop-orders${q}`);
+        const el = document.getElementById('orders-list');
+        if(!r.success||r.data.length===0) { el.innerHTML='<p style="text-align:center;color:var(--dark-400);padding:3rem;">Không có đơn hàng</p>'; return; }
+
+        el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
+            <th>Mã</th><th>Khách hàng</th><th>SĐT</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Ngày</th><th>Thao tác</th>
+        </tr></thead><tbody>${r.data.map(o => `<tr>
+            <td><strong>#${o.id}</strong></td>
+            <td>${o.ten_nguoi_mua}</td>
+            <td>${o.sdt_nguoi_mua||o.so_dien_thoai}</td>
+            <td style="color:var(--danger);font-weight:600;">${formatPrice(o.tong_tien)}</td>
+            <td><span style="color:${o.trang_thai_thanh_toan==='paid'?'var(--success)':'var(--warning)'}">${o.trang_thai_thanh_toan==='paid'?'Đã TT':'Chưa TT'}</span></td>
+            <td><span class="status ${getStatusClass(o.trang_thai)}">${getStatusLabel(o.trang_thai)}</span></td>
+            <td style="font-size:0.8rem;">${formatDate(o.ngay_tao)}</td>
+            <td>
+                ${o.trang_thai==='cho_xac_nhan'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'da_xac_nhan')"><i class="fas fa-check"></i></button>`:''}
+                ${o.trang_thai==='da_xac_nhan'?`<button class="btn btn-sm btn-warning" onclick="updateStatus(${o.id},'dang_giao')"><i class="fas fa-truck"></i></button>`:''}
+                ${o.trang_thai==='dang_giao'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'hoan_thanh')"><i class="fas fa-flag-checkered"></i></button>`:''}
+                <a href="/pages/order-detail.html?id=${o.id}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i></a>
+            </td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    async function updateStatus(id, status) {
+        const labels = {da_xac_nhan:'xác nhận',dang_giao:'chuyển sang giao hàng',hoan_thanh:'hoàn thành'};
+        if(!confirm(`Bạn muốn ${labels[status]} đơn #${id}?`)) return;
+        const r = await api.put(`/orders/${id}/status`, {trang_thai: status});
+        if(r.success) { showToast('Cập nhật thành công!'); loadOrders(''); } else showToast(r.message,'error');
+    }
+
+    loadOrders('');
+    </script>
+</body>
+</html>

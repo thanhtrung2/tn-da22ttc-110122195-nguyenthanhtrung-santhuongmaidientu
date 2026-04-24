@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sản phẩm - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-search"><i class="fas fa-search"></i>
+            <input type="text" id="search-input" placeholder="Tìm kiếm sản phẩm..." onkeypress="if(event.key==='Enter') applyFilters()">
+        </div>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1 id="page-title">Tất cả sản phẩm</h1>
+            <div class="breadcrumb"><a href="/">Trang chủ</a> / <span id="breadcrumb-text">Sản phẩm</span></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="glass" style="padding:1.2rem 1.5rem;margin-bottom:2rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
+            <select class="form-control" style="width:auto;min-width:180px;" id="filter-category" onchange="applyFilters()">
+                <option value="">Tất cả danh mục</option>
+            </select>
+            <select class="form-control" style="width:auto;min-width:160px;" id="filter-sort" onchange="applyFilters()">
+                <option value="newest">Mới nhất</option>
+                <option value="popular">Phổ biến</option>
+                <option value="price_asc">Giá thấp → cao</option>
+                <option value="price_desc">Giá cao → thấp</option>
+                <option value="rating">Đánh giá cao</option>
+            </select>
+            <input type="number" class="form-control" style="width:auto;max-width:140px;" id="filter-min" placeholder="Giá từ..." onchange="applyFilters()">
+            <input type="number" class="form-control" style="width:auto;max-width:140px;" id="filter-max" placeholder="Giá đến..." onchange="applyFilters()">
+            <span id="result-count" style="margin-left:auto;font-size:0.85rem;color:var(--dark-400);"></span>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid" id="products-grid"></div>
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        let currentPage = 1;
+
+        // Parse URL params
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('search')) document.getElementById('search-input').value = params.get('search');
+        if (params.get('danh_muc_id')) document.getElementById('filter-category').value = params.get('danh_muc_id');
+
+        // Load categories  
+        async function loadCategories() {
+            const result = await api.get('/products/categories');
+            if (result.success) {
+                const select = document.getElementById('filter-category');
+                result.data.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.ten_danh_muc}</option>`;
+                });
+                if (params.get('danh_muc_id')) {
+                    select.value = params.get('danh_muc_id');
+                    const cat = result.data.find(c => c.id == params.get('danh_muc_id'));
+                    if (cat) {
+                        document.getElementById('page-title').textContent = cat.ten_danh_muc;
+                        document.getElementById('breadcrumb-text').textContent = cat.ten_danh_muc;
+                    }
+                }
+            }
+        }
+
+        async function loadProducts(page = 1) {
+            currentPage = page;
+            const grid = document.getElementById('products-grid');
+            showLoading(grid);
+
+            const query = {
+                search: document.getElementById('search-input').value,
+                danh_muc_id: document.getElementById('filter-category').value,
+                sort: document.getElementById('filter-sort').value,
+                min_gia: document.getElementById('filter-min').value,
+                max_gia: document.getElementById('filter-max').value,
+                page: page,
+                limit: 12
+            };
+
+            Object.keys(query).forEach(k => !query[k] && delete query[k]);
+            const qs = new URLSearchParams(query).toString();
+            const result = await api.get(`/products?${qs}`);
+
+            if (result.success) {
+                document.getElementById('result-count').textContent = `${result.pagination.total} sản phẩm`;
+                if (result.data.length > 0) {
+                    grid.innerHTML = result.data.map(p => {
+                        const hasDiscount = p.gia_khuyen_mai && p.gia_khuyen_mai < p.gia;
+                        const price = hasDiscount ? p.gia_khuyen_mai : p.gia;
+                        const discount = hasDiscount ? Math.round((1 - p.gia_khuyen_mai/p.gia) * 100) : 0;
+                        return `
+                        <div class="glass-card product-card" onclick="location.href='/pages/product-detail.html?id=${p.id}'">
+                            ${hasDiscount ? `<div class="badge badge-sale">-${discount}%</div>` : ''}
+                            <div class="image-wrapper">
+                                <img src="${getProductImage(p.hinh_anh)}" alt="${p.ten_san_pham}" loading="lazy">
+                            </div>
+                            <div class="card-body">
+                                <div class="shop-name"><i class="fas fa-store"></i> ${p.ten_gian_hang || ''}</div>
+                                <div class="product-name">${p.ten_san_pham}</div>
+                                <div class="price-row">
+                                    <span class="price">${formatPrice(price)}</span>
+                                    ${hasDiscount ? `<span class="original-price">${formatPrice(p.gia)}</span>` : ''}
+                                </div>
+                                <div class="rating">${renderStars(p.diem_trung_binh, p.so_danh_gia)}</div>
+                            </div>
+                            <button class="add-to-cart" onclick="event.stopPropagation();addToCartQ(${p.id})" title="Thêm vào giỏ">
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </div>`;
+                    }).join('');
+                } else {
+                    grid.innerHTML = '<p style="text-align:center;color:var(--dark-400);grid-column:1/-1;padding:3rem;">Không tìm thấy sản phẩm nào</p>';
+                }
+                renderPagination(result.pagination);
+            }
+        }
+
+        function renderPagination(p) {
+            const container = document.getElementById('pagination');
+            if (p.totalPages <= 1) { container.innerHTML = ''; return; }
+            let html = '';
+            if (p.page > 1) html += `<button onclick="loadProducts(${p.page-1})"><i class="fas fa-chevron-left"></i></button>`;
+            for (let i = 1; i <= p.totalPages; i++) {
+                if (i === 1 || i === p.totalPages || Math.abs(i - p.page) <= 2) {
+                    html += `<button class="${i === p.page ? 'active' : ''}" onclick="loadProducts(${i})">${i}</button>`;
+                } else if (Math.abs(i - p.page) === 3) {
+                    html += `<button disabled>...</button>`;
+                }
+            }
+            if (p.page < p.totalPages) html += `<button onclick="loadProducts(${p.page+1})"><i class="fas fa-chevron-right"></i></button>`;
+            container.innerHTML = html;
+        }
+
+        function applyFilters() { loadProducts(1); }
+
+        async function addToCartQ(id) {
+            if (!isLoggedIn()) { showToast('Vui lòng đăng nhập','warning'); return; }
+            const r = await api.post('/cart', { san_pham_id: id, so_luong: 1 });
+            if (r.success) { showToast('Đã thêm vào giỏ hàng!'); updateCartCount(); }
+            else showToast(r.message,'error');
+        }
+
+        loadCategories();
+        loadProducts();
+    </script>
+</body>
+</html>

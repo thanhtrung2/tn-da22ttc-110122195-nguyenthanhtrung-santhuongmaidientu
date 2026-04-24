@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khiếu nại - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+    <div class="page-container">
+        <div class="page-header"><h1><i class="fas fa-flag"></i> Khiếu nại</h1></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+            <div class="glass-card" style="padding:2rem;">
+                <h3 style="margin-bottom:1.5rem;">Gửi khiếu nại mới</h3>
+                <form onsubmit="submitComplaint(event)">
+                    <div class="form-group"><label>Mã đơn hàng</label><input class="form-control" id="order_id" type="number" placeholder="Nhập mã đơn hàng..." required></div>
+                    <div class="form-group"><label>Loại khiếu nại</label>
+                        <select class="form-control" id="loai" required>
+                            <option value="">-- Chọn loại --</option>
+                            <option value="san_pham_loi">Sản phẩm lỗi</option>
+                            <option value="khong_dung_mo_ta">Không đúng mô tả</option>
+                            <option value="cham_giao">Chậm giao hàng</option>
+                            <option value="thanh_toan">Vấn đề thanh toán</option>
+                            <option value="khac">Khác</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Mô tả chi tiết</label><textarea class="form-control" id="mota" rows="4" required placeholder="Mô tả vấn đề bạn gặp phải..."></textarea></div>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i> Gửi khiếu nại</button>
+                </form>
+            </div>
+            <div>
+                <h3 style="margin-bottom:1rem;">Lịch sử khiếu nại</h3>
+                <div id="complaints-list"><div class="spinner" style="margin:2rem auto;"></div></div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()) location.href='/pages/login.html';
+    const p = new URLSearchParams(location.search);
+    if(p.get('order_id')) document.getElementById('order_id').value = p.get('order_id');
+
+    const loaiLabels = {san_pham_loi:'Sản phẩm lỗi',khong_dung_mo_ta:'Không đúng mô tả',cham_giao:'Chậm giao',thanh_toan:'Thanh toán',khac:'Khác'};
+    const ttLabels = {cho_xu_ly:'Chờ xử lý',dang_xu_ly:'Đang xử lý',da_xu_ly:'Đã xử lý',tu_choi:'Từ chối'};
+    const ttClass = {cho_xu_ly:'status-pending',dang_xu_ly:'status-shipping',da_xu_ly:'status-completed',tu_choi:'status-cancelled'};
+
+    async function loadComplaints() {
+        const r = await api.get('/complaints');
+        const el = document.getElementById('complaints-list');
+        if(!r.success || r.data.length===0) { el.innerHTML='<p style="color:var(--dark-400);text-align:center;">Chưa có khiếu nại</p>'; return; }
+        el.innerHTML = r.data.map(c => `
+        <div class="glass-card" style="padding:1.2rem;margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:0.8rem;color:var(--dark-400);">Đơn #${c.don_hang_id} - ${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span>
+                <span class="status ${ttClass[c.trang_thai]}">${ttLabels[c.trang_thai]}</span>
+            </div>
+            <p style="font-size:0.85rem;color:var(--dark-300);margin-bottom:6px;">${c.mo_ta}</p>
+            ${c.phan_hoi_admin ? `<div style="padding:8px 12px;background:var(--dark-900);border-radius:8px;font-size:0.8rem;"><strong style="color:var(--primary-light);">Admin:</strong> ${c.phan_hoi_admin}</div>` : ''}
+            <div style="font-size:0.7rem;color:var(--dark-500);margin-top:6px;">${formatDate(c.ngay_tao)}</div>
+        </div>`).join('');
+    }
+
+    async function submitComplaint(e) {
+        e.preventDefault();
+        const r = await api.post('/complaints', {
+            don_hang_id: document.getElementById('order_id').value,
+            loai_khieu_nai: document.getElementById('loai').value,
+            mo_ta: document.getElementById('mota').value
+        });
+        if(r.success) { showToast('Gửi khiếu nại thành công!'); e.target.reset(); loadComplaints(); }
+        else showToast(r.message,'error');
+    }
+    loadComplaints();
+    </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gian hàng - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <nav class="sidebar-menu">
+                <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+                <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+                <a href="/pages/seller/shop.html" class="active"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">🏪 Quản lý gian hàng</h1>
+            <div class="glass-card" style="padding:2rem;" id="shop-content">
+                <div class="spinner" style="margin:3rem auto;"></div>
+            </div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+
+    async function loadShop() {
+        const r = await api.get('/shops/my-shop');
+        const el = document.getElementById('shop-content');
+        if(!r.success) {
+            el.innerHTML = `<div style="text-align:center;padding:2rem;">
+                <h3 style="margin-bottom:1rem;">Bạn chưa có gian hàng</h3>
+                <p style="color:var(--dark-400);margin-bottom:1.5rem;">Tạo gian hàng để bắt đầu bán hàng</p>
+                <form onsubmit="createShop(event)">
+                    <div class="form-group"><label>Tên gian hàng *</label><input class="form-control" id="s-ten" required></div>
+                    <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="s-mota" rows="3"></textarea></div>
+                    <div class="form-group"><label>Địa chỉ</label><input class="form-control" id="s-dc"></div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-store"></i> Tạo gian hàng</button>
+                </form>
+            </div>`;
+            return;
+        }
+        const s = r.data;
+        el.innerHTML = `
+            <form onsubmit="updateShop(event)">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div class="form-group"><label>Tên gian hàng</label><input class="form-control" id="s-ten" value="${s.ten_gian_hang}"></div>
+                    <div class="form-group"><label>Địa chỉ</label><input class="form-control" id="s-dc" value="${s.dia_chi||''}"></div>
+                </div>
+                <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="s-mota" rows="3">${s.mo_ta||''}</textarea></div>
+                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+                    <span class="status ${s.trang_thai==='active'?'status-active':'status-locked'}">${s.trang_thai==='active'?'Đang hoạt động':'Không hoạt động'}</span>
+                    <span style="font-size:0.85rem;color:var(--dark-400);">Ngày tạo: ${formatDate(s.ngay_tao)}</span>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Cập nhật</button>
+            </form>`;
+    }
+
+    async function createShop(e) {
+        e.preventDefault();
+        const r = await api.post('/shops', {
+            ten_gian_hang: document.getElementById('s-ten').value,
+            mo_ta: document.getElementById('s-mota').value,
+            dia_chi: document.getElementById('s-dc').value
+        });
+        if(r.success) { showToast('Tạo gian hàng thành công!'); loadShop(); } else showToast(r.message,'error');
+    }
+
+    async function updateShop(e) {
+        e.preventDefault();
+        const r = await api.put('/shops', {
+            ten_gian_hang: document.getElementById('s-ten').value,
+            mo_ta: document.getElementById('s-mota').value,
+            dia_chi: document.getElementById('s-dc').value
+        });
+        if(r.success) showToast('Cập nhật thành công!'); else showToast(r.message,'error');
+    }
+
+    loadShop();
+    </script>
+</body>
+</html>

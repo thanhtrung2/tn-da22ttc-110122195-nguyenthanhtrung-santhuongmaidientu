@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản trị viên - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background-color: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .admin-login-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .admin-brand {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--primary-light);
+        }
+        .admin-subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+        .form-control {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            color: white;
+        }
+        .form-control:focus {
+            border-color: var(--primary-light);
+        }
+        .btn-admin {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+        .btn-admin:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-card">
+        <div class="admin-brand"><i class="fas fa-shield-alt"></i> VIPO ADMIN</div>
+        <div class="admin-subtitle">Cổng đăng nhập Quản Trị Viên</div>
+
+        <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Email Quản Trị</label>
+                <input type="email" class="form-control" id="email" value="admin@kltn2026.com" required>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                <div style="position:relative;">
+                    <input type="password" class="form-control" id="password" value="123456" required>
+                    <button type="button" onclick="togglePassword()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;">
+                        <i class="fas fa-eye" id="toggle-pw-icon"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="error-msg" style="color:var(--danger);font-size:0.85rem;margin-bottom:1rem;display:none;text-align:center;"></div>
+            
+            <button type="submit" class="btn-admin" id="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Đăng nhập hệ thống
+            </button>
+        </form>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        if (isLoggedIn() && getUser().vai_tro === 'admin') {
+            window.location.href = '/pages/admin/dashboard.html';
+        }
+
+        function togglePassword() {
+            const pw = document.getElementById('password');
+            const icon = document.getElementById('toggle-pw-icon');
+            if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+            else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+        }
+
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('error-msg');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xác thực...';
+            errorMsg.style.display = 'none';
+
+            const result = await api.post('/auth/login', {
+                email: document.getElementById('email').value,
+                mat_khau: document.getElementById('password').value
+            });
+
+            if (result.success) {
+                if (result.data.user.vai_tro !== 'admin') {
+                    errorMsg.textContent = "Lỗi: Tài khoản này không có quyền quản trị viên!";
+                    errorMsg.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập hệ thống';
+                    return;
+                }
+                auth.login(result.data.token, result.data.user);
+                showToast('Đăng nhập Quản Trị thành công!');
+                setTimeout(() => {
+                    window.location.href = '/pages/admin/dashboard.html';
+                }, 500);
+            } else {
+                errorMsg.textContent = "Lỗi: " + result.message;
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập hệ thống';
+            }
+        }
+    </script>
+</body>
+</html>

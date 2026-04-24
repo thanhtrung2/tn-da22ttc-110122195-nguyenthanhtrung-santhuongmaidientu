@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý người dùng - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass"><nav class="sidebar-menu">
+            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/pages/admin/users.html" class="active"><i class="fas fa-users"></i> Người dùng</a>
+            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/admin/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav></aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">👥 Quản lý người dùng</h1>
+            <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <input class="form-control" style="max-width:250px;" placeholder="Tìm kiếm..." id="search" oninput="loadUsers()">
+                <select class="form-control" style="width:auto;" id="role-filter" onchange="loadUsers()">
+                    <option value="">Tất cả</option><option value="customer">Customer</option><option value="seller">Seller</option><option value="admin">Admin</option>
+                </select>
+            </div>
+            <div id="users-table"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+    const roleLabel = {admin:'Admin',seller:'Người bán',customer:'Khách hàng'};
+    const roleColor = {admin:'var(--danger)',seller:'var(--warning)',customer:'var(--primary-light)'};
+
+    async function loadUsers() {
+        const search = document.getElementById('search').value;
+        const role = document.getElementById('role-filter').value;
+        let q = '?';
+        if(search) q += `search=${search}&`;
+        if(role) q += `vai_tro=${role}`;
+        const r = await api.get(`/admin/users${q}`);
+        const el = document.getElementById('users-table');
+        if(!r.success) return;
+
+        el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
+            <th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
+        </tr></thead><tbody>${r.data.map(u => `<tr>
+            <td>${u.id}</td>
+            <td style="font-weight:500;color:var(--white);">${u.ho_ten}</td>
+            <td>${u.email}</td>
+            <td>${u.so_dien_thoai||'-'}</td>
+            <td><span style="color:${roleColor[u.vai_tro]};font-weight:600;">${roleLabel[u.vai_tro]}</span></td>
+            <td><span class="status ${u.trang_thai==='active'?'status-active':'status-locked'}">${u.trang_thai==='active'?'Hoạt động':'Đã khóa'}</span></td>
+            <td style="font-size:0.8rem;">${formatDate(u.ngay_tao)}</td>
+            <td>${u.vai_tro!=='admin'?`<button class="btn btn-sm ${u.trang_thai==='active'?'btn-danger':'btn-success'}" onclick="toggleUser(${u.id},'${u.trang_thai==='active'?'locked':'active'}')">
+                <i class="fas fa-${u.trang_thai==='active'?'lock':'lock-open'}"></i>
+            </button>`:''}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    async function toggleUser(id, status) {
+        const action = status==='locked'?'khóa':'mở khóa';
+        if(!confirm(`${action} tài khoản #${id}?`)) return;
+        const r = await api.put(`/admin/users/${id}/status`, {trang_thai: status});
+        if(r.success) { showToast(`Đã ${action} tài khoản!`); loadUsers(); } else showToast(r.message,'error');
+    }
+
+    loadUsers();
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài khoản - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+    <div class="page-container">
+        <div class="page-header"><h1><i class="fas fa-user-circle"></i> Tài khoản của tôi</h1></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+            <div class="glass-card" style="padding:2rem;">
+                <h3 style="margin-bottom:1.5rem;">Thông tin cá nhân</h3>
+                <form onsubmit="updateProfile(event)">
+                    <div class="form-group"><label>Họ tên</label><input class="form-control" id="ho_ten"></div>
+                    <div class="form-group"><label>Email</label><input class="form-control" id="email" disabled></div>
+                    <div class="form-group"><label>Số điện thoại</label><input class="form-control" id="sdt"></div>
+                    <div class="form-group"><label>Địa chỉ</label><textarea class="form-control" id="dia_chi" rows="3"></textarea></div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu thay đổi</button>
+                </form>
+            </div>
+            <div class="glass-card" style="padding:2rem;">
+                <h3 style="margin-bottom:1.5rem;">Đổi mật khẩu</h3>
+                <form onsubmit="changePw(event)">
+                    <div class="form-group"><label>Mật khẩu hiện tại</label><input type="password" class="form-control" id="old_pw" required></div>
+                    <div class="form-group"><label>Mật khẩu mới</label><input type="password" class="form-control" id="new_pw" required minlength="6"></div>
+                    <div class="form-group"><label>Xác nhận mật khẩu mới</label><input type="password" class="form-control" id="confirm_pw" required></div>
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-key"></i> Đổi mật khẩu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()) location.href='/pages/login.html';
+    async function loadProfile() {
+        const r = await api.get('/auth/profile');
+        if(r.success) {
+            document.getElementById('ho_ten').value = r.data.ho_ten||'';
+            document.getElementById('email').value = r.data.email||'';
+            document.getElementById('sdt').value = r.data.so_dien_thoai||'';
+            document.getElementById('dia_chi').value = r.data.dia_chi||'';
+        }
+    }
+    async function updateProfile(e) {
+        e.preventDefault();
+        const r = await api.put('/users/profile', {
+            ho_ten: document.getElementById('ho_ten').value,
+            so_dien_thoai: document.getElementById('sdt').value,
+            dia_chi: document.getElementById('dia_chi').value
+        });
+        if(r.success) showToast('Cập nhật thành công!'); else showToast(r.message,'error');
+    }
+    async function changePw(e) {
+        e.preventDefault();
+        if(document.getElementById('new_pw').value !== document.getElementById('confirm_pw').value) {
+            showToast('Mật khẩu xác nhận không khớp','error'); return;
+        }
+        const r = await api.put('/users/change-password', {
+            mat_khau_cu: document.getElementById('old_pw').value,
+            mat_khau_moi: document.getElementById('new_pw').value
+        });
+        if(r.success) { showToast('Đổi mật khẩu thành công!'); e.target.reset(); }
+        else showToast(r.message,'error');
+    }
+    loadProfile();
+    </script>
+</body>
+</html>

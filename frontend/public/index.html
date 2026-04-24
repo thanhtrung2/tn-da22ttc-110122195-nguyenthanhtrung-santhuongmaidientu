@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vipo - Sàn Thương Mại Điện Tử</title>
+    <meta name="description" content="Sàn thương mại điện tử đa người bán - Mua sắm trực tuyến uy tín, giá tốt nhất">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css?v=2">
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">
+                <i class="fas fa-shopping-bag"></i>
+                Vipo
+            </a>
+            <div class="navbar-search">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search-input" placeholder="Tìm kiếm sản phẩm..." onkeypress="if(event.key==='Enter') searchProducts()">
+            </div>
+            <div class="navbar-actions" id="nav-actions">
+                <a href="/pages/login.html" class="nav-btn"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
+                <a href="/pages/register.html" class="nav-btn primary"><i class="fas fa-user-plus"></i> Đăng ký</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Mua sắm thông minh<br>trên <span>Vipo</span></h1>
+                <p>Sàn thương mại điện tử đa người bán với hàng ngàn sản phẩm chất lượng, giá tốt nhất thị trường. Mua sắm an toàn, thanh toán tiện lợi.</p>
+                <div class="hero-buttons">
+                    <a href="/pages/products.html" class="btn btn-primary btn-lg">
+                        <i class="fas fa-shopping-bag"></i> Mua sắm ngay
+                    </a>
+                    <a href="/pages/register.html?role=seller" class="btn btn-outline btn-lg">
+                        <i class="fas fa-store"></i> Bán hàng
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="number" id="stat-products">1000+</div>
+                        <div class="label">Sản phẩm</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="number" id="stat-shops">100+</div>
+                        <div class="label">Gian hàng</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="number" id="stat-users">5000+</div>
+                        <div class="label">Khách hàng</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-image-container">
+                    <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=500&h=500&fit=crop" alt="Shopping" id="hero-img">
+                    <div class="float-element">
+                        <i class="fas fa-shield-alt" style="color:#10b981"></i> Bảo mật 100%
+                    </div>
+                    <div class="float-element">
+                        <i class="fas fa-truck" style="color:#f59e0b"></i> Giao hàng nhanh
+                    </div>
+                    <div class="float-element">
+                        <i class="fas fa-star" style="color:#6366f1"></i> Đánh giá 5 sao
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Danh mục sản phẩm</h2>
+            <p>Khám phá các danh mục hàng đầu trên sàn</p>
+            <div class="accent-line"></div>
+        </div>
+        <div class="categories-grid" id="categories-grid">
+            <!-- Loaded dynamically -->
+        </div>
+    </section>
+
+    <!-- FEATURED PRODUCTS -->
+    <section class="section" style="padding-top: 0;">
+        <div class="section-header">
+            <h2>Sản phẩm nổi bật</h2>
+            <p>Được yêu thích và đánh giá cao nhất</p>
+            <div class="accent-line"></div>
+        </div>
+        <div class="products-grid" id="featured-products">
+            <!-- Loaded dynamically -->
+        </div>
+        <div style="text-align:center; margin-top:2rem;">
+            <a href="/pages/products.html" class="btn btn-outline">Xem tất cả sản phẩm <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </section>
+
+    <!-- NEW PRODUCTS -->
+    <section class="section" style="padding-top: 0;">
+        <div class="section-header">
+            <h2>Sản phẩm mới nhất</h2>
+            <p>Vừa ra mắt trên sàn</p>
+            <div class="accent-line"></div>
+        </div>
+        <div class="products-grid" id="new-products">
+            <!-- Loaded dynamically -->
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section features-section" style="padding-top: 0;">
+        <div class="section-header">
+            <h2>Tại sao chọn chúng tôi?</h2>
+            <p>Trải nghiệm mua sắm tuyệt vời với những tính năng vượt trội</p>
+            <div class="accent-line"></div>
+        </div>
+        <div class="features-grid">
+            <div class="glass-card feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05));">
+                    <i class="fas fa-shield-alt" style="color: #818cf8;"></i>
+                </div>
+                <h4>Mua sắm an toàn</h4>
+                <p>Hệ thống bảo mật cao, thanh toán an toàn với VNPay & Momo</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05));">
+                    <i class="fas fa-truck" style="color: #34d399;"></i>
+                </div>
+                <h4>Giao hàng nhanh</h4>
+                <p>Theo dõi đơn hàng real-time từ lúc đặt đến khi nhận</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05));">
+                    <i class="fas fa-star" style="color: #fbbf24;"></i>
+                </div>
+                <h4>Đánh giá minh bạch</h4>
+                <p>Hệ thống đánh giá 5 sao từ người mua thực tế</p>
+            </div>
+            <div class="glass-card feature-card">
+                <div class="feature-icon" style="background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05));">
+                    <i class="fas fa-headset" style="color: #f87171;"></i>
+                </div>
+                <h4>Hỗ trợ 24/7</h4>
+                <p>Chat trực tuyến với người bán và chatbot AI hỗ trợ</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div>
+                <h4 style="font-size:1.3rem;"><i class="fas fa-shopping-bag" style="color:var(--primary-light)"></i> Vipo</h4>
+                <p style="margin-top:0.5rem;">Sàn thương mại điện tử đa người bán. Nơi kết nối người mua và người bán uy tín.</p>
+                <div style="display:flex;gap:12px;margin-top:1rem;">
+                    <a href="#" style="width:36px;height:36px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" style="width:36px;height:36px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="width:36px;height:36px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div>
+                <h4>Về chúng tôi</h4>
+                <p><a href="#">Giới thiệu</a></p>
+                <p><a href="#">Điều khoản sử dụng</a></p>
+                <p><a href="#">Chính sách bảo mật</a></p>
+            </div>
+            <div>
+                <h4>Hỗ trợ</h4>
+                <p><a href="#">Hướng dẫn mua hàng</a></p>
+                <p><a href="#">Hướng dẫn bán hàng</a></p>
+                <p><a href="#">Chính sách đổi trả</a></p>
+                <p><a href="/pages/complaint.html">Khiếu nại</a></p>
+            </div>
+            <div>
+                <h4>Thanh toán</h4>
+                <p><i class="fas fa-money-bill-wave" style="color:var(--success)"></i> COD</p>
+                <p><i class="fas fa-credit-card" style="color:var(--primary-light)"></i> VNPay</p>
+                <p><i class="fas fa-wallet" style="color:var(--danger)"></i> Momo</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2026 Vipo. All rights reserved. | Khóa luận tốt nghiệp 2026
+        </div>
+    </footer>
+
+    <!-- CHATBOT WIDGET -->
+    <button class="chat-widget-btn" onclick="toggleChatbot()" id="chatbot-toggle">
+        <i class="fas fa-robot"></i>
+    </button>
+    <div class="chatbot-panel" id="chatbot-panel">
+        <div class="chatbot-header">
+            <h4><i class="fas fa-robot"></i> Trợ lý Vipo</h4>
+            <button onclick="toggleChatbot()" style="background:none;border:none;color:white;cursor:pointer;font-size:1.1rem;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+            <div class="chat-msg bot">Xin chào! 👋 Tôi là trợ lý AI của Vipo. Tôi có thể giúp bạn:<br>• Hướng dẫn mua hàng<br>• Tra cứu đơn hàng<br>• Chính sách đổi trả<br>• Hỗ trợ khiếu nại</div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input" placeholder="Nhập câu hỏi..." onkeypress="if(event.key==='Enter') sendChatbot()">
+            <button onclick="sendChatbot()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        const categoryIcons = {
+            'Điện thoại & Phụ kiện': 'fas fa-mobile-alt',
+            'Máy tính & Laptop': 'fas fa-laptop',
+            'Thời trang Nam': 'fas fa-tshirt',
+            'Thời trang Nữ': 'fas fa-female',
+            'Nhà cửa & Đời sống': 'fas fa-home',
+            'Sức khỏe & Làm đẹp': 'fas fa-spa',
+            'Sách & Văn phòng phẩm': 'fas fa-book',
+            'Thể thao & Du lịch': 'fas fa-futbol',
+            'Đồ ăn & Thực phẩm': 'fas fa-utensils',
+            'Mẹ & Bé': 'fas fa-baby'
+        };
+
+        // Load categories
+        async function loadCategories() {
+            const result = await api.get('/products/categories');
+            if (result.success) {
+                const grid = document.getElementById('categories-grid');
+                grid.innerHTML = result.data.map(cat => `
+                    <a href="/pages/products.html?danh_muc_id=${cat.id}" class="glass-card category-card">
+                        <div class="icon"><i class="${categoryIcons[cat.ten_danh_muc] || 'fas fa-tag'}"></i></div>
+                        <h4>${cat.ten_danh_muc}</h4>
+                    </a>
+                `).join('');
+            }
+        }
+
+        // Load products
+        async function loadProducts(containerId, params) {
+            const container = document.getElementById(containerId);
+            showLoading(container);
+            const query = new URLSearchParams(params).toString();
+            const result = await api.get(`/products?${query}`);
+            if (result.success && result.data.length > 0) {
+                container.innerHTML = result.data.map(p => renderProductCard(p)).join('');
+            } else {
+                container.innerHTML = '<p style="text-align:center;color:var(--dark-400);grid-column:1/-1;padding:2rem;">Chưa có sản phẩm nào</p>';
+            }
+        }
+
+        function renderProductCard(p) {
+            const hasDiscount = p.gia_khuyen_mai && p.gia_khuyen_mai < p.gia;
+            const price = hasDiscount ? p.gia_khuyen_mai : p.gia;
+            const discount = hasDiscount ? Math.round((1 - p.gia_khuyen_mai/p.gia) * 100) : 0;
+
+            return `
+            <div class="glass-card product-card" onclick="location.href='/pages/product-detail.html?id=${p.id}'">
+                ${hasDiscount ? `<div class="badge badge-sale">-${discount}%</div>` : ''}
+                <div class="image-wrapper">
+                    <img src="${getProductImage(p.hinh_anh)}" alt="${p.ten_san_pham}" loading="lazy">
+                </div>
+                <div class="card-body">
+                    <div class="shop-name"><i class="fas fa-store"></i> ${p.ten_gian_hang || ''}</div>
+                    <div class="product-name">${p.ten_san_pham}</div>
+                    <div class="price-row">
+                        <span class="price">${formatPrice(price)}</span>
+                        ${hasDiscount ? `<span class="original-price">${formatPrice(p.gia)}</span>` : ''}
+                    </div>
+                    <div class="rating">${renderStars(p.diem_trung_binh, p.so_danh_gia)}</div>
+                </div>
+                <button class="add-to-cart" onclick="event.stopPropagation(); addToCartQuick(${p.id})" title="Thêm vào giỏ">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+            </div>`;
+        }
+
+        async function addToCartQuick(productId) {
+            if (!isLoggedIn()) {
+                showToast('Vui lòng đăng nhập để thêm vào giỏ hàng', 'warning');
+                return;
+            }
+            const result = await api.post('/cart', { san_pham_id: productId, so_luong: 1 });
+            if (result.success) {
+                showToast('Đã thêm vào giỏ hàng!');
+                updateCartCount();
+            } else {
+                showToast(result.message, 'error');
+            }
+        }
+
+        function searchProducts() {
+            const query = document.getElementById('search-input').value.trim();
+            if (query) window.location.href = `/pages/products.html?search=${encodeURIComponent(query)}`;
+        }
+
+        // Chatbot
+        function toggleChatbot() {
+            const panel = document.getElementById('chatbot-panel');
+            panel.classList.toggle('show');
+        }
+
+        async function sendChatbot() {
+            const input = document.getElementById('chatbot-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const messages = document.getElementById('chatbot-messages');
+            messages.innerHTML += `<div class="chat-msg user">${msg}</div>`;
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            // Show typing
+            messages.innerHTML += `<div class="chat-msg bot" id="typing"><i class="fas fa-circle-notch fa-spin"></i> Đang trả lời...</div>`;
+            messages.scrollTop = messages.scrollHeight;
+
+            const result = await api.post('/chatbot', { message: msg });
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+
+            const response = result.success ? result.data.response : 'Xin lỗi, tôi đang gặp sự cố. Vui lòng thử lại sau.';
+            messages.innerHTML += `<div class="chat-msg bot">${response}</div>`;
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // Init
+        loadCategories();
+        loadProducts('featured-products', { sort: 'popular', limit: 8 });
+        loadProducts('new-products', { sort: 'newest', limit: 8 });
+    </script>
+</body>
+</html>

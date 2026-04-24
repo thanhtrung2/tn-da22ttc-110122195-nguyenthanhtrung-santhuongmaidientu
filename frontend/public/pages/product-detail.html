@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết sản phẩm - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-search"><i class="fas fa-search"></i>
+            <input type="text" placeholder="Tìm kiếm..." onkeypress="if(event.key==='Enter') location.href='/pages/products.html?search='+this.value">
+        </div>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+
+    <div class="page-container" id="product-detail">
+        <div class="breadcrumb" style="margin-bottom:1.5rem;"><a href="/">Trang chủ</a> / <a href="/pages/products.html">Sản phẩm</a> / <span id="bc-name"></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;" id="product-content">
+            <div><div class="skeleton" style="padding-top:100%;border-radius:16px;"></div></div>
+            <div><div class="skeleton" style="height:30px;margin-bottom:1rem;"></div></div>
+        </div>
+        <div style="margin-top:3rem;" id="reviews-section"></div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    const pid = new URLSearchParams(location.search).get('id');
+    let product = null;
+
+    async function load() {
+        if (!pid) { location.href='/pages/products.html'; return; }
+        const r = await api.get(`/products/${pid}`);
+        if (!r.success) { location.href='/pages/products.html'; return; }
+        product = r.data;
+        document.title = product.ten_san_pham + ' - Vipo';
+        document.getElementById('bc-name').textContent = product.ten_san_pham;
+
+        const hd = product.gia_khuyen_mai && product.gia_khuyen_mai < product.gia;
+        const price = hd ? product.gia_khuyen_mai : product.gia;
+
+        document.getElementById('product-content').innerHTML = `
+        <div>
+            <div class="glass" style="border-radius:20px;overflow:hidden;position:relative;">
+                ${hd ? `<div class="badge badge-sale" style="position:absolute;top:16px;left:16px;z-index:2;padding:6px 14px;font-size:0.85rem;">-${Math.round((1-product.gia_khuyen_mai/product.gia)*100)}%</div>` : ''}
+                <img src="${getProductImage(product.hinh_anh)}" alt="${product.ten_san_pham}" style="width:100%;display:block;">
+            </div>
+        </div>
+        <div>
+            <div class="glass-card" style="padding:2rem;">
+                <div style="font-size:0.85rem;color:var(--primary-light);margin-bottom:8px;">${product.ten_danh_muc||'Chưa phân loại'}</div>
+                <h1 style="font-size:1.6rem;font-weight:700;margin-bottom:1rem;">${product.ten_san_pham}</h1>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+                    <div class="rating" style="font-size:1rem;">${renderStars(product.diem_trung_binh, product.so_danh_gia)}</div>
+                    <span style="color:var(--dark-500);font-size:0.85rem;"><i class="fas fa-eye"></i> ${product.luot_xem}</span>
+                </div>
+                <div style="padding:1.2rem;background:var(--dark-900);border-radius:12px;margin-bottom:1.5rem;">
+                    <span style="font-family:'Outfit';font-size:2rem;font-weight:800;color:var(--danger);">${formatPrice(price)}</span>
+                    ${hd ? `<span style="font-size:1rem;color:var(--dark-500);text-decoration:line-through;margin-left:12px;">${formatPrice(product.gia)}</span>` : ''}
+                </div>
+                <p style="font-size:0.85rem;color:var(--dark-400);line-height:1.8;margin-bottom:1.5rem;">${product.mo_ta||'Chưa có mô tả'}</p>
+                <div style="margin-bottom:1.5rem;font-size:0.85rem;">Còn lại: <strong style="color:${product.so_luong_ton>0?'var(--success)':'var(--danger)'}">${product.so_luong_ton>0?product.so_luong_ton+' sp':'Hết hàng'}</strong></div>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;">
+                    <span style="font-size:0.85rem;">Số lượng:</span>
+                    <div style="display:flex;border:1px solid var(--dark-700);border-radius:10px;overflow:hidden;">
+                        <button onclick="chgQty(-1)" style="width:36px;height:36px;background:var(--dark-700);border:none;color:white;cursor:pointer;">-</button>
+                        <input type="number" id="qty" value="1" min="1" max="${product.so_luong_ton}" style="width:50px;text-align:center;background:var(--dark-800);border:none;color:white;">
+                        <button onclick="chgQty(1)" style="width:36px;height:36px;background:var(--dark-700);border:none;color:white;cursor:pointer;">+</button>
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;">
+                    <button class="btn btn-primary btn-lg" style="flex:1;" onclick="addCart()" ${product.so_luong_ton<=0?'disabled':''}>
+                        <i class="fas fa-cart-plus"></i> Thêm vào giỏ
+                    </button>
+                    <button class="btn btn-outline btn-lg" onclick="location.href='/pages/chat.html?userId=${product.nguoi_ban_id}'">
+                        <i class="fas fa-comments"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="glass-card" style="padding:1.2rem;margin-top:1rem;display:flex;align-items:center;gap:1rem;">
+                <div style="width:50px;height:50px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-store" style="color:var(--primary-light);"></i>
+                </div>
+                <div><h4 style="font-size:0.95rem;">${product.ten_gian_hang}</h4></div>
+            </div>
+        </div>`;
+        loadReviews();
+    }
+
+    function chgQty(d) { const i=document.getElementById('qty'); let v=parseInt(i.value)+d; i.value=Math.max(1,Math.min(v,product.so_luong_ton)); }
+
+    async function addCart() {
+        if(!isLoggedIn()){showToast('Vui lòng đăng nhập','warning');return;}
+        const r=await api.post('/cart',{san_pham_id:pid,so_luong:parseInt(document.getElementById('qty').value)});
+        if(r.success){showToast('Đã thêm vào giỏ!');updateCartCount();}else showToast(r.message,'error');
+    }
+
+    async function loadReviews() {
+        const r = await api.get(`/reviews/product/${pid}`);
+        if(!r.success) return;
+        const {reviews,stats}=r.data;
+        document.getElementById('reviews-section').innerHTML = `
+        <div class="glass-card" style="padding:2rem;">
+            <h2 style="font-size:1.4rem;margin-bottom:1.5rem;"><i class="fas fa-star" style="color:var(--warning)"></i> Đánh giá (${stats.tong||0})</h2>
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <div style="font-family:'Outfit';font-size:3rem;font-weight:800;color:var(--warning);">${(stats.trung_binh||0).toFixed(1)}</div>
+                <div class="rating" style="justify-content:center;">${renderStars(stats.trung_binh,stats.tong)}</div>
+            </div>
+            <div>${reviews.length>0?reviews.map(rv=>`
+                <div style="padding:1rem 0;border-top:1px solid var(--dark-700);display:flex;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas fa-user" style="font-size:0.8rem;color:var(--dark-400);"></i>
+                    </div>
+                    <div>
+                        <strong style="font-size:0.85rem;">${rv.ho_ten}</strong>
+                        <div class="rating" style="font-size:0.75rem;">${renderStars(rv.so_sao,0).replace(/<span>[^<]*<\/span>/,'')}</div>
+                        <p style="font-size:0.85rem;color:var(--dark-300);margin-top:4px;">${rv.binh_luan||''}</p>
+                        <span style="font-size:0.7rem;color:var(--dark-500);">${formatDate(rv.ngay_tao)}</span>
+                    </div>
+                </div>`).join(''):'<p style="text-align:center;color:var(--dark-500);padding:2rem;">Chưa có đánh giá</p>'}</div>
+        </div>`;
+    }
+
+    load();
+    </script>
+</body>
+</html>

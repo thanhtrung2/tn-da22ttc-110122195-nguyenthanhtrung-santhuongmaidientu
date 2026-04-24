@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doanh thu - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass"><nav class="sidebar-menu">
+            <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+            <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/seller/revenue.html" class="active"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+            <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav></aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">📈 Báo cáo doanh thu</h1>
+            <div id="revenue-content"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+    async function load() {
+        const r = await api.get('/admin/seller-dashboard');
+        if(!r.success||!r.data) return;
+        const d = r.data;
+        const el = document.getElementById('revenue-content');
+        el.innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card glass-card">
+                <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--success);"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="stat-info"><h3>${formatPrice(d.revenue)}</h3><p>Tổng doanh thu</p></div>
+            </div>
+            <div class="stat-card glass-card">
+                <div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light);"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info"><h3>${(d.orders||[]).reduce((a,b)=>a+b.total,0)}</h3><p>Tổng đơn hàng</p></div>
+            </div>
+        </div>
+        <div class="glass-card" style="padding:2rem;margin-top:1.5rem;">
+            <h3 style="margin-bottom:1.5rem;">Doanh thu theo tháng</h3>
+            ${(d.monthlyRevenue||[]).length>0 ? d.monthlyRevenue.map(m => {
+                const max = Math.max(...d.monthlyRevenue.map(x=>x.doanh_thu));
+                const pct = max>0?(m.doanh_thu/max*100):0;
+                return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <span style="width:80px;font-size:0.85rem;font-weight:600;">${m.thang}</span>
+                    <div style="flex:1;height:32px;background:var(--dark-700);border-radius:8px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:var(--gradient-primary);border-radius:8px;display:flex;align-items:center;padding-left:10px;font-size:0.75rem;font-weight:600;">${m.so_don} đơn</div>
+                    </div>
+                    <span style="width:140px;text-align:right;font-weight:700;color:var(--success);">${formatPrice(m.doanh_thu)}</span>
+                </div>`;
+            }).join('') : '<p style="text-align:center;color:var(--dark-500);">Chưa có dữ liệu doanh thu</p>'}
+        </div>`;
+    }
+    load();
+    </script>
+</body>
+</html>

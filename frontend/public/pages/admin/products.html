@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý sản phẩm - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass"><nav class="sidebar-menu">
+            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+            <a href="/pages/admin/products.html" class="active"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/admin/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav></aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">📦 Quản lý sản phẩm</h1>
+            <div id="products-table"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+    async function load() {
+        const r = await api.get('/admin/products');
+        if(!r.success) return;
+        document.getElementById('products-table').innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
+            <th>ID</th><th>Hình</th><th>Tên SP</th><th>Gian hàng</th><th>Danh mục</th><th>Giá</th><th>Tồn</th><th>Trạng thái</th><th>Thao tác</th>
+        </tr></thead><tbody>${r.data.map(p => `<tr>
+            <td>${p.id}</td>
+            <td><img src="${getProductImage(p.hinh_anh)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;"></td>
+            <td style="font-weight:500;color:var(--white);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.ten_san_pham}</td>
+            <td>${p.ten_gian_hang}</td><td>${p.ten_danh_muc||'-'}</td>
+            <td style="color:var(--danger);font-weight:600;">${formatPrice(p.gia)}</td>
+            <td>${p.so_luong_ton}</td>
+            <td><span class="status ${p.trang_thai==='active'?'status-active':p.trang_thai==='banned'?'status-cancelled':'status-locked'}">${p.trang_thai}</span></td>
+            <td>${p.trang_thai==='active'?`<button class="btn btn-sm btn-danger" onclick="banProduct(${p.id})"><i class="fas fa-ban"></i></button>`
+                :`<button class="btn btn-sm btn-success" onclick="unbanProduct(${p.id})"><i class="fas fa-check"></i></button>`}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+    async function banProduct(id) { if(!confirm('Ban sản phẩm?')) return; await api.put(`/admin/products/${id}`,{trang_thai:'banned'}); showToast('Đã ban!'); load(); }
+    async function unbanProduct(id) { await api.put(`/admin/products/${id}`,{trang_thai:'active'}); showToast('Đã mở!'); load(); }
+    load();
+    </script>
+</body>
+</html>

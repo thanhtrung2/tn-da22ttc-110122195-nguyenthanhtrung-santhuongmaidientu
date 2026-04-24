@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-card glass">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <a href="/" class="navbar-brand" style="justify-content:center;font-size:1.8rem;">
+                    <i class="fas fa-shopping-bag"></i> Vipo
+                </a>
+            </div>
+            <h2>Đăng ký tài khoản</h2>
+            <p class="subtitle">Tham gia cùng hàng ngàn người dùng</p>
+
+            <form id="register-form" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Họ và tên</label>
+                    <input type="text" class="form-control" id="ho_ten" placeholder="Nhập họ tên..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Nhập email..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Số điện thoại</label>
+                    <input type="tel" class="form-control" id="so_dien_thoai" placeholder="Nhập số điện thoại...">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <input type="password" class="form-control" id="mat_khau" placeholder="Nhập mật khẩu (6+ ký tự)..." required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Xác nhận mật khẩu</label>
+                    <input type="password" class="form-control" id="mat_khau_confirm" placeholder="Nhập lại mật khẩu..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-user-tag"></i> Bạn muốn</label>
+                    <div style="display:flex;gap:1rem;margin-top:8px;">
+                        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--dark-800);border:2px solid var(--dark-700);border-radius:var(--radius);cursor:pointer;transition:all 0.3s;" id="role-customer-label">
+                            <input type="radio" name="vai_tro" value="customer" checked onchange="updateRoleUI()" style="accent-color:var(--primary)"> 
+                            <span><i class="fas fa-shopping-cart"></i> Mua hàng</span>
+                        </label>
+                        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--dark-800);border:2px solid var(--dark-700);border-radius:var(--radius);cursor:pointer;transition:all 0.3s;" id="role-seller-label">
+                            <input type="radio" name="vai_tro" value="seller" onchange="updateRoleUI()"> 
+                            <span><i class="fas fa-store"></i> Bán hàng</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                    <label style="display:flex; align-items:flex-start; gap:8px; font-weight:normal; font-size:0.85rem; color:var(--dark-300); cursor:pointer;">
+                        <input type="checkbox" id="terms" required style="margin-top:3px; accent-color:var(--primary); width: 16px; height: 16px;">
+                        <span>Tôi đồng ý với các <a href="#" style="color:var(--primary-light); text-decoration:none;">Điều khoản dịch vụ</a> và <a href="#" style="color:var(--primary-light); text-decoration:none;">Chính sách bảo mật</a> của Vipo.</span>
+                    </label>
+                </div>
+                <div id="error-msg" style="color:var(--danger);font-size:0.85rem;margin-bottom:1rem;display:none;"></div>
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;" id="register-btn">
+                    <i class="fas fa-user-plus"></i> Đăng ký
+                </button>
+            </form>
+
+            <p style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--dark-400);">
+                Đã có tài khoản? <a href="/pages/login.html" style="color:var(--primary-light);font-weight:600;">Đăng nhập</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        if (isLoggedIn()) window.location.href = '/';
+
+        // Check URL for seller role
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('role') === 'seller') {
+            document.querySelector('input[value="seller"]').checked = true;
+            updateRoleUI();
+        }
+
+        function updateRoleUI() {
+            const selected = document.querySelector('input[name="vai_tro"]:checked').value;
+            document.getElementById('role-customer-label').style.borderColor = selected === 'customer' ? 'var(--primary)' : 'var(--dark-700)';
+            document.getElementById('role-seller-label').style.borderColor = selected === 'seller' ? 'var(--primary)' : 'var(--dark-700)';
+        }
+        updateRoleUI();
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('register-btn');
+            const errorMsg = document.getElementById('error-msg');
+
+            const mat_khau = document.getElementById('mat_khau').value;
+            const confirm = document.getElementById('mat_khau_confirm').value;
+
+            if (mat_khau !== confirm) {
+                errorMsg.textContent = 'Mật khẩu xác nhận không khớp';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            const terms = document.getElementById('terms').checked;
+            if (!terms) {
+                errorMsg.textContent = 'Bạn cần đồng ý với các điều khoản dịch vụ và chính sách bảo mật.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            errorMsg.style.display = 'none';
+
+            const result = await api.post('/auth/register', {
+                ho_ten: document.getElementById('ho_ten').value,
+                email: document.getElementById('email').value,
+                so_dien_thoai: document.getElementById('so_dien_thoai').value,
+                mat_khau: mat_khau,
+                vai_tro: document.querySelector('input[name="vai_tro"]:checked').value
+            });
+
+            if (result.success) {
+                auth.login(result.data.token, result.data.user);
+                showToast('Đăng ký thành công!');
+                setTimeout(() => {
+                    if (result.data.user.vai_tro === 'seller') window.location.href = '/pages/seller/dashboard.html';
+                    else window.location.href = '/';
+                }, 500);
+            } else {
+                errorMsg.textContent = result.message;
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Đăng ký';
+            }
+        }
+    </script>
+</body>
+</html>

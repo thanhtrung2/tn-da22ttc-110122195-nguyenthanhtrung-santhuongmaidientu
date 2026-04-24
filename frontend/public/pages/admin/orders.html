@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn hàng - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass"><nav class="sidebar-menu">
+            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/admin/orders.html" class="active"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav></aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">🛒 Quản lý đơn hàng</h1>
+            <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="load('')">Tất cả</button>
+                <button class="btn btn-sm btn-outline" onclick="load('cho_xac_nhan')">Chờ xác nhận</button>
+                <button class="btn btn-sm btn-outline" onclick="load('da_xac_nhan')">Đã xác nhận</button>
+                <button class="btn btn-sm btn-outline" onclick="load('dang_giao')">Đang giao</button>
+                <button class="btn btn-sm btn-outline" onclick="load('hoan_thanh')">Hoàn thành</button>
+                <button class="btn btn-sm btn-outline" onclick="load('da_huy')">Đã hủy</button>
+            </div>
+            <div id="orders-table"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+    async function load(status) {
+        const q = status ? `?trang_thai=${status}` : '';
+        const r = await api.get(`/admin/orders${q}`);
+        if(!r.success) return;
+        document.getElementById('orders-table').innerHTML = r.data.length>0 ? `<div class="table-container"><table class="data-table"><thead><tr>
+            <th>ID</th><th>Khách hàng</th><th>Gian hàng</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Ngày</th>
+        </tr></thead><tbody>${r.data.map(o => `<tr>
+            <td><strong>#${o.id}</strong></td><td>${o.ten_nguoi_mua}</td><td>${o.ten_gian_hang}</td>
+            <td style="color:var(--danger);font-weight:600;">${formatPrice(o.tong_tien)}</td>
+            <td><span style="color:${o.trang_thai_thanh_toan==='paid'?'var(--success)':'var(--warning)'}">${o.trang_thai_thanh_toan==='paid'?'Đã TT':'Chưa TT'}</span></td>
+            <td><span class="status ${getStatusClass(o.trang_thai)}">${getStatusLabel(o.trang_thai)}</span></td>
+            <td style="font-size:0.8rem;">${formatDate(o.ngay_tao)}</td>
+        </tr>`).join('')}</tbody></table></div>` : '<p style="text-align:center;color:var(--dark-400);padding:3rem;">Không có đơn hàng</p>';
+    }
+    load('');
+    </script>
+</body>
+</html>

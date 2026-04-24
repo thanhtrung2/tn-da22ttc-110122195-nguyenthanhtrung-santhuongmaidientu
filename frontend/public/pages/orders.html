@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đơn hàng - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+
+    <div class="page-container">
+        <div class="page-header"><h1><i class="fas fa-box"></i> Đơn hàng của tôi</h1></div>
+        <div class="glass" style="padding:12px 16px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-sm filter-btn active" onclick="filterOrders('')" data-f="">Tất cả</button>
+            <button class="btn btn-sm filter-btn" onclick="filterOrders('cho_xac_nhan')" data-f="cho_xac_nhan">Chờ xác nhận</button>
+            <button class="btn btn-sm filter-btn" onclick="filterOrders('da_xac_nhan')" data-f="da_xac_nhan">Đã xác nhận</button>
+            <button class="btn btn-sm filter-btn" onclick="filterOrders('dang_giao')" data-f="dang_giao">Đang giao</button>
+            <button class="btn btn-sm filter-btn" onclick="filterOrders('hoan_thanh')" data-f="hoan_thanh">Hoàn thành</button>
+            <button class="btn btn-sm filter-btn" onclick="filterOrders('da_huy')" data-f="da_huy">Đã hủy</button>
+        </div>
+        <div id="orders-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+    </div>
+
+    <style>.filter-btn{background:var(--dark-800);color:var(--dark-400);border:1px solid var(--dark-700);}.filter-btn.active,.filter-btn:hover{background:var(--primary);color:white;border-color:var(--primary);}</style>
+
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()) location.href='/pages/login.html';
+    let currentFilter = '';
+
+    async function filterOrders(status) {
+        currentFilter = status;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === status));
+        const el = document.getElementById('orders-list');
+        el.innerHTML = '<div class="spinner" style="margin:3rem auto;"></div>';
+
+        const q = status ? `?trang_thai=${status}` : '';
+        const r = await api.get(`/orders${q}`);
+
+        if(!r.success || r.data.length === 0) {
+            el.innerHTML = '<div class="glass-card" style="padding:3rem;text-align:center;"><i class="fas fa-box-open" style="font-size:3rem;color:var(--dark-600);margin-bottom:1rem;"></i><p style="color:var(--dark-400);">Không có đơn hàng nào</p></div>';
+            return;
+        }
+
+        el.innerHTML = r.data.map(o => `
+        <div class="glass-card" style="padding:1.5rem;margin-bottom:1rem;cursor:pointer;" onclick="location.href='/pages/order-detail.html?id=${o.id}'">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <div>
+                    <span style="font-size:0.8rem;color:var(--dark-400);">Mã đơn: #${o.id}</span>
+                    <span style="margin-left:12px;" class="status ${getStatusClass(o.trang_thai)}">${getStatusLabel(o.trang_thai)}</span>
+                </div>
+                <span style="font-size:0.8rem;color:var(--dark-500);">${formatDate(o.ngay_tao)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <i class="fas fa-store" style="color:var(--primary-light);"></i> <strong>${o.ten_gian_hang}</strong>
+                    <span style="font-size:0.8rem;color:var(--dark-400);margin-left:8px;">${o.so_san_pham} sản phẩm</span>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-family:'Outfit';font-size:1.1rem;font-weight:700;color:var(--danger);">${formatPrice(o.tong_tien)}</div>
+                    <div style="font-size:0.75rem;color:${o.trang_thai_thanh_toan==='paid'?'var(--success)':'var(--warning)'}">
+                        ${o.trang_thai_thanh_toan==='paid'?'✓ Đã thanh toán':'○ Chưa thanh toán'}
+                    </div>
+                </div>
+            </div>
+        </div>`).join('');
+    }
+
+    filterOrders('');
+    </script>
+</body>
+</html>
