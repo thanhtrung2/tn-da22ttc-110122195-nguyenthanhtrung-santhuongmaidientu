@@ -4,7 +4,24 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Người Bán - Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .verify-bar {
+            border-radius: 14px; padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+            display: flex; align-items: center; gap: 12px; font-size: 0.88rem; border: 1px solid;
+        }
+        .verify-bar.pending  { background:rgba(234,179,8,0.08); border-color:rgba(234,179,8,0.3); color:#fbbf24; }
+        .verify-bar.verified { background:rgba(34,197,94,0.08);  border-color:rgba(34,197,94,0.3);  color:#4ade80; }
+        .verify-bar.rejected { background:rgba(239,68,68,0.08);  border-color:rgba(239,68,68,0.3);  color:#f87171; }
+        .quick-action {
+            display:flex; align-items:center; gap:1rem; padding:1rem 1.2rem;
+            background:rgba(255,255,255,0.03); border:1px solid var(--dark-700);
+            border-radius:12px; text-decoration:none; color:inherit; transition:all 0.2s;
+        }
+        .quick-action:hover { background:rgba(255,255,255,0.07); border-color:var(--primary); }
+        .quick-action .qa-icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+    </style>
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container">
@@ -16,6 +33,7 @@
             <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
                 <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-store"></i></div>
                 <h4 style="font-size:0.95rem;" id="shop-name">Gian hàng</h4>
+                <div id="verify-status-mini" style="margin-top:6px;font-size:0.75rem;"></div>
             </div>
             <nav class="sidebar-menu">
                 <a href="/pages/seller/dashboard.html" class="active"><i class="fas fa-chart-line"></i> Tổng quan</a>
@@ -30,17 +48,49 @@
             </nav>
         </aside>
         <main class="dashboard-content">
-            <h1 style="margin-bottom:1.5rem;">📊 Tổng quan</h1>
+            <h1 style="margin-bottom:1.5rem;">📊 Tổng quan gian hàng</h1>
+
+            <!-- Verification Banner -->
+            <div id="verify-banner"></div>
+
+            <!-- Stats -->
             <div class="stats-grid" id="stats"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;">
+                <!-- Quick Actions -->
+                <div class="glass-card" style="padding:1.5rem;">
+                    <h3 style="font-size:1rem;margin-bottom:1rem;"><i class="fas fa-bolt" style="color:var(--warning);"></i> Thao tác nhanh</h3>
+                    <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                        <a class="quick-action" href="/pages/seller/products.html">
+                            <div class="qa-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light);"><i class="fas fa-plus"></i></div>
+                            <div><div style="font-weight:600;font-size:0.9rem;">Thêm sản phẩm mới</div><div style="font-size:0.78rem;color:var(--dark-400);">Đăng sản phẩm lên gian hàng</div></div>
+                        </a>
+                        <a class="quick-action" href="/pages/seller/orders.html">
+                            <div class="qa-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fas fa-clipboard-list"></i></div>
+                            <div><div style="font-weight:600;font-size:0.9rem;">Quản lý đơn hàng</div><div style="font-size:0.78rem;color:var(--dark-400);">Xác nhận và xử lý đơn</div></div>
+                        </a>
+                        <a class="quick-action" href="/pages/seller/shop.html">
+                            <div class="qa-icon" style="background:rgba(16,185,129,0.15);color:var(--success);"><i class="fas fa-edit"></i></div>
+                            <div><div style="font-weight:600;font-size:0.9rem;">Chỉnh sửa gian hàng</div><div style="font-size:0.78rem;color:var(--dark-400);">Cập nhật thông tin, logo</div></div>
+                        </a>
+                        <a class="quick-action" href="#" id="view-public-shop" style="display:none;">
+                            <div class="qa-icon" style="background:rgba(6,182,212,0.15);color:var(--accent);"><i class="fas fa-eye"></i></div>
+                            <div><div style="font-weight:600;font-size:0.9rem;">Xem gian hàng công khai</div><div style="font-size:0.78rem;color:var(--dark-400);">Xem như người mua</div></div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent orders -->
                 <div class="glass-card" style="padding:1.5rem;">
                     <h3 style="font-size:1rem;margin-bottom:1rem;">Đơn hàng gần đây</h3>
                     <div id="recent-orders"></div>
                 </div>
-                <div class="glass-card" style="padding:1.5rem;">
-                    <h3 style="font-size:1rem;margin-bottom:1rem;">Doanh thu theo tháng</h3>
-                    <div id="revenue-chart"></div>
-                </div>
+            </div>
+
+            <!-- Revenue chart -->
+            <div class="glass-card" style="padding:1.5rem;margin-top:1.5rem;">
+                <h3 style="font-size:1rem;margin-bottom:1rem;">📈 Doanh thu theo tháng</h3>
+                <div id="revenue-chart"></div>
             </div>
         </main>
     </div>
@@ -49,15 +99,56 @@
     if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
 
     async function load() {
-        const shop = await api.get('/shops/my-shop');
-        if(shop.success) document.getElementById('shop-name').textContent = shop.data.ten_gian_hang;
+        const [shopResp, userResp, dashResp] = await Promise.all([
+            api.get('/shops/my-shop'),
+            api.get('/users/profile'),
+            api.get('/admin/seller-dashboard')
+        ]);
 
-        const r = await api.get('/admin/seller-dashboard');
-        if(!r.success||!r.data) return;
-        const d = r.data;
+        // Shop info
+        let shopId = null;
+        if (shopResp.success) {
+            shopId = shopResp.data.id;
+            document.getElementById('shop-name').textContent = shopResp.data.ten_gian_hang;
+            const viewLink = document.getElementById('view-public-shop');
+            viewLink.href = `/pages/shop.html?id=${shopId}`;
+            viewLink.style.display = 'flex';
+        }
 
+        // Verification status
+        if (userResp.success) {
+            const u = userResp.data;
+            const status = u.trang_thai_xac_thuc || 'unverified';
+            const banner = document.getElementById('verify-banner');
+            const mini = document.getElementById('verify-status-mini');
+
+            const statusMap = {
+                pending:    { cls:'pending',  icon:'fa-clock',           label:'⏳ Chờ duyệt',  msg:'Tài khoản đang chờ Admin xác thực. Sau khi được duyệt, bạn mới có thể đăng sản phẩm.' },
+                verified:   { cls:'verified', icon:'fa-check-circle',    label:'✅ Đã xác thực', msg:'Tài khoản đã được xác thực! Bạn có thể đăng sản phẩm bình thường.' },
+                rejected:   { cls:'rejected', icon:'fa-times-circle',    label:'❌ Bị từ chối',  msg:`Tài khoản bị từ chối. ${u.ly_do_tu_choi ? 'Lý do: ' + u.ly_do_tu_choi : ''} Vui lòng cập nhật hồ sơ.` },
+                unverified: { cls:'pending',  icon:'fa-exclamation-circle', label:'⚠️ Chưa XN',  msg:'Chưa nộp hồ sơ xác thực. Vào <a href="/pages/profile.html" style="color:inherit;text-decoration:underline;">trang cá nhân</a> để nộp CCCD và giấy phép kinh doanh.' }
+            };
+
+            const s = statusMap[status] || statusMap.unverified;
+            mini.innerHTML = `<span style="color:${status==='verified'?'#4ade80':status==='rejected'?'#f87171':'#fbbf24'}">${s.label}</span>`;
+
+            if (status !== 'verified') {
+                banner.innerHTML = `<div class="verify-bar ${s.cls}">
+                    <i class="fas ${s.icon}" style="font-size:1.3rem;flex-shrink:0;"></i>
+                    <div><strong>${s.label}</strong> — ${s.msg}</div>
+                </div>`;
+            }
+        }
+
+        // Dashboard data
+        if (!dashResp.success || !dashResp.data) {
+            document.getElementById('stats').innerHTML = '<p style="color:var(--dark-400);">Chưa có dữ liệu</p>';
+            return;
+        }
+        const d = dashResp.data;
         const orderStats = {};
         (d.orders||[]).forEach(o => orderStats[o.trang_thai] = o.total);
+        const totalOrders = (d.orders||[]).reduce((a,b) => a+b.total, 0);
 
         document.getElementById('stats').innerHTML = `
             <div class="stat-card glass-card">
@@ -69,36 +160,40 @@
                 <div class="stat-info"><h3>${d.products}</h3><p>Sản phẩm</p></div>
             </div>
             <div class="stat-card glass-card">
-                <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fas fa-clock"></i></div>
-                <div class="stat-info"><h3>${orderStats.cho_xac_nhan||0}</h3><p>Chờ xác nhận</p></div>
+                <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent);"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info"><h3>${totalOrders}</h3><p>Tổng đơn hàng</p></div>
             </div>
             <div class="stat-card glass-card">
-                <div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--secondary);"><i class="fas fa-truck"></i></div>
-                <div class="stat-info"><h3>${orderStats.dang_giao||0}</h3><p>Đang giao</p></div>
+                <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fas fa-clock"></i></div>
+                <div class="stat-info"><h3>${orderStats.cho_xac_nhan||0}</h3><p>Chờ xác nhận</p></div>
             </div>`;
 
         document.getElementById('recent-orders').innerHTML = (d.recentOrders||[]).length > 0
-            ? d.recentOrders.map(o => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--dark-700);font-size:0.85rem;">
-                <span>#${o.id} - ${o.ho_ten}</span>
-                <span class="status ${getStatusClass(o.trang_thai)}">${getStatusLabel(o.trang_thai)}</span>
-                <span style="font-weight:600;">${formatPrice(o.tong_tien)}</span>
-            </div>`).join('')
-            : '<p style="color:var(--dark-500);text-align:center;">Chưa có đơn hàng</p>';
+            ? d.recentOrders.map(o => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--dark-700);font-size:0.82rem;">
+                    <span>#${o.id} <span style="color:var(--dark-400);">${o.ho_ten}</span></span>
+                    <span class="status ${getStatusClass(o.trang_thai)}" style="font-size:0.7rem;">${getStatusLabel(o.trang_thai)}</span>
+                    <span style="font-weight:600;color:var(--danger);">${formatPrice(o.tong_tien)}</span>
+                </div>`).join('')
+            : '<p style="color:var(--dark-500);text-align:center;padding:1rem;">Chưa có đơn hàng</p>';
 
-        document.getElementById('revenue-chart').innerHTML = (d.monthlyRevenue||[]).length > 0
-            ? d.monthlyRevenue.map(m => {
-                const maxRev = Math.max(...d.monthlyRevenue.map(x => x.doanh_thu));
+        const monthlyRevenue = d.monthlyRevenue || [];
+        document.getElementById('revenue-chart').innerHTML = monthlyRevenue.length > 0
+            ? monthlyRevenue.map(m => {
+                const maxRev = Math.max(...monthlyRevenue.map(x => x.doanh_thu), 1);
                 const pct = maxRev > 0 ? (m.doanh_thu/maxRev*100) : 0;
-                return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                     <span style="width:60px;font-size:0.75rem;color:var(--dark-400);">${m.thang}</span>
                     <div style="flex:1;height:24px;background:var(--dark-700);border-radius:6px;overflow:hidden;">
                         <div style="height:100%;width:${pct}%;background:var(--gradient-primary);border-radius:6px;transition:width 1s;"></div>
                     </div>
-                    <span style="font-size:0.75rem;font-weight:600;width:100px;text-align:right;">${formatPrice(m.doanh_thu)}</span>
+                    <span style="font-size:0.75rem;font-weight:600;width:100px;text-align:right;color:var(--success);">${formatPrice(m.doanh_thu)}</span>
+                    <span style="font-size:0.7rem;color:var(--dark-500);">${m.so_don} đơn</span>
                 </div>`;
             }).join('')
-            : '<p style="color:var(--dark-500);text-align:center;">Chưa có dữ liệu</p>';
+            : '<p style="color:var(--dark-500);text-align:center;padding:1rem;">Chưa có dữ liệu doanh thu</p>';
     }
+
     load();
     </script>
 </body>

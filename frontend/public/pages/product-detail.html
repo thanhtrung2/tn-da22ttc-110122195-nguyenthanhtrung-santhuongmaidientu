@@ -5,16 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chi tiết sản phẩm - Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar"><div class="navbar-container">
-        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
-        <div class="navbar-search"><i class="fas fa-search"></i>
-            <input type="text" placeholder="Tìm kiếm..." onkeypress="if(event.key==='Enter') location.href='/pages/products.html?search='+this.value">
+    <nav class="shopee-navbar">
+        <!-- Top Bar -->
+        <div class="shopee-topbar">
+            <div class="navbar-container">
+                <div class="topbar-left">
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-notifications">
+                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i> Thông Báo
+                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                        </a>
+                        <div class="notifications-dropdown" id="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4>Thông báo</h4>
+                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
+                            </div>
+                            <div class="notifications-list" id="navbar-notifications-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <div class="topbar-user" id="topbar-user">
+                        <!-- Sẽ được load động -->
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="navbar-actions" id="nav-actions"></div>
-    </div></nav>
+        
+        <!-- Main Navbar -->
+        <div class="shopee-main-nav">
+            <div class="navbar-container">
+                <a href="/" class="shopee-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Vipo</span>
+                </a>
+                
+                <div class="shopee-search">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                        <button class="search-btn" onclick="searchProducts()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="shopee-actions">
+                    <a href="/pages/cart.html" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
     <div class="page-container" id="product-detail">
         <div class="breadcrumb" style="margin-bottom:1.5rem;"><a href="/">Trang chủ</a> / <a href="/pages/products.html">Sản phẩm</a> / <span id="bc-name"></span></div>
@@ -70,20 +120,26 @@
                         <button onclick="chgQty(1)" style="width:36px;height:36px;background:var(--dark-700);border:none;color:white;cursor:pointer;">+</button>
                     </div>
                 </div>
-                <div style="display:flex;gap:1rem;">
-                    <button class="btn btn-primary btn-lg" style="flex:1;" onclick="addCart()" ${product.so_luong_ton<=0?'disabled':''}>
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                    <button class="btn btn-outline btn-lg" style="flex:1;min-width:140px;" onclick="addCart()" ${product.so_luong_ton<=0?'disabled':''}>
                         <i class="fas fa-cart-plus"></i> Thêm vào giỏ
                     </button>
-                    <button class="btn btn-outline btn-lg" onclick="location.href='/pages/chat.html?userId=${product.nguoi_ban_id}'">
-                        <i class="fas fa-comments"></i>
+                    <button class="btn btn-primary btn-lg" style="flex:2;min-width:140px;" onclick="buyNow()" ${product.so_luong_ton<=0?'disabled':''}>
+                        <i class="fas fa-bolt"></i> Mua ngay
                     </button>
                 </div>
+                <button class="btn btn-outline btn-sm" style="width:100%;margin-top:0.5rem;" onclick="location.href='/pages/chat.html?userId=${product.nguoi_ban_id}'">
+                    <i class="fas fa-comments"></i> Chat với người bán
+                </button>
             </div>
             <div class="glass-card" style="padding:1.2rem;margin-top:1rem;display:flex;align-items:center;gap:1rem;">
                 <div style="width:50px;height:50px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-store" style="color:var(--primary-light);"></i>
                 </div>
-                <div><h4 style="font-size:0.95rem;">${product.ten_gian_hang}</h4></div>
+                <div style="flex:1;"><h4 style="font-size:0.95rem;cursor:pointer;" onclick="location.href='/pages/shop.html?id=${product.shop_id}'">${product.ten_gian_hang}</h4></div>
+                <button class="btn btn-outline btn-sm" onclick="location.href='/pages/shop.html?id=${product.shop_id}'">
+                    <i class="fas fa-eye"></i> Xem shop
+                </button>
             </div>
         </div>`;
         loadReviews();
@@ -96,6 +152,14 @@
         const r=await api.post('/cart',{san_pham_id:pid,so_luong:parseInt(document.getElementById('qty').value)});
         if(r.success){showToast('Đã thêm vào giỏ!');updateCartCount();}else showToast(r.message,'error');
     }
+
+    async function buyNow() {
+        if(!isLoggedIn()){showToast('Vui lòng đăng nhập','warning');location.href='/pages/login.html';return;}
+        const r=await api.post('/cart',{san_pham_id:pid,so_luong:parseInt(document.getElementById('qty').value)});
+        if(r.success){updateCartCount();location.href='/pages/checkout.html';}
+        else showToast(r.message,'error');
+    }
+
 
     async function loadReviews() {
         const r = await api.get(`/reviews/product/${pid}`);
@@ -124,6 +188,8 @@
     }
 
     load();
-    </script>
+        <script src="/js/seller-registration.js"></script>
+</script>
+<script src="/js/shopee-nav.js"></script>
 </body>
 </html>

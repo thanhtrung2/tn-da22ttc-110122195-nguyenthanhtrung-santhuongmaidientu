@@ -167,85 +167,9 @@ function showLoading(container, count = 4) {
     container.innerHTML = html;
 }
 
-// ==========================================
-// Navigation
-// ==========================================
-function updateNavbar() {
-    const user = getUser();
-    const navActions = document.getElementById('nav-actions');
-    if (!navActions) return;
-
-    if (user) {
-        let dashboardLink = '';
-        if (user.vai_tro === 'admin') {
-            dashboardLink = '<a href="/pages/admin/dashboard.html"><i class="fas fa-cog"></i> Quản trị</a>';
-        } else if (user.vai_tro === 'seller') {
-            dashboardLink = '<a href="/pages/seller/dashboard.html"><i class="fas fa-store"></i> Gian hàng</a>';
-        }
-
-        navActions.innerHTML = `
-            <a href="/pages/chat.html" class="nav-btn" title="Chat"><i class="fas fa-comments"></i><span class="hide-mobile"> Chat</span></a>
-            <a href="/pages/cart.html" class="nav-btn" title="Giỏ hàng" id="cart-btn">
-                <i class="fas fa-shopping-cart"></i><span class="hide-mobile"> Giỏ hàng</span>
-                <span class="cart-badge" id="cart-count" style="display:none">0</span>
-            </a>
-            <div class="user-menu">
-                <button class="nav-btn" onclick="toggleUserMenu()" id="user-menu-btn">
-                    <i class="fas fa-user-circle"></i> ${user.ho_ten.split(' ').pop()}
-                    <i class="fas fa-chevron-down" style="font-size:0.7rem"></i>
-                </button>
-                <div class="user-dropdown" id="user-dropdown">
-                    <a href="/pages/profile.html"><i class="fas fa-user"></i> Tài khoản</a>
-                    <a href="/pages/orders.html"><i class="fas fa-box"></i> Đơn hàng</a>
-                    <a href="/pages/complaint.html"><i class="fas fa-flag"></i> Khiếu nại</a>
-                    ${dashboardLink}
-                    <div class="divider"></div>
-                    <button onclick="auth.logout()"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-                </div>
-            </div>
-        `;
-        updateCartCount();
-    } else {
-        navActions.innerHTML = `
-            <a href="/pages/login.html" class="nav-btn"><i class="fas fa-sign-in-alt"></i> Đăng nhập</a>
-            <a href="/pages/register.html" class="nav-btn primary"><i class="fas fa-user-plus"></i> Đăng ký</a>
-        `;
-    }
-}
-
-function toggleUserMenu() {
-    const dropdown = document.getElementById('user-dropdown');
-    dropdown.classList.toggle('show');
-}
-
-// Close dropdown on outside click
-document.addEventListener('click', (e) => {
-    const dropdown = document.getElementById('user-dropdown');
-    const btn = document.getElementById('user-menu-btn');
-    if (dropdown && !dropdown.contains(e.target) && !btn?.contains(e.target)) {
-        dropdown.classList.remove('show');
-    }
-});
-
-async function updateCartCount() {
-    if (!isLoggedIn()) return;
-    const result = await api.get('/cart/count');
-    if (result.success) {
-        const badge = document.getElementById('cart-count');
-        if (badge) {
-            badge.textContent = result.data.count;
-            badge.style.display = result.data.count > 0 ? 'flex' : 'none';
-        }
-    }
-}
-
 // Navbar scroll effect
 window.addEventListener('scroll', () => {
-    const navbar = document.querySelector('.navbar');
+    const navbar = document.querySelector('.navbar') || document.querySelector('.shopee-navbar');
     if (navbar) navbar.classList.toggle('scrolled', window.scrollY > 50);
 });
 
-// Init on page load
-document.addEventListener('DOMContentLoaded', () => {
-    updateNavbar();
-});

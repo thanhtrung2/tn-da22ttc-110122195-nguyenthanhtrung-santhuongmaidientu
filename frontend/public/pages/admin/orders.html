@@ -4,20 +4,27 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đơn hàng - Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
     <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
-        <aside class="sidebar glass"><nav class="sidebar-menu">
-            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
-            <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
-            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
-            <a href="/pages/admin/orders.html" class="active"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
-            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
-            <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
-            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
-        </nav></aside>
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/admin/orders.html" class="active"><i class="fas fa-receipt"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
         <main class="dashboard-content">
             <h1 style="margin-bottom:1.5rem;">🛒 Quản lý đơn hàng</h1>
             <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;">

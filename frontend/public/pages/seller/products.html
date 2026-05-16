@@ -2,9 +2,21 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý sản phẩm - Vipo</title>
+    <title>Quản lý sản phẩm - Gian hàng Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .status-pending  { background:rgba(234,179,8,0.15); color:#fbbf24; border:1px solid rgba(234,179,8,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
+        .status-approved { background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
+        .status-rejected { background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
+        .info-box { padding:1rem 1.2rem; border-radius:12px; border:1px solid rgba(234,179,8,0.3); background:rgba(234,179,8,0.07); margin-bottom:1.5rem; display:flex; gap:10px; align-items:flex-start; font-size:0.87rem; color:#fbbf24; }
+        .info-box i { margin-top:2px; flex-shrink:0; }
+        .form-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:999; display:flex; align-items:center; justify-content:center; padding:1rem; }
+        .form-modal { background:var(--dark-800); border:1px solid var(--dark-600); border-radius:20px; padding:2rem; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; }
+        .form-modal h3 { font-size:1.2rem; font-weight:700; margin-bottom:1.5rem; }
+        .img-preview { width:80px; height:80px; object-fit:cover; border-radius:10px; border:2px solid var(--dark-600); }
+    </style>
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container">
@@ -13,82 +25,200 @@
     </div></nav>
     <div class="dashboard-layout" style="padding-left:2rem;padding-right:2rem;">
         <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-store"></i></div>
+                <h4 style="font-size:0.95rem;" id="shop-name">Gian hàng</h4>
+            </div>
             <nav class="sidebar-menu">
                 <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
                 <a href="/pages/seller/products.html" class="active"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
-                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+                <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
+                <a href="/pages/complaint.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Về trang chủ</a>
             </nav>
         </aside>
         <main class="dashboard-content">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
                 <h1>📦 Quản lý sản phẩm</h1>
-                <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Thêm sản phẩm</button>
+                <button class="btn btn-primary" onclick="showAddForm()" id="btn-add-product">
+                    <i class="fas fa-plus"></i> Thêm sản phẩm
+                </button>
             </div>
 
-            <!-- Add/Edit Form -->
-            <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;display:none;" id="product-form">
-                <h3 id="form-title" style="margin-bottom:1rem;">Thêm sản phẩm mới</h3>
-                <form onsubmit="saveProduct(event)" enctype="multipart/form-data">
-                    <input type="hidden" id="edit-id">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                        <div class="form-group"><label>Tên sản phẩm *</label><input class="form-control" id="f-ten" required></div>
-                        <div class="form-group"><label>Danh mục</label><select class="form-control" id="f-dm"></select></div>
-                        <div class="form-group"><label>Giá (VND) *</label><input type="number" class="form-control" id="f-gia" required></div>
-                        <div class="form-group"><label>Giá khuyến mãi</label><input type="number" class="form-control" id="f-giakm"></div>
-                        <div class="form-group"><label>Số lượng tồn *</label><input type="number" class="form-control" id="f-sl" required></div>
-                        <div class="form-group"><label>Hình ảnh</label><input type="file" class="form-control" id="f-img" accept="image/*"></div>
-                    </div>
-                    <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="f-mota" rows="3"></textarea></div>
-                    <div style="display:flex;gap:1rem;">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
-                        <button type="button" class="btn btn-outline" onclick="hideForm()">Hủy</button>
-                    </div>
-                </form>
+            <!-- Notice box -->
+            <div class="info-box" id="notice-box" style="display:none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <strong>Lưu ý:</strong> Sản phẩm của bạn sẽ được gửi cho Admin duyệt trước khi hiển thị với người mua.
+                    Thông thường mất 1-2 ngày làm việc. Bạn có thể xem trạng thái duyệt trong danh sách bên dưới.
+                </div>
+            </div>
+
+            <!-- Verification warning -->
+            <div id="verify-warn" style="display:none;" class="glass-card" style="padding:1.5rem;margin-bottom:1rem;border:1px solid rgba(239,68,68,0.4);">
+                <p style="color:#f87171;"><i class="fas fa-lock"></i> <strong>Tài khoản chưa được xác thực.</strong>
+                Bạn cần chờ Admin duyệt tài khoản trước khi có thể đăng sản phẩm.</p>
             </div>
 
             <div class="table-container" id="products-table"><div class="spinner" style="margin:3rem auto;"></div></div>
         </main>
     </div>
+
+    <!-- Modal Form -->
+    <div class="form-overlay" id="product-modal" style="display:none;" onclick="closeOnOverlay(event)">
+        <div class="form-modal" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                <h3 id="form-title">Thêm sản phẩm mới</h3>
+                <button onclick="hideForm()" style="background:none;border:none;color:var(--dark-400);font-size:1.3rem;cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="saveProduct(event)" enctype="multipart/form-data">
+                <input type="hidden" id="edit-id">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>Tên sản phẩm *</label>
+                        <input class="form-control" id="f-ten" placeholder="Nhập tên sản phẩm..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Danh mục</label>
+                        <select class="form-control" id="f-dm"><option value="">-- Chọn danh mục --</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Hình ảnh sản phẩm</label>
+                        <input type="file" class="form-control" id="f-img" accept="image/*" onchange="previewImage(this)">
+                        <img id="img-preview" class="img-preview" style="display:none;margin-top:8px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Giá bán (VND) *</label>
+                        <input type="number" class="form-control" id="f-gia" placeholder="0" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Giá khuyến mãi (VND)</label>
+                        <input type="number" class="form-control" id="f-giakm" placeholder="Để trống nếu không có">
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>Số lượng tồn kho *</label>
+                        <input type="number" class="form-control" id="f-sl" placeholder="0" min="0" required>
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>Mô tả sản phẩm</label>
+                        <textarea class="form-control" id="f-mota" rows="4" placeholder="Nhập mô tả chi tiết về sản phẩm..."></textarea>
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">
+                        <i class="fas fa-paper-plane"></i> Gửi duyệt
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="hideForm()">Hủy</button>
+                </div>
+                <p style="font-size:0.78rem;color:var(--dark-400);margin-top:0.75rem;text-align:center;">
+                    <i class="fas fa-info-circle"></i> Sản phẩm sẽ được Admin duyệt trước khi hiển thị
+                </p>
+            </form>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script>
     if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
 
+    function previewImage(input) {
+        const prev = document.getElementById('img-preview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { prev.src = e.target.result; prev.style.display='block'; };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function closeOnOverlay(e) { if (e.target === document.getElementById('product-modal')) hideForm(); }
+
+    async function checkVerification() {
+        const r = await api.get('/shops/my-shop');
+        if (r.success) {
+            document.getElementById('shop-name').textContent = r.data.ten_gian_hang;
+        }
+        // Check user verification
+        const user = getUser();
+        // Will check via API
+    }
+
     async function loadCategories() {
         const r = await api.get('/products/categories');
         if(r.success) {
-            document.getElementById('f-dm').innerHTML = '<option value="">-- Chọn --</option>' +
+            document.getElementById('f-dm').innerHTML = '<option value="">-- Chọn danh mục --</option>' +
                 r.data.map(c => `<option value="${c.id}">${c.ten_danh_muc}</option>`).join('');
         }
     }
 
+    const approvalLabel = { pending:'Chờ duyệt', approved:'Đã duyệt', rejected:'Từ chối' };
+    const approvalClass = { pending:'status-pending', approved:'status-approved', rejected:'status-rejected' };
+
     async function loadProducts() {
         const r = await api.get('/products/my-products');
         const el = document.getElementById('products-table');
-        if(!r.success||r.data.length===0) { el.innerHTML='<div class="glass-card" style="padding:3rem;text-align:center;"><p style="color:var(--dark-400);">Chưa có sản phẩm. Nhấn "Thêm sản phẩm" để bắt đầu!</p></div>'; return; }
 
+        if(!r.success || r.data.length === 0) {
+            document.getElementById('notice-box').style.display = 'flex';
+            el.innerHTML = `<div class="glass-card" style="padding:3rem;text-align:center;">
+                <i class="fas fa-box-open" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:1rem;"></i>
+                <p style="color:var(--dark-400);">Chưa có sản phẩm. Nhấn "Thêm sản phẩm" để bắt đầu!</p>
+            </div>`;
+            return;
+        }
+
+        document.getElementById('notice-box').style.display = 'flex';
         el.innerHTML = `<table class="data-table"><thead><tr>
-            <th>Hình</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Giá</th><th>Tồn kho</th><th>Trạng thái</th><th>Thao tác</th>
+            <th>Hình</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Giá</th>
+            <th>Tồn kho</th><th>Trạng thái</th><th>Duyệt</th><th>Thao tác</th>
         </tr></thead><tbody>${r.data.map(p => `<tr>
-            <td><img src="${getProductImage(p.hinh_anh)}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;"></td>
-            <td style="font-weight:500;color:var(--white);">${p.ten_san_pham}</td>
-            <td>${p.ten_danh_muc||'-'}</td>
-            <td style="color:var(--danger);font-weight:600;">${formatPrice(p.gia)}${p.gia_khuyen_mai?'<br><small style="color:var(--success)">KM: '+formatPrice(p.gia_khuyen_mai)+'</small>':''}</td>
+            <td><img src="${getProductImage(p.hinh_anh)}" style="width:55px;height:55px;object-fit:cover;border-radius:8px;"></td>
+            <td style="font-weight:500;color:var(--white);max-width:180px;">
+                <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.ten_san_pham}">${p.ten_san_pham}</div>
+            </td>
+            <td>${p.ten_danh_muc||'—'}</td>
+            <td style="color:var(--danger);font-weight:600;">
+                ${formatPrice(p.gia)}
+                ${p.gia_khuyen_mai ? `<br><small style="color:var(--success)">KM: ${formatPrice(p.gia_khuyen_mai)}</small>` : ''}
+            </td>
             <td>${p.so_luong_ton}</td>
             <td><span class="status ${p.trang_thai==='active'?'status-active':'status-locked'}">${p.trang_thai==='active'?'Đang bán':'Ẩn'}</span></td>
-            <td><button class="btn btn-sm btn-outline" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})" style="margin-left:4px;"><i class="fas fa-trash"></i></button></td>
+            <td>
+                <span class="${approvalClass[p.trang_thai_duyet]||'status-pending'}">
+                    ${p.trang_thai_duyet==='pending'?'<i class="fas fa-clock"></i>':p.trang_thai_duyet==='approved'?'<i class="fas fa-check"></i>':'<i class="fas fa-times"></i>'}
+                    ${approvalLabel[p.trang_thai_duyet]||p.trang_thai_duyet}
+                </span>
+                ${p.trang_thai_duyet==='rejected'&&p.ly_do_tu_choi?`<br><small style="color:var(--dark-400);font-size:0.7rem;" title="${p.ly_do_tu_choi}">Lý do: ${p.ly_do_tu_choi.substring(0,30)}...</small>`:''}
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline" onclick="editProduct(${p.id})" title="Sửa"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})" style="margin-left:4px;" title="Xóa"><i class="fas fa-trash"></i></button>
+            </td>
         </tr>`).join('')}</tbody></table>`;
     }
 
-    function showAddForm() { document.getElementById('product-form').style.display='block'; document.getElementById('form-title').textContent='Thêm sản phẩm mới'; document.getElementById('edit-id').value=''; }
-    function hideForm() { document.getElementById('product-form').style.display='none'; }
+    function showAddForm() {
+        document.getElementById('form-title').textContent = 'Thêm sản phẩm mới';
+        document.getElementById('edit-id').value = '';
+        document.getElementById('f-ten').value = '';
+        document.getElementById('f-dm').value = '';
+        document.getElementById('f-gia').value = '';
+        document.getElementById('f-giakm').value = '';
+        document.getElementById('f-sl').value = '';
+        document.getElementById('f-mota').value = '';
+        document.getElementById('f-img').value = '';
+        document.getElementById('img-preview').style.display = 'none';
+        document.getElementById('product-modal').style.display = 'flex';
+    }
+
+    function hideForm() { document.getElementById('product-modal').style.display = 'none'; }
 
     async function editProduct(id) {
         const r = await api.get(`/products/${id}`);
-        if(!r.success) return;
+        if(!r.success) { showToast('Không thể tải sản phẩm', 'error'); return; }
         const p = r.data;
         document.getElementById('edit-id').value = id;
         document.getElementById('f-ten').value = p.ten_san_pham;
@@ -97,8 +227,9 @@
         document.getElementById('f-giakm').value = p.gia_khuyen_mai||'';
         document.getElementById('f-sl').value = p.so_luong_ton;
         document.getElementById('f-mota').value = p.mo_ta||'';
+        if (p.hinh_anh) { document.getElementById('img-preview').src = p.hinh_anh; document.getElementById('img-preview').style.display = 'block'; }
         document.getElementById('form-title').textContent = 'Sửa sản phẩm';
-        document.getElementById('product-form').style.display = 'block';
+        document.getElementById('product-modal').style.display = 'flex';
     }
 
     async function saveProduct(e) {
@@ -115,17 +246,24 @@
         if(file) fd.append('hinh_anh', file);
 
         const r = id ? await api.put(`/products/${id}`, fd) : await api.post('/products', fd);
-        if(r.success) { showToast(id?'Cập nhật thành công!':'Thêm sản phẩm thành công!'); hideForm(); loadProducts(); }
-        else showToast(r.message,'error');
+        if(r.success) {
+            showToast(id ? 'Cập nhật thành công!' : '🎉 Đã gửi sản phẩm chờ duyệt!');
+            hideForm();
+            loadProducts();
+        } else showToast(r.message, 'error');
     }
 
     async function deleteProduct(id) {
-        if(!confirm('Xóa sản phẩm này?')) return;
+        if(!confirm('Xóa sản phẩm này? Hành động này không thể hoàn tác!')) return;
         const r = await api.delete(`/products/${id}`);
-        if(r.success) { showToast('Đã xóa!'); loadProducts(); } else showToast(r.message,'error');
+        if(r.success) { showToast('Đã xóa sản phẩm!'); loadProducts(); }
+        else showToast(r.message, 'error');
     }
 
-    loadCategories(); loadProducts();
+    // Init
+    checkVerification();
+    loadCategories();
+    loadProducts();
     </script>
 </body>
 </html>

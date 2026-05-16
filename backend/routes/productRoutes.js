@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { createProduct, updateProduct, deleteProduct, getMyProducts, getAllProducts, getProductById, getCategories } = require('../controllers/productController');
+const { createProduct, updateProduct, deleteProduct, getMyProducts, getAllProducts, getProductById, getCategories, getProductsByShop } = require('../controllers/productController');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/role');
 const { uploadProduct } = require('../middleware/upload');
 
 router.get('/categories', getCategories);
+router.get('/shop/:gian_hang_id', getProductsByShop);
 router.get('/', getAllProducts);
 router.get('/my-products', authenticate, authorize('seller'), getMyProducts);
 router.get('/:id', getProductById);

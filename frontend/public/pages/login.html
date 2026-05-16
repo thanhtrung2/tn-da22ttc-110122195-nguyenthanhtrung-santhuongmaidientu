@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng nhập - Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="auth-wrapper">
@@ -17,6 +19,17 @@
             </div>
             <h2>Đăng nhập</h2>
             <p class="subtitle">Chào mừng bạn trở lại!</p>
+
+            <!-- Google Sign In Button - Tạm thời vô hiệu hóa -->
+            <div class="google-auth-section" style="margin-bottom: 1.5rem; display: none;">
+                <button class="btn" style="width: 100%; background: #4285f4; color: white; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="showGoogleMessage()">
+                    <i class="fab fa-google"></i> Đăng nhập bằng Google
+                </button>
+                <div class="divider" style="margin: 1rem 0; text-align: center; position: relative;">
+                    <span style="background: var(--dark-900); padding: 0 1rem; color: var(--dark-400); font-size: 0.9rem;">hoặc</span>
+                    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--dark-700); z-index: -1;"></div>
+                </div>
+            </div>
 
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
@@ -51,6 +64,11 @@
     <script>
         // Redirect if already logged in
         if (isLoggedIn()) window.location.href = '/';
+
+        // Tạm thời vô hiệu hóa Google OAuth
+        function showGoogleMessage() {
+            showToast('Google OAuth đang được cấu hình lại. Vui lòng sử dụng đăng nhập thường.', 'info');
+        }
 
         function togglePassword() {
             const pw = document.getElementById('password');
@@ -89,5 +107,6 @@
             }
         }
     </script>
+<script src="/js/shopee-nav.js"></script>
 </body>
 </html>

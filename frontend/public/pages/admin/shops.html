@@ -4,29 +4,100 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gian hàng - Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
     <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
-        <aside class="sidebar glass"><nav class="sidebar-menu">
-            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
-            <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
-            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
-            <a href="/pages/admin/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
-            <a href="/pages/admin/shops.html" class="active"><i class="fas fa-store"></i> Gian hàng</a>
-            <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
-            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
-        </nav></aside>
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html" class="active"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
         <main class="dashboard-content">
             <h1 style="margin-bottom:1.5rem;">🏪 Quản lý gian hàng</h1>
+            
+            <!-- Pending Seller Approvals -->
+            <div class="glass" style="padding:1.5rem;margin-bottom:2rem;">
+                <h3 style="margin-bottom:1rem;"><i class="fas fa-user-check" style="color:var(--warning)"></i> Yêu cầu đăng ký bán hàng chờ duyệt</h3>
+                <div id="pending-sellers"><div class="spinner" style="margin:1rem auto;"></div></div>
+            </div>
+
+            <!-- All Shops -->
+            <h3 style="margin-bottom:1rem;">Tất cả gian hàng</h3>
             <div id="shops-table"><div class="spinner" style="margin:3rem auto;"></div></div>
         </main>
     </div>
     <script src="/js/api.js"></script>
     <script>
     if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+    
+    // Load pending sellers
+    async function loadPendingSellers() {
+        const r = await api.get('/admin/pending-sellers');
+        const container = document.getElementById('pending-sellers');
+        if(!r.success || r.data.length === 0) {
+            container.innerHTML = '<p style="color:var(--dark-400);text-align:center;padding:1rem;">Không có yêu cầu nào</p>';
+            return;
+        }
+        container.innerHTML = r.data.map(s => `
+        <div class="glass-card" style="padding:1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem;">
+            <div style="width:50px;height:50px;border-radius:50%;background:var(--dark-700);display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-user"></i>
+            </div>
+            <div style="flex:1;">
+                <strong>${s.ho_ten}</strong><br>
+                <small style="color:var(--dark-400);">${s.email}</small><br>
+                <small style="color:var(--dark-500);">Ngày đăng ký: ${new Date(s.ngay_tao).toLocaleDateString('vi-VN')}</small>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+                <button class="btn btn-sm btn-success" onclick="verifySeller(${s.id},'verified')">
+                    <i class="fas fa-check"></i> Duyệt
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="rejectSeller(${s.id})">
+                    <i class="fas fa-times"></i> Từ chối
+                </button>
+            </div>
+        </div>`).join('');
+    }
+    
+    async function verifySeller(id, status) {
+        if(!confirm('Duyệt tài khoản người bán?')) return;
+        const r = await api.put(`/admin/verify-seller/${id}`, {trang_thai_xac_thuc: status, ly_do_tu_choi: ''});
+        if(r.success) {
+            showToast('Đã duyệt tài khoản!');
+            loadPendingSellers();
+        } else {
+            showToast(r.message, 'error');
+        }
+    }
+    
+    async function rejectSeller(id) {
+        const reason = prompt('Nhập lý do từ chối:');
+        if(!reason) return;
+        const r = await api.put(`/admin/verify-seller/${id}`, {trang_thai_xac_thuc: 'rejected', ly_do_tu_choi: reason});
+        if(r.success) {
+            showToast('Đã từ chối tài khoản!');
+            loadPendingSellers();
+        } else {
+            showToast(r.message, 'error');
+        }
+    }
+    
     async function load() {
+        loadPendingSellers();
+        
         const r = await api.get('/admin/shops');
         if(!r.success) return;
         document.getElementById('shops-table').innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>

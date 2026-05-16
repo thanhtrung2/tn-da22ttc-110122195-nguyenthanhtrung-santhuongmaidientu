@@ -5,16 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sản phẩm - Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <nav class="navbar"><div class="navbar-container">
-        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
-        <div class="navbar-search"><i class="fas fa-search"></i>
-            <input type="text" id="search-input" placeholder="Tìm kiếm sản phẩm..." onkeypress="if(event.key==='Enter') applyFilters()">
+    <nav class="shopee-navbar">
+        <!-- Top Bar -->
+        <div class="shopee-topbar">
+            <div class="navbar-container">
+                <div class="topbar-left">
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-notifications">
+                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i> Thông Báo
+                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                        </a>
+                        <div class="notifications-dropdown" id="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4>Thông báo</h4>
+                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
+                            </div>
+                            <div class="notifications-list" id="navbar-notifications-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <div class="topbar-user" id="topbar-user">
+                        <!-- Sẽ được load động -->
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="navbar-actions" id="nav-actions"></div>
-    </div></nav>
+        
+        <!-- Main Navbar -->
+        <div class="shopee-main-nav">
+            <div class="navbar-container">
+                <a href="/" class="shopee-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Vipo</span>
+                </a>
+                
+                <div class="shopee-search">
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                        <button class="search-btn" onclick="searchProducts()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="shopee-actions">
+                    <a href="/pages/cart.html" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
     <div class="page-container">
         <div class="page-header">
@@ -92,7 +142,7 @@
             const result = await api.get(`/products?${qs}`);
 
             if (result.success) {
-                document.getElementById('result-count').textContent = `${result.pagination.total} sản phẩm`;
+                document.getElementById('result-count').textContent = `${result.pagination.total || result.data.length} sản phẩm`;
                 if (result.data.length > 0) {
                     grid.innerHTML = result.data.map(p => {
                         const hasDiscount = p.gia_khuyen_mai && p.gia_khuyen_mai < p.gia;
@@ -105,7 +155,7 @@
                                 <img src="${getProductImage(p.hinh_anh)}" alt="${p.ten_san_pham}" loading="lazy">
                             </div>
                             <div class="card-body">
-                                <div class="shop-name"><i class="fas fa-store"></i> ${p.ten_gian_hang || ''}</div>
+                                <div class="shop-name" onclick="event.stopPropagation();location.href='/pages/shop.html?id=${p.gian_hang_id}'" style="cursor:pointer;"><i class="fas fa-store"></i> ${p.ten_gian_hang || ''}</div>
                                 <div class="product-name">${p.ten_san_pham}</div>
                                 <div class="price-row">
                                     <span class="price">${formatPrice(price)}</span>
@@ -113,9 +163,14 @@
                                 </div>
                                 <div class="rating">${renderStars(p.diem_trung_binh, p.so_danh_gia)}</div>
                             </div>
-                            <button class="add-to-cart" onclick="event.stopPropagation();addToCartQ(${p.id})" title="Thêm vào giỏ">
-                                <i class="fas fa-cart-plus"></i>
-                            </button>
+                            <div style="display:flex;gap:5px;padding:0 10px 10px;">
+                                <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();addToCartQ(${p.id})" title="Thêm vào giỏ" style="flex:1;">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();buyNow(${p.id})" title="Mua ngay" style="flex:1;">
+                                    <i class="fas fa-bolt"></i> Mua ngay
+                                </button>
+                            </div>
                         </div>`;
                     }).join('');
                 } else {
@@ -150,8 +205,17 @@
             else showToast(r.message,'error');
         }
 
+        async function buyNow(id) {
+            if (!isLoggedIn()) { showToast('Vui lòng đăng nhập','warning'); location.href='/pages/login.html'; return; }
+            const r = await api.post('/cart', { san_pham_id: id, so_luong: 1 });
+            if (r.success) { updateCartCount(); location.href='/pages/checkout.html'; }
+            else showToast(r.message,'error');
+        }
+
         loadCategories();
         loadProducts();
-    </script>
+        <script src="/js/seller-registration.js"></script>
+</script>
+<script src="/js/shopee-nav.js"></script>
 </body>
 </html>

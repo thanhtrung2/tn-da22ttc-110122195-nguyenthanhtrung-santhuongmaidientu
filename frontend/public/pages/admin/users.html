@@ -2,62 +2,185 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý người dùng - Admin</title>
+    <title>Quản lý người dùng - Admin Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .tab-nav { display:flex; gap:4px; margin-bottom:1.5rem; background:var(--dark-800); padding:6px; border-radius:14px; border:1px solid var(--dark-700); }
+        .tab-btn { flex:1; padding:0.6rem 1rem; border-radius:10px; border:none; background:transparent; color:var(--dark-400); font-size:0.88rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .tab-btn.active { background:var(--gradient-primary); color:white; font-weight:600; }
+        .tab-btn .cnt { background:rgba(255,255,255,0.2); border-radius:10px; padding:1px 8px; font-size:0.75rem; min-width:22px; text-align:center; }
+        .tab-btn:not(.active) .cnt { background:var(--dark-700); color:var(--dark-300); }
+        .doc-thumb { width:60px; height:40px; object-fit:cover; border-radius:6px; cursor:pointer; border:1px solid var(--dark-600); transition:transform 0.2s; }
+        .doc-thumb:hover { transform:scale(1.05); }
+        .status-pending  { background:rgba(234,179,8,0.15); color:#fbbf24; border:1px solid rgba(234,179,8,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
+        .status-verified { background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
+        .status-rejected { background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
+        .reject-reason { width:100%; padding:8px; background:var(--dark-700); border:1px solid var(--dark-600); border-radius:8px; color:var(--white); font-size:0.85rem; margin-top:6px; resize:none; }
+    </style>
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
     <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
-        <aside class="sidebar glass"><nav class="sidebar-menu">
-            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
-            <a href="/pages/admin/users.html" class="active"><i class="fas fa-users"></i> Người dùng</a>
-            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
-            <a href="/pages/admin/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
-            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
-            <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
-            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
-        </nav></aside>
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html" class="active"><i class="fas fa-users"></i> Người dùng</a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
         <main class="dashboard-content">
             <h1 style="margin-bottom:1.5rem;">👥 Quản lý người dùng</h1>
-            <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <input class="form-control" style="max-width:250px;" placeholder="Tìm kiếm..." id="search" oninput="loadUsers()">
-                <select class="form-control" style="width:auto;" id="role-filter" onchange="loadUsers()">
-                    <option value="">Tất cả</option><option value="customer">Customer</option><option value="seller">Seller</option><option value="admin">Admin</option>
-                </select>
+
+            <!-- Tabs -->
+            <div class="tab-nav">
+                <button class="tab-btn active" id="tab-pending" onclick="switchTab('pending')">
+                    <i class="fas fa-user-clock"></i> Seller chờ duyệt <span class="cnt" id="cnt-pending">0</span>
+                </button>
+                <button class="tab-btn" id="tab-all" onclick="switchTab('all')">
+                    <i class="fas fa-users"></i> Tất cả người dùng <span class="cnt" id="cnt-all">0</span>
+                </button>
             </div>
-            <div id="users-table"><div class="spinner" style="margin:3rem auto;"></div></div>
+
+            <div id="users-content"><div class="spinner" style="margin:3rem auto;"></div></div>
         </main>
     </div>
     <script src="/js/api.js"></script>
     <script>
     if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
-    const roleLabel = {admin:'Admin',seller:'Người bán',customer:'Khách hàng'};
-    const roleColor = {admin:'var(--danger)',seller:'var(--warning)',customer:'var(--primary-light)'};
 
-    async function loadUsers() {
-        const search = document.getElementById('search').value;
-        const role = document.getElementById('role-filter').value;
-        let q = '?';
-        if(search) q += `search=${search}&`;
-        if(role) q += `vai_tro=${role}`;
+    const roleLabel = {admin:'Admin', seller:'Người bán', customer:'Khách hàng'};
+    const roleColor = {admin:'var(--danger)', seller:'var(--warning)', customer:'var(--primary-light)'};
+    let currentTab = 'pending';
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        if (tab === 'pending') loadPendingSellers();
+        else loadAllUsers();
+    }
+
+    async function loadPendingSellers() {
+        const el = document.getElementById('users-content');
+        el.innerHTML = '<div class="spinner" style="margin:3rem auto;"></div>';
+        const r = await api.get('/admin/pending-sellers');
+        document.getElementById('cnt-pending').textContent = r.success ? r.data.length : 0;
+
+        if (!r.success || r.data.length === 0) {
+            el.innerHTML = `<div class="glass-card" style="padding:3rem;text-align:center;">
+                <i class="fas fa-check-circle" style="font-size:3rem;color:var(--success);opacity:0.5;display:block;margin-bottom:1rem;"></i>
+                <p style="color:var(--dark-400);">Không có người bán nào chờ xác thực!</p>
+            </div>`;
+            return;
+        }
+
+        el.innerHTML = `<div class="table-container"><table class="data-table">
+            <thead><tr>
+                <th>Thông tin</th><th>CCCD mặt trước</th><th>CCCD mặt sau</th>
+                <th>GP Kinh doanh</th><th>Ảnh khuôn mặt</th><th>Ngày đăng ký</th><th>Thao tác</th>
+            </tr></thead>
+            <tbody>${r.data.map(u => `<tr id="urow-${u.id}">
+                <td>
+                    <div style="font-weight:600;color:var(--white);">${u.ho_ten}</div>
+                    <div style="font-size:0.8rem;color:var(--dark-400);">${u.email}</div>
+                    <div style="font-size:0.8rem;color:var(--dark-400);">${u.so_dien_thoai||''}</div>
+                </td>
+                <td>${u.cccd_mat_truoc ? `<img src="/${u.cccd_mat_truoc}" class="doc-thumb" onclick="viewImg('/${u.cccd_mat_truoc}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
+                <td>${u.cccd_mat_sau ? `<img src="/${u.cccd_mat_sau}" class="doc-thumb" onclick="viewImg('/${u.cccd_mat_sau}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
+                <td>${u.giay_phep_kinh_doanh ? `<img src="/${u.giay_phep_kinh_doanh}" class="doc-thumb" onclick="viewImg('/${u.giay_phep_kinh_doanh}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
+                <td>${u.anh_guong_mat ? `<img src="/${u.anh_guong_mat}" class="doc-thumb" onclick="viewImg('/${u.anh_guong_mat}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
+                <td style="font-size:0.8rem;">${new Date(u.ngay_tao).toLocaleDateString('vi-VN')}</td>
+                <td>
+                    <div style="display:flex;flex-direction:column;gap:6px;min-width:160px;">
+                        <button class="btn btn-sm btn-success" onclick="verifySeller(${u.id},'verified')">
+                            <i class="fas fa-check"></i> Xác thực
+                        </button>
+                        <div>
+                            <textarea class="reject-reason" id="reason-${u.id}" rows="2" placeholder="Lý do từ chối..."></textarea>
+                            <button class="btn btn-sm btn-danger" onclick="verifySeller(${u.id},'rejected')" style="width:100%;margin-top:4px;">
+                                <i class="fas fa-times"></i> Từ chối
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            </tr>`).join('')}</tbody>
+        </table></div>`;
+    }
+
+    function viewImg(src) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+        overlay.innerHTML = `<img src="${src}" style="max-width:90%;max-height:90%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">`;
+        overlay.onclick = () => overlay.remove();
+        document.body.appendChild(overlay);
+    }
+
+    async function verifySeller(id, status) {
+        const reason = document.getElementById('reason-' + id)?.value;
+        if (status === 'rejected' && !reason) { showToast('Vui lòng nhập lý do từ chối', 'warning'); return; }
+        const r = await api.put(`/admin/verify-seller/${id}`, { trang_thai_xac_thuc: status, ly_do_tu_choi: reason || null });
+        if (r.success) {
+            showToast(status === 'verified' ? '✅ Đã xác thực người bán!' : '❌ Đã từ chối người bán!');
+            const row = document.getElementById('urow-' + id);
+            if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => { row.remove(); loadPendingSellers(); }, 300); }
+        } else showToast(r.message, 'error');
+    }
+
+    async function loadAllUsers() {
+        const el = document.getElementById('users-content');
+        el.innerHTML = `
+        <div class="glass" style="padding:12px;margin-bottom:1rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input class="form-control" style="max-width:250px;" placeholder="Tìm kiếm tên, email..." id="search-input" oninput="fetchUsers()">
+            <select class="form-control" style="width:auto;" id="role-filter" onchange="fetchUsers()">
+                <option value="">Tất cả vai trò</option>
+                <option value="customer">Khách hàng</option>
+                <option value="seller">Người bán</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div id="users-table"><div class="spinner" style="margin:3rem auto;"></div></div>`;
+        fetchUsers();
+    }
+
+    async function fetchUsers() {
+        const search = document.getElementById('search-input')?.value || '';
+        const role = document.getElementById('role-filter')?.value || '';
+        let q = '?1=1';
+        if(search) q += `&search=${encodeURIComponent(search)}`;
+        if(role) q += `&vai_tro=${role}`;
         const r = await api.get(`/admin/users${q}`);
         const el = document.getElementById('users-table');
         if(!r.success) return;
+        document.getElementById('cnt-all').textContent = r.data.length;
+
+        const verifyLabel = { pending:'Chờ duyệt', verified:'Đã xác thực', rejected:'Từ chối', unverified:'Chưa XN' };
+        const verifyClass = { pending:'status-pending', verified:'status-verified', rejected:'status-rejected', unverified:'' };
 
         el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
-            <th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
+            <th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th>
+            <th>Xác thực</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
         </tr></thead><tbody>${r.data.map(u => `<tr>
             <td>${u.id}</td>
             <td style="font-weight:500;color:var(--white);">${u.ho_ten}</td>
-            <td>${u.email}</td>
-            <td>${u.so_dien_thoai||'-'}</td>
+            <td style="font-size:0.85rem;">${u.email}</td>
+            <td>${u.so_dien_thoai||'—'}</td>
             <td><span style="color:${roleColor[u.vai_tro]};font-weight:600;">${roleLabel[u.vai_tro]}</span></td>
+            <td>${u.vai_tro==='seller'?`<span class="${verifyClass[u.trang_thai_xac_thuc]||''}">${verifyLabel[u.trang_thai_xac_thuc]||u.trang_thai_xac_thuc||'—'}</span>`:'—'}</td>
             <td><span class="status ${u.trang_thai==='active'?'status-active':'status-locked'}">${u.trang_thai==='active'?'Hoạt động':'Đã khóa'}</span></td>
-            <td style="font-size:0.8rem;">${formatDate(u.ngay_tao)}</td>
+            <td style="font-size:0.8rem;">${new Date(u.ngay_tao).toLocaleDateString('vi-VN')}</td>
             <td>${u.vai_tro!=='admin'?`<button class="btn btn-sm ${u.trang_thai==='active'?'btn-danger':'btn-success'}" onclick="toggleUser(${u.id},'${u.trang_thai==='active'?'locked':'active'}')">
                 <i class="fas fa-${u.trang_thai==='active'?'lock':'lock-open'}"></i>
-            </button>`:''}</td>
+            </button>`:'—'}</td>
         </tr>`).join('')}</tbody></table></div>`;
     }
 
@@ -65,10 +188,11 @@
         const action = status==='locked'?'khóa':'mở khóa';
         if(!confirm(`${action} tài khoản #${id}?`)) return;
         const r = await api.put(`/admin/users/${id}/status`, {trang_thai: status});
-        if(r.success) { showToast(`Đã ${action} tài khoản!`); loadUsers(); } else showToast(r.message,'error');
+        if(r.success) { showToast(`Đã ${action} tài khoản!`); fetchUsers(); } else showToast(r.message,'error');
     }
 
-    loadUsers();
+    // Init
+    loadPendingSellers();
     </script>
 </body>
 </html>

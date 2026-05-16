@@ -41,18 +41,196 @@ const getDashboard = async (req, res) => {
 // Quản lý người dùng
 const getAllUsers = async (req, res) => {
     try {
-        const { vai_tro, search } = req.query;
-        let sql = 'SELECT id, ho_ten, email, so_dien_thoai, vai_tro, trang_thai, ngay_tao FROM nguoi_dung WHERE 1=1';
+        const { vai_tro, search, trang_thai_xac_thuc } = req.query;
+        let sql = 'SELECT id, ho_ten, email, so_dien_thoai, vai_tro, trang_thai, trang_thai_xac_thuc, cccd_mat_truoc, cccd_mat_sau, giay_phep_kinh_doanh, anh_guong_mat, ngay_tao FROM nguoi_dung WHERE 1=1';
         const params = [];
 
         if (vai_tro) { sql += ' AND vai_tro = ?'; params.push(vai_tro); }
         if (search) { sql += ' AND (ho_ten LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+        if (trang_thai_xac_thuc) { sql += ' AND trang_thai_xac_thuc = ?'; params.push(trang_thai_xac_thuc); }
         sql += ' ORDER BY ngay_tao DESC';
 
         const [rows] = await pool.query(sql, params);
         res.json({ success: true, data: rows });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+// Lấy danh sách người bán chờ xác thực
+const getPendingSellers = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT id, ho_ten, email, so_dien_thoai, cccd_mat_truoc, cccd_mat_sau, 
+             giay_phep_kinh_doanh, anh_guong_mat, trang_thai_xac_thuc, ngay_tao 
+             FROM nguoi_dung 
+             WHERE vai_tro = 'seller' AND trang_thai_xac_thuc = 'pending'
+             ORDER BY ngay_tao DESC`
+        );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+// Xác thực người bán
+const verifySellerAccount = async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { trang_thai_xac_thuc, ly_do_tu_choi } = req.body;
+        const userId = req.params.id;
+
+        if (!['verified', 'rejected'].includes(trang_thai_xac_thuc)) {
+            return res.status(400).json({ success: false, message: 'Trạng thái không hợp lệ' });
+        }
+
+        if (trang_thai_xac_thuc === 'rejected' && !ly_do_tu_choi) {
+            return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do từ chối' });
+        }
+
+        // 1. Cập nhật thông tin xác thực trên bảng nguoi_dung
+        await connection.query(
+            'UPDATE nguoi_dung SET trang_thai_xac_thuc = ?, ly_do_tu_choi = ?, ngay_xac_thuc = NOW() WHERE id = ? AND vai_tro = ?',
+            [trang_thai_xac_thuc, ly_do_tu_choi || null, userId, 'seller']
+        );
+
+        // 2. Cập nhật bảng shop
+        const shopStatus = trang_thai_xac_thuc === 'verified' ? 'active' : 'rejected';
+        await connection.query(
+            'UPDATE shop SET trang_thai = ?, ly_do_tu_choi = ?, ngay_duyet = NOW(), admin_duyet_id = ? WHERE nguoi_ban_id = ?',
+            [shopStatus, ly_do_tu_choi || null, req.user.id, userId]
+        );
+
+        if (trang_thai_xac_thuc === 'verified') {
+            // 3. Lấy thông tin shop để tạo gian_hang
+            const [shops] = await connection.query('SELECT * FROM shop WHERE nguoi_ban_id = ?', [userId]);
+            if (shops.length > 0) {
+                const shop = shops[0];
+                // Kiểm tra gian_hang đã tồn tại chưa
+                const [existingGianHang] = await connection.query('SELECT id FROM gian_hang WHERE nguoi_ban_id = ?', [userId]);
+                
+                if (existingGianHang.length === 0) {
+                    // Tạo gian_hang mới
+                    await connection.query(
+                        'INSERT INTO gian_hang (nguoi_ban_id, ten_gian_hang, mo_ta, dia_chi, shop_id, trang_thai) VALUES (?, ?, ?, ?, ?, "active")',
+                        [userId, shop.ten_shop, shop.mo_ta, shop.dia_chi_kho, shop.id]
+                    );
+                } else {
+                    // Cập nhật gian_hang hiện có
+                    await connection.query(
+                        'UPDATE gian_hang SET ten_gian_hang = ?, mo_ta = ?, dia_chi = ?, shop_id = ?, trang_thai = "active" WHERE nguoi_ban_id = ?',
+                        [shop.ten_shop, shop.mo_ta, shop.dia_chi_kho, shop.id, userId]
+                    );
+                }
+            }
+
+            // 4. Gửi thông báo thành công cho seller
+            await connection.query(
+                `INSERT INTO thong_bao (nguoi_nhan_id, tieu_de, noi_dung, loai, trang_thai, url_lien_ket) 
+                VALUES (?, ?, ?, ?, ?, ?)`,
+                [userId, 'Chúc mừng! Bạn đã trở thành Người bán', 'Hồ sơ đăng ký bán hàng của bạn đã được Admin phê duyệt. Bây giờ bạn có thể bắt đầu đăng sản phẩm và quản lý gian hàng của mình.', 'seller_approved', 'unread', '/pages/seller/dashboard.html']
+            );
+        } else {
+            // Gửi thông báo từ chối cho seller
+            await connection.query(
+                `INSERT INTO thong_bao (nguoi_nhan_id, tieu_de, noi_dung, loai, trang_thai, url_lien_ket) 
+                VALUES (?, ?, ?, ?, ?, ?)`,
+                [userId, 'Thông báo kết quả xét duyệt Người bán', `Rất tiếc, hồ sơ đăng ký bán hàng của bạn không được phê duyệt. Lý do: ${ly_do_tu_choi}`, 'seller_rejected', 'unread', '/pages/profile.html']
+            );
+        }
+
+        await connection.commit();
+        res.json({ 
+            success: true, 
+            message: trang_thai_xac_thuc === 'verified' ? 'Xác thực người bán thành công' : 'Đã từ chối xác thực người bán'
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Verify seller error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    } finally {
+        connection.release();
+    }
+};
+
+// Lấy danh sách sản phẩm chờ duyệt
+const getPendingProducts = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT sp.*, gh.ten_gian_hang, dm.ten_danh_muc, nd.ho_ten as ten_nguoi_ban
+            FROM san_pham sp
+            JOIN gian_hang gh ON sp.gian_hang_id = gh.id
+            JOIN nguoi_dung nd ON gh.nguoi_ban_id = nd.id
+            LEFT JOIN danh_muc dm ON sp.danh_muc_id = dm.id
+            WHERE sp.trang_thai_duyet = 'pending'
+            ORDER BY sp.ngay_tao DESC`
+        );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+// Duyệt sản phẩm
+const approveProduct = async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { trang_thai_duyet, ly_do_tu_choi } = req.body;
+        const productId = req.params.id;
+
+        if (!['approved', 'rejected'].includes(trang_thai_duyet)) {
+            return res.status(400).json({ success: false, message: 'Trạng thái không hợp lệ' });
+        }
+
+        if (trang_thai_duyet === 'rejected' && !ly_do_tu_choi) {
+            return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do từ chối' });
+        }
+
+        // Lấy thông tin sản phẩm và seller trước khi update
+        const [products] = await connection.query(
+            `SELECT sp.ten_san_pham, gh.nguoi_ban_id 
+             FROM san_pham sp 
+             JOIN gian_hang gh ON sp.gian_hang_id = gh.id 
+             WHERE sp.id = ?`, 
+            [productId]
+        );
+
+        if (products.length === 0) {
+            return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại' });
+        }
+
+        const { ten_san_pham, nguoi_ban_id } = products[0];
+
+        await connection.query(
+            'UPDATE san_pham SET trang_thai_duyet = ?, ly_do_tu_choi = ? WHERE id = ?',
+            [trang_thai_duyet, ly_do_tu_choi || null, productId]
+        );
+
+        // Gửi thông báo cho seller
+        const title = trang_thai_duyet === 'approved' ? 'Sản phẩm đã được duyệt' : 'Sản phẩm bị từ chối';
+        const content = trang_thai_duyet === 'approved' 
+            ? `Chúc mừng! Sản phẩm "${ten_san_pham}" của bạn đã được Admin phê duyệt và đang hiển thị trên sàn.` 
+            : `Rất tiếc, sản phẩm "${ten_san_pham}" của bạn không được phê duyệt. Lý do: ${ly_do_tu_choi}`;
+
+        await connection.query(
+            `INSERT INTO thong_bao (nguoi_nhan_id, tieu_de, noi_dung, loai, trang_thai, url_lien_ket) 
+            VALUES (?, ?, ?, ?, ?, ?)`,
+            [nguoi_ban_id, title, content, 'system', 'unread', '/pages/seller/products.html']
+        );
+
+        await connection.commit();
+        res.json({ 
+            success: true, 
+            message: trang_thai_duyet === 'approved' ? 'Duyệt sản phẩm thành công' : 'Đã từ chối sản phẩm'
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Approve product error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    } finally {
+        connection.release();
     }
 };
 
@@ -171,5 +349,7 @@ module.exports = {
     getDashboard, getAllUsers, toggleUserStatus,
     adminGetProducts, adminUpdateProduct,
     adminGetOrders, adminGetShops, adminUpdateShop,
-    getSellerDashboard
+    getSellerDashboard,
+    getPendingSellers, verifySellerAccount,
+    getPendingProducts, approveProduct
 };

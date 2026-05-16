@@ -19,12 +19,22 @@ CREATE TABLE IF NOT EXISTS nguoi_dung (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ho_ten VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    mat_khau VARCHAR(255) NOT NULL,
+    mat_khau VARCHAR(255),
     so_dien_thoai VARCHAR(15),
     dia_chi TEXT,
     avatar VARCHAR(500),
     vai_tro ENUM('admin', 'seller', 'customer') DEFAULT 'customer',
     trang_thai ENUM('active', 'locked') DEFAULT 'active',
+    -- Google OAuth
+    google_id VARCHAR(100) UNIQUE,
+    -- Thông tin xác thực người bán
+    cccd_mat_truoc VARCHAR(500),
+    cccd_mat_sau VARCHAR(500),
+    giay_phep_kinh_doanh VARCHAR(500),
+    anh_guong_mat VARCHAR(500),
+    trang_thai_xac_thuc ENUM('pending', 'verified', 'rejected') DEFAULT NULL,
+    ly_do_tu_choi TEXT,
+    ngay_xac_thuc TIMESTAMP NULL,
     ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ngay_cap_nhat TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -54,6 +64,8 @@ CREATE TABLE IF NOT EXISTS san_pham (
     so_luong_ton INT DEFAULT 0,
     hinh_anh VARCHAR(500),
     trang_thai ENUM('active', 'inactive', 'banned') DEFAULT 'active',
+    trang_thai_duyet ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    ly_do_tu_choi TEXT,
     luot_xem INT DEFAULT 0,
     ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ngay_cap_nhat TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -179,3 +191,51 @@ INSERT IGNORE INTO danh_muc (id, ten_danh_muc, mo_ta) VALUES
 (8, 'Thể thao & Du lịch', 'Dụng cụ thể thao, đồ du lịch'),
 (9, 'Đồ ăn & Thực phẩm', 'Thực phẩm, đồ uống, gia vị'),
 (10, 'Mẹ & Bé', 'Đồ dùng cho mẹ và bé');
+
+-- Bảng shop (thông tin chi tiết shop của seller)
+CREATE TABLE IF NOT EXISTS shop (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nguoi_ban_id INT NOT NULL,
+    ten_shop VARCHAR(200) NOT NULL,
+    mo_ta TEXT,
+    logo VARCHAR(500),
+    dia_chi_kho VARCHAR(500) NOT NULL,
+    phuong_thuc_van_chuyen TEXT, -- JSON array: ["giao_hang_nhanh", "giao_hang_tiet_kiem", "tu_den_lay"]
+    ma_so_thue VARCHAR(20) NOT NULL,
+    trang_thai ENUM('pending', 'active', 'suspended', 'rejected') DEFAULT 'pending',
+    ly_do_tu_choi TEXT,
+    ngay_duyet TIMESTAMP NULL,
+    admin_duyet_id INT NULL,
+    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ngay_cap_nhat TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (nguoi_ban_id) REFERENCES nguoi_dung(id) ON DELETE CASCADE,
+    FOREIGN KEY (admin_duyet_id) REFERENCES nguoi_dung(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_seller (nguoi_ban_id),
+    UNIQUE KEY unique_tax_code (ma_so_thue)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng thông báo
+CREATE TABLE IF NOT EXISTS thong_bao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nguoi_nhan_id INT NOT NULL,
+    tieu_de VARCHAR(255) NOT NULL,
+    noi_dung TEXT NOT NULL,
+    loai ENUM('system', 'order', 'seller_registration', 'seller_registration_received', 'seller_approved', 'seller_rejected', 'promotion', 'other') DEFAULT 'system',
+    trang_thai ENUM('unread', 'read') DEFAULT 'unread',
+    url_lien_ket VARCHAR(500), -- Link để chuyển đến trang liên quan
+    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ngay_doc TIMESTAMP NULL,
+    FOREIGN KEY (nguoi_nhan_id) REFERENCES nguoi_dung(id) ON DELETE CASCADE,
+    INDEX idx_nguoi_nhan_trang_thai (nguoi_nhan_id, trang_thai),
+    INDEX idx_ngay_tao (ngay_tao)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Cập nhật bảng gian_hang để liên kết với shop
+ALTER TABLE gian_hang ADD COLUMN IF NOT EXISTS shop_id INT NULL;
+ALTER TABLE gian_hang ADD FOREIGN KEY IF NOT EXISTS (shop_id) REFERENCES shop(id) ON DELETE SET NULL;
+
+-- Thêm index để tối ưu performance
+CREATE INDEX IF NOT EXISTS idx_nguoi_dung_vai_tro ON nguoi_dung(vai_tro);
+CREATE INDEX IF NOT EXISTS idx_nguoi_dung_trang_thai_xac_thuc ON nguoi_dung(trang_thai_xac_thuc);
+CREATE INDEX IF NOT EXISTS idx_shop_trang_thai ON shop(trang_thai);
+CREATE INDEX IF NOT EXISTS idx_san_pham_trang_thai_duyet ON san_pham(trang_thai_duyet);

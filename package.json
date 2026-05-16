@@ -1,10 +1,15 @@
 {
-  "name": "khoaluantn2026",
+  "name": "vipo-ecommerce",
   "version": "1.0.0",
-  "description": "Root package.json to proxy commands to backend",
+  "description": "Sàn Thương Mại Điện Tử Vipo - Full Stack Application",
   "scripts": {
     "start": "cd backend && npm start",
     "dev": "cd backend && npm run dev",
-    "install-all": "cd backend && npm install"
-  }
+    "install-backend": "cd backend && npm install",
+    "setup": "npm run install-backend",
+    "web": "cd backend && node server.js"
+  },
+  "keywords": ["ecommerce", "nodejs", "express", "mysql"],
+  "author": "Vipo Team",
+  "license": "MIT"
 }

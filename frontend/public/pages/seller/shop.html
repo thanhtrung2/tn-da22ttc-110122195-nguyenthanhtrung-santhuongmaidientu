@@ -2,9 +2,46 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gian hàng - Vipo</title>
+    <title>Quản lý Gian hàng - Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .verify-banner {
+            border-radius: 14px;
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.9rem;
+            border: 1px solid;
+        }
+        .verify-banner.pending {
+            background: rgba(234,179,8,0.08);
+            border-color: rgba(234,179,8,0.3);
+            color: #fbbf24;
+        }
+        .verify-banner.verified {
+            background: rgba(34,197,94,0.08);
+            border-color: rgba(34,197,94,0.3);
+            color: #4ade80;
+        }
+        .verify-banner.rejected {
+            background: rgba(239,68,68,0.08);
+            border-color: rgba(239,68,68,0.3);
+            color: #f87171;
+        }
+        .verify-banner .icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+        .public-link-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 0.5rem 1.2rem; background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.3); border-radius: 10px;
+            color: var(--primary-light); font-size: 0.85rem; cursor: pointer;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .public-link-btn:hover { background: rgba(99,102,241,0.2); }
+    </style>
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container">
@@ -13,17 +50,31 @@
     </div></nav>
     <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
         <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-store"></i></div>
+                <h4 style="font-size:0.95rem;" id="shop-name">Gian hàng</h4>
+            </div>
             <nav class="sidebar-menu">
                 <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
                 <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html" class="active"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
-                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+                <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
+                <a href="/pages/complaint.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Về trang chủ</a>
             </nav>
         </aside>
         <main class="dashboard-content">
-            <h1 style="margin-bottom:1.5rem;">🏪 Quản lý gian hàng</h1>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                <h1>🏪 Quản lý gian hàng</h1>
+                <div id="shop-public-link"></div>
+            </div>
+
+            <!-- Verification status banner -->
+            <div id="verify-banner"></div>
+
             <div class="glass-card" style="padding:2rem;" id="shop-content">
                 <div class="spinner" style="margin:3rem auto;"></div>
             </div>
@@ -34,55 +85,124 @@
     if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
 
     async function loadShop() {
+        // Load user verification status
+        const userResp = await api.get('/users/profile');
+        if (userResp.success) {
+            const u = userResp.data;
+            const banner = document.getElementById('verify-banner');
+            const verifyMap = {
+                pending: { cls:'pending', icon:'fa-clock', msg:'<strong>Tài khoản đang chờ Admin xác thực.</strong> Sau khi được duyệt, bạn mới có thể đăng sản phẩm lên gian hàng.' },
+                verified: { cls:'verified', icon:'fa-check-circle', msg:'<strong>Tài khoản đã được xác thực!</strong> Bạn có thể đăng sản phẩm và bán hàng bình thường.' },
+                rejected: { cls:'rejected', icon:'fa-times-circle', msg:`<strong>Tài khoản bị từ chối xác thực.</strong> ${u.ly_do_tu_choi ? 'Lý do: ' + u.ly_do_tu_choi : ''} Vui lòng cập nhật hồ sơ và liên hệ Admin.` },
+                unverified: { cls:'pending', icon:'fa-exclamation-circle', msg:'<strong>Chưa nộp hồ sơ xác thực.</strong> Vào <a href="/pages/profile.html" style="color:inherit;text-decoration:underline;">Trang cá nhân</a> để nộp CCCD và giấy phép kinh doanh.' }
+            };
+            const status = u.trang_thai_xac_thuc || 'unverified';
+            const info = verifyMap[status] || verifyMap.pending;
+            banner.innerHTML = `<div class="verify-banner ${info.cls}">
+                <i class="fas ${info.icon} icon"></i>
+                <div>${info.msg}</div>
+            </div>`;
+        }
+
+        // Load shop info
         const r = await api.get('/shops/my-shop');
         const el = document.getElementById('shop-content');
-        if(!r.success) {
+
+        if (!r.success) {
             el.innerHTML = `<div style="text-align:center;padding:2rem;">
-                <h3 style="margin-bottom:1rem;">Bạn chưa có gian hàng</h3>
-                <p style="color:var(--dark-400);margin-bottom:1.5rem;">Tạo gian hàng để bắt đầu bán hàng</p>
-                <form onsubmit="createShop(event)">
-                    <div class="form-group"><label>Tên gian hàng *</label><input class="form-control" id="s-ten" required></div>
-                    <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="s-mota" rows="3"></textarea></div>
-                    <div class="form-group"><label>Địa chỉ</label><input class="form-control" id="s-dc"></div>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-store"></i> Tạo gian hàng</button>
+                <i class="fas fa-store-slash" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:1rem;"></i>
+                <h3 style="margin-bottom:0.5rem;">Bạn chưa có gian hàng</h3>
+                <p style="color:var(--dark-400);margin-bottom:1.5rem;">Tạo gian hàng để bắt đầu bán hàng trên Vipo</p>
+                <form onsubmit="createShop(event)" style="max-width:500px;margin:0 auto;">
+                    <div class="form-group"><label>Tên gian hàng *</label><input class="form-control" id="s-ten" placeholder="Nhập tên gian hàng..." required></div>
+                    <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="s-mota" rows="3" placeholder="Giới thiệu về gian hàng của bạn..."></textarea></div>
+                    <div class="form-group"><label>Địa chỉ</label><input class="form-control" id="s-dc" placeholder="Địa chỉ kho hàng..."></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;">
+                        <i class="fas fa-store"></i> Tạo gian hàng
+                    </button>
                 </form>
             </div>`;
             return;
         }
+
         const s = r.data;
+        document.getElementById('shop-name').textContent = s.ten_gian_hang;
+        document.getElementById('shop-public-link').innerHTML = `
+            <a class="public-link-btn" href="/pages/shop.html?id=${s.id}" target="_blank">
+                <i class="fas fa-external-link-alt"></i> Xem trang gian hàng
+            </a>`;
+
         el.innerHTML = `
-            <form onsubmit="updateShop(event)">
+            <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:80px;height:80px;border-radius:16px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;">
+                    ${s.logo ? `<img src="${s.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">` : '<i class="fas fa-store"></i>'}
+                </div>
+                <div>
+                    <h2 style="font-size:1.3rem;font-weight:700;">${s.ten_gian_hang}</h2>
+                    <div style="font-size:0.85rem;color:var(--dark-400);margin-top:4px;">
+                        <i class="fas fa-calendar"></i> Tạo ${formatDate(s.ngay_tao)}
+                    </div>
+                    <span class="status ${s.trang_thai==='active'?'status-active':'status-locked'}" style="margin-top:6px;display:inline-block;">
+                        ${s.trang_thai==='active'?'Đang hoạt động':'Tạm khóa'}
+                    </span>
+                </div>
+            </div>
+            <form onsubmit="updateShop(event)" enctype="multipart/form-data">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                    <div class="form-group"><label>Tên gian hàng</label><input class="form-control" id="s-ten" value="${s.ten_gian_hang}"></div>
-                    <div class="form-group"><label>Địa chỉ</label><input class="form-control" id="s-dc" value="${s.dia_chi||''}"></div>
+                    <div class="form-group">
+                        <label>Tên gian hàng *</label>
+                        <input class="form-control" id="s-ten" value="${s.ten_gian_hang}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Địa chỉ kho hàng</label>
+                        <input class="form-control" id="s-dc" value="${s.dia_chi||''}">
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>Mô tả gian hàng</label>
+                        <textarea class="form-control" id="s-mota" rows="3">${s.mo_ta||''}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label>Logo gian hàng</label>
+                        <input type="file" class="form-control" id="s-logo" accept="image/*">
+                        <p style="font-size:0.78rem;color:var(--dark-400);margin-top:4px;">Để trống nếu không muốn thay đổi logo</p>
+                    </div>
                 </div>
-                <div class="form-group"><label>Mô tả</label><textarea class="form-control" id="s-mota" rows="3">${s.mo_ta||''}</textarea></div>
-                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
-                    <span class="status ${s.trang_thai==='active'?'status-active':'status-locked'}">${s.trang_thai==='active'?'Đang hoạt động':'Không hoạt động'}</span>
-                    <span style="font-size:0.85rem;color:var(--dark-400);">Ngày tạo: ${formatDate(s.ngay_tao)}</span>
+                <div style="display:flex;gap:1rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                    <a class="btn btn-outline" href="/pages/shop.html?id=${s.id}" target="_blank">
+                        <i class="fas fa-eye"></i> Xem gian hàng
+                    </a>
                 </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Cập nhật</button>
             </form>`;
     }
 
     async function createShop(e) {
         e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Đang tạo...';
         const r = await api.post('/shops', {
             ten_gian_hang: document.getElementById('s-ten').value,
             mo_ta: document.getElementById('s-mota').value,
             dia_chi: document.getElementById('s-dc').value
         });
-        if(r.success) { showToast('Tạo gian hàng thành công!'); loadShop(); } else showToast(r.message,'error');
+        if (r.success) { showToast('🎉 Tạo gian hàng thành công!'); loadShop(); }
+        else { showToast(r.message, 'error'); btn.disabled = false; btn.textContent = 'Tạo gian hàng'; }
     }
 
     async function updateShop(e) {
         e.preventDefault();
-        const r = await api.put('/shops', {
-            ten_gian_hang: document.getElementById('s-ten').value,
-            mo_ta: document.getElementById('s-mota').value,
-            dia_chi: document.getElementById('s-dc').value
-        });
-        if(r.success) showToast('Cập nhật thành công!'); else showToast(r.message,'error');
+        const fd = new FormData();
+        fd.append('ten_gian_hang', document.getElementById('s-ten').value);
+        fd.append('mo_ta', document.getElementById('s-mota').value);
+        fd.append('dia_chi', document.getElementById('s-dc').value);
+        const logo = document.getElementById('s-logo')?.files[0];
+        if (logo) fd.append('logo', logo);
+
+        const r = await api.put('/shops', fd);
+        if (r.success) showToast('✅ Cập nhật gian hàng thành công!');
+        else showToast(r.message, 'error');
     }
 
     loadShop();

@@ -25,12 +25,26 @@ const createProduct = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Bạn chưa có gian hàng' });
         }
 
+        // Kiểm tra người bán đã được xác thực chưa
+        const [seller] = await pool.query('SELECT trang_thai_xac_thuc FROM nguoi_dung WHERE id = ?', [req.user.id]);
+        if (seller[0].trang_thai_xac_thuc !== 'verified') {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Tài khoản của bạn chưa được xác thực. Vui lòng chờ Admin phê duyệt để có thể đăng sản phẩm.' 
+            });
+        }
+
+        // Tạo sản phẩm với trạng thái chờ duyệt
         const [result] = await pool.query(
-            'INSERT INTO san_pham (gian_hang_id, danh_muc_id, ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, hinh_anh) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [shop[0].id, danh_muc_id || null, ten_san_pham, mo_ta, gia, gia_khuyen_mai || null, so_luong_ton || 0, hinh_anh]
+            'INSERT INTO san_pham (gian_hang_id, danh_muc_id, ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, hinh_anh, trang_thai_duyet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [shop[0].id, danh_muc_id || null, ten_san_pham, mo_ta, gia, gia_khuyen_mai || null, so_luong_ton || 0, hinh_anh, 'pending']
         );
 
-        res.status(201).json({ success: true, message: 'Thêm sản phẩm thành công', data: { id: result.insertId } });
+        res.status(201).json({ 
+            success: true, 
+            message: 'Thêm sản phẩm thành công! Sản phẩm đang chờ Admin duyệt.', 
+            data: { id: result.insertId } 
+        });
     } catch (error) {
         console.error('Create product error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server' });
@@ -122,7 +136,7 @@ const getAllProducts = async (req, res) => {
             FROM san_pham sp 
             JOIN gian_hang gh ON sp.gian_hang_id = gh.id 
             LEFT JOIN danh_muc dm ON sp.danh_muc_id = dm.id
-            WHERE sp.trang_thai = 'active' AND gh.trang_thai = 'active'`;
+            WHERE sp.trang_thai = 'active' AND sp.trang_thai_duyet = 'approved' AND gh.trang_thai = 'active'`;
         const params = [];
 
         if (search) {
@@ -226,4 +240,62 @@ const getCategories = async (req, res) => {
     }
 };
 
-module.exports = { createProduct, updateProduct, deleteProduct, getMyProducts, getAllProducts, getProductById, getCategories };
+// Lấy sản phẩm theo gian hàng (public)
+const getProductsByShop = async (req, res) => {
+    try {
+        const { gian_hang_id } = req.params;
+        const { danh_muc_id, sort, page = 1, limit = 12 } = req.query;
+        
+        let sql = `SELECT sp.*, gh.ten_gian_hang, dm.ten_danh_muc,
+            (SELECT AVG(so_sao) FROM danh_gia WHERE san_pham_id = sp.id) as diem_trung_binh,
+            (SELECT COUNT(*) FROM danh_gia WHERE san_pham_id = sp.id) as so_danh_gia
+            FROM san_pham sp 
+            JOIN gian_hang gh ON sp.gian_hang_id = gh.id 
+            LEFT JOIN danh_muc dm ON sp.danh_muc_id = dm.id
+            WHERE sp.gian_hang_id = ? AND sp.trang_thai = 'active' AND sp.trang_thai_duyet = 'approved'`;
+        const params = [gian_hang_id];
+
+        if (danh_muc_id) {
+            sql += ' AND sp.danh_muc_id = ?';
+            params.push(danh_muc_id);
+        }
+
+        // Count total
+        const countSql = sql.replace(/SELECT .+? FROM/, 'SELECT COUNT(*) as total FROM');
+        const [countResult] = await pool.query(countSql, params);
+        const total = countResult[0].total;
+
+        // Sort
+        switch (sort) {
+            case 'price_asc': sql += ' ORDER BY sp.gia ASC'; break;
+            case 'price_desc': sql += ' ORDER BY sp.gia DESC'; break;
+            case 'newest': sql += ' ORDER BY sp.ngay_tao DESC'; break;
+            case 'popular': sql += ' ORDER BY sp.luot_xem DESC'; break;
+            case 'rating': sql += ' ORDER BY diem_trung_binh DESC'; break;
+            default: sql += ' ORDER BY sp.ngay_tao DESC';
+        }
+
+        // Pagination
+        const offset = (page - 1) * limit;
+        sql += ' LIMIT ? OFFSET ?';
+        params.push(parseInt(limit), parseInt(offset));
+
+        const [rows] = await pool.query(sql, params);
+
+        res.json({
+            success: true,
+            data: rows,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get shop products error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+module.exports = { createProduct, updateProduct, deleteProduct, getMyProducts, getAllProducts, getProductById, getCategories, getProductsByShop };
