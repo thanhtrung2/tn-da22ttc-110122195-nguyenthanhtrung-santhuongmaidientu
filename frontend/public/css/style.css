@@ -141,6 +141,7 @@ a:hover {
     mask-composite: exclude;
     opacity: 0;
     transition: opacity 0.4s ease;
+    pointer-events: none;
 }
 
 .glass-card:hover {
@@ -2372,19 +2373,22 @@ select.form-control {
 .search-box {
     display: flex;
     background: white;
-    border-radius: 2px;
+    border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-    transition: box-shadow 0.2s;
+    padding: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .search-box:focus-within {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-glow);
+    border-color: var(--primary);
 }
 
 .search-box input {
     flex: 1;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 1.2rem;
     border: none;
     outline: none;
     font-size: 14px;
@@ -2396,17 +2400,20 @@ select.form-control {
 }
 
 .search-btn {
-    background: #4338ca;
+    background: var(--gradient-primary);
     border: none;
-    padding: 0.75rem 1.5rem;
+    padding: 0.6rem 1.8rem;
     color: white;
     cursor: pointer;
-    transition: background 0.2s;
-    font-size: 16px;
+    transition: all 0.3s ease;
+    font-size: 15px;
+    border-radius: 24px;
+    margin: 2px;
 }
 
 .search-btn:hover {
-    background: #3730a3;
+    filter: brightness(1.1);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .search-suggestions {

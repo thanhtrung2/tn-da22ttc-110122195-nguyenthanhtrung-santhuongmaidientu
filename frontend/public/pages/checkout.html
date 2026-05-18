@@ -96,114 +96,28 @@
                 <div class="glass-card" style="padding:1.5rem;position:sticky;top:90px;">
                     <h3 style="margin-bottom:1rem;">Đơn hàng của bạn</h3>
                     <div id="order-summary"><div class="spinner" style="margin:1rem auto;"></div></div>
+                    
+                    <!-- Voucher Input -->
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--dark-700);">
+                        <h4 style="margin-bottom: 1rem; font-size: 0.95rem; color: var(--dark-300);"><i class="fas fa-ticket-alt" style="color: var(--warning);"></i> Khuyến mãi</h4>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="voucher-code" class="form-control" placeholder="Mã giảm giá..." style="margin-bottom: 0;">
+                            <button class="btn btn-outline" onclick="applyVoucher()" style="white-space: nowrap;">Áp dụng</button>
+                        </div>
+                        <div id="voucher-message" style="font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="/js/api.js"></script>
-    <script>
-    if(!isLoggedIn()) location.href='/pages/login.html';
-
-    const user = getUser();
-    if(user) {
-        document.getElementById('ten').value = user.ho_ten || '';
-        document.getElementById('sdt').value = user.so_dien_thoai || '';
-        document.getElementById('diachi').value = user.dia_chi || '';
-    }
-
-    // Payment option highlight
-    document.querySelectorAll('input[name="payment"]').forEach(r => {
-        r.addEventListener('change', () => {
-            document.querySelectorAll('.pay-opt').forEach(l => l.style.borderColor = 'var(--dark-700)');
-            r.closest('.pay-opt').style.borderColor = 'var(--primary)';
-        });
-    });
-
-    async function loadSummary() {
-        const r = await api.get('/cart');
-        const el = document.getElementById('order-summary');
-        if(!r.success || r.data.length===0) { location.href='/pages/cart.html'; return; }
-
-        let total = 0, html = '';
-        r.data.forEach(shop => {
-            shop.items.forEach(item => {
-                const price = item.gia_khuyen_mai && item.gia_khuyen_mai < item.gia ? item.gia_khuyen_mai : item.gia;
-                total += price * item.so_luong;
-                html += `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--dark-700);align-items:center;">
-                    <img src="${getProductImage(item.hinh_anh)}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;">
-                    <div style="flex:1;font-size:0.8rem;">
-                        <div style="color:var(--white);font-weight:500;">${item.ten_san_pham}</div>
-                        <div style="color:var(--dark-400);">x${item.so_luong}</div>
-                    </div>
-                    <div style="font-weight:600;font-size:0.85rem;">${formatPrice(price*item.so_luong)}</div>
-                </div>`;
-            });
-        });
-
-        html += `<div style="padding-top:1rem;margin-top:0.5rem;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-                <span style="color:var(--dark-400);">Tạm tính</span><span>${formatPrice(total)}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-                <span style="color:var(--dark-400);">Phí giao hàng</span><span style="color:var(--success);">Miễn phí</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding-top:1rem;border-top:1px solid var(--dark-700);">
-                <strong>Tổng cộng</strong>
-                <strong style="font-family:'Outfit';font-size:1.3rem;color:var(--danger);">${formatPrice(total)}</strong>
-            </div>
-        </div>
-        <button class="btn btn-primary" style="width:100%;margin-top:1.5rem;padding:14px;" onclick="placeOrder()" id="order-btn">
-            <i class="fas fa-check-circle"></i> Đặt hàng
-        </button>`;
-        el.innerHTML = html;
-    }
-
-    async function placeOrder() {
-        const diachi = document.getElementById('diachi').value.trim();
-        const sdt = document.getElementById('sdt').value.trim();
-        if(!diachi || !sdt) { showToast('Vui lòng nhập địa chỉ và SĐT','error'); return; }
-
-        const btn = document.getElementById('order-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
-
-        const payment = document.querySelector('input[name="payment"]:checked').value;
-        const r = await api.post('/orders', {
-            dia_chi_giao: diachi,
-            so_dien_thoai: sdt,
-            phuong_thuc_thanh_toan: payment,
-            ghi_chu: document.getElementById('ghichu').value
-        });
-
-        if(r.success) {
-            showToast('Đặt hàng thành công!');
-            if(payment === 'vnpay' || payment === 'momo') {
-                // Redirect to payment gateway
-                const orderId = r.data.orderIds[0];
-                const cartR = await api.get('/cart'); // cart already cleared, use order
-                const orderR = await api.get(`/orders/${orderId}`);
-                if(orderR.success) {
-                    const payR = await api.post(`/payment/${payment}/create`, {
-                        order_id: orderId,
-                        amount: orderR.data.tong_tien,
-                        orderInfo: `Thanh toan don hang #${orderId}`
-                    });
-                    if(payR.success) { window.location.href = payR.data.paymentUrl; return; }
-                }
-            }
-            setTimeout(() => location.href='/pages/orders.html', 1000);
-        } else {
-            showToast(r.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đặt hàng';
-        }
-    }
-
-    loadSummary();
-    </script>
+    <script src="/js/shopee-nav.js"></script>
     <script src="/js/checkout.js"></script>
-        <script src="/js/seller-registration.js"></script>
-<script src="/js/shopee-nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initCheckout();
+        });
+    </script>
 </body>
 </html>

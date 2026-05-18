@@ -30,11 +30,11 @@ async function displayCategories() {
     let html = '';
     categories.forEach(cat => {
         html += `
-            <div class="glass-card category-card" onclick="filterByCategory(${cat.id})" style="cursor:pointer;transition:all 0.3s;padding:1.5rem;text-align:center;">
-                <div style="font-size:2.5rem;margin-bottom:0.5rem;">
+            <div class="category-card" onclick="filterByCategory(${cat.id})">
+                <div class="icon">
                     <i class="fas fa-${getCategoryIcon(cat.ten_danh_muc)}"></i>
                 </div>
-                <h4 style="margin:0.5rem 0;">${cat.ten_danh_muc}</h4>
+                <h4>${cat.ten_danh_muc}</h4>
                 <p style="color:var(--dark-400);font-size:0.9rem;margin:0;">Khám phá ngay</p>
             </div>
         `;
@@ -45,8 +45,18 @@ async function displayCategories() {
 // Lấy icon cho danh mục
 function getCategoryIcon(categoryName) {
     const icons = {
+        'Điện thoại & Phụ kiện': 'mobile-alt',
+        'Đồ ăn & Thực phẩm': 'utensils',
+        'Máy tính & Laptop': 'laptop',
+        'Mẹ & Bé': 'baby-carriage',
+        'Nhà cửa & Đời sống': 'home',
+        'Sách & Văn phòng phẩm': 'book-open',
+        'Sức khỏe & Làm đẹp': 'spa',
+        'Thể thao & Du lịch': 'dumbbell',
+        'Thời trang Nam': 'tshirt',
+        'Thời trang Nữ': 'female',
         'Điện tử': 'laptop',
-        'Thời trang': 'shirt',
+        'Thời trang': 'tshirt',
         'Sách': 'book',
         'Thể thao': 'dumbbell',
         'Nhà cửa': 'home',
@@ -104,31 +114,26 @@ function displayProducts(products, containerId) {
 
         html += `
             <div class="glass-card product-card" onclick="goToProduct(${product.id})">
-                <div class="product-image-container">
-                    <img src="${getProductImage(product.hinh_anh)}" alt="${product.ten_san_pham}" class="product-image">
-                    ${discount > 0 ? `<div class="product-discount">-${discount}%</div>` : ''}
-                    <div class="product-actions">
-                        <button class="action-btn" onclick="event.stopPropagation(); addToCartQuick(${product.id})" title="Thêm vào giỏ">
-                            <i class="fas fa-shopping-cart"></i>
-                        </button>
-                        <button class="action-btn" onclick="event.stopPropagation(); toggleWishlist(${product.id})" title="Yêu thích">
-                            <i class="far fa-heart"></i>
-                        </button>
-                    </div>
+                <div class="image-wrapper">
+                    <img src="${getProductImage(product.hinh_anh)}" alt="${product.ten_san_pham}">
+                    ${discount > 0 ? `<div class="badge badge-sale">-${discount}%</div>` : ''}
                 </div>
-                <div class="product-info">
-                    <h4 class="product-name">${product.ten_san_pham}</h4>
-                    <div class="product-rating">
-                        ${renderStars(rating, reviewCount)}
-                    </div>
-                    <div class="product-price">
-                        <span class="price-current">${formatPrice(price)}</span>
-                        ${product.gia_khuyen_mai ? `<span class="price-original">${formatPrice(product.gia)}</span>` : ''}
-                    </div>
-                    <div class="product-shop" style="font-size:0.85rem;color:var(--dark-400);margin-top:0.5rem;">
+                <div class="card-body">
+                    <div class="shop-name">
                         <i class="fas fa-store"></i> ${product.ten_gian_hang}
                     </div>
+                    <h4 class="product-name">${product.ten_san_pham}</h4>
+                    <div class="rating">
+                        ${renderStars(rating, reviewCount)}
+                    </div>
+                    <div class="price-row">
+                        <span class="price">${formatPrice(price)}</span>
+                        ${product.gia_khuyen_mai ? `<span class="original-price">${formatPrice(product.gia)}</span>` : ''}
+                    </div>
                 </div>
+                <button class="add-to-cart" onclick="event.stopPropagation(); addToCartQuick(${product.id})" title="Thêm vào giỏ">
+                    <i class="fas fa-shopping-cart"></i>
+                </button>
             </div>
         `;
     });
@@ -146,7 +151,7 @@ async function addToCartQuick(productId) {
     const result = await api.post('/cart', { san_pham_id: productId, so_luong: 1 });
     if (result.success) {
         showToast('Đã thêm vào giỏ hàng');
-        updateCartCount();
+        updateNavbarCartCount();
     } else {
         showToast(result.message || 'Lỗi khi thêm vào giỏ hàng', 'error');
     }
@@ -158,22 +163,20 @@ function goToProduct(productId) {
 }
 
 // Tìm kiếm sản phẩm
-async function searchProducts() {
+function searchProducts() {
     const searchInput = document.getElementById('search-input');
     if (!searchInput) return;
-
     const query = searchInput.value.trim();
-    if (query.length === 0) {
-        showToast('Vui lòng nhập từ khóa tìm kiếm', 'warning');
-        return;
+    if (typeof applyFilters === 'function') {
+        applyFilters();
+    } else {
+        window.location.href = `/pages/products.html?search=${encodeURIComponent(query)}`;
     }
-
-    window.location.href = `/pages/products.html?search=${encodeURIComponent(query)}`;
 }
 
 // Lọc theo danh mục
 function filterByCategory(categoryId) {
-    window.location.href = `/pages/products.html?category=${categoryId}`;
+    window.location.href = `/pages/products.html?danh_muc_id=${categoryId}`;
 }
 
 // Yêu thích sản phẩm (toggle)

@@ -142,6 +142,7 @@
 
         <div style="display:flex;gap:1rem;flex-wrap:wrap;">
             ${o.trang_thai === 'cho_xac_nhan' ? `<button class="btn btn-danger" onclick="cancelOrder()"><i class="fas fa-times"></i> Hủy đơn</button>` : ''}
+            ${['cho_xac_nhan', 'da_xac_nhan', 'dang_giao'].includes(o.trang_thai) ? `<button class="btn btn-success" onclick="completeOrder()"><i class="fas fa-check-double"></i> Đã nhận được hàng</button>` : ''}
             ${o.trang_thai === 'hoan_thanh' ? `<a href="/pages/complaint.html?order_id=${o.id}" class="btn btn-warning"><i class="fas fa-flag"></i> Khiếu nại</a>` : ''}
             ${o.trang_thai === 'hoan_thanh' ? `<button class="btn btn-primary" onclick="showReviewForm()"><i class="fas fa-star"></i> Đánh giá</button>` : ''}
             <a href="/pages/orders.html" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
@@ -195,6 +196,17 @@
         const r = await api.put(`/orders/${oid}/cancel`);
         if(r.success) { showToast('Đã hủy đơn hàng'); load(); }
         else showToast(r.message,'error');
+    }
+
+    async function completeOrder() {
+        if(!confirm('Bạn xác nhận đã nhận được đầy đủ hàng và muốn hoàn thành đơn này chứ?')) return;
+        const r = await api.put(`/orders/${oid}/complete`);
+        if(r.success) { 
+            showToast('Đã xác nhận nhận hàng! Hãy viết đánh giá sản phẩm nhé.'); 
+            load(); 
+        } else {
+            showToast(r.message,'error');
+        }
     }
 
     load();

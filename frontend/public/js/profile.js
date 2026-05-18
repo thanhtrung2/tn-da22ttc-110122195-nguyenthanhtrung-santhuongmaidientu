@@ -41,7 +41,18 @@ async function loadUserProfile() {
         const result = await api.get('/users/profile');
         if (result.success) {
             currentUser = result.data;
+            // Cập nhật localStorage để đồng bộ trạng thái (vd: từ pending sang verified)
+            const storedUser = getUser();
+            if (storedUser) {
+                const updatedUser = { ...storedUser, ...currentUser };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
             displayUserProfile(currentUser);
+            // Sau khi load xong, cập nhật lại giao diện người bán
+            checkSellerStatus();
+            if (document.getElementById('seller-section')?.classList.contains('active')) {
+                updateSellerSection();
+            }
         }
     } catch (error) {
         console.error('Load profile error:', error);
@@ -431,14 +442,14 @@ function showProfileSection(sectionName) {
 
 // Kiểm tra trạng thái người bán
 async function checkSellerStatus() {
-    const user = getUser();
+    const user = currentUser || getUser();
     const sellerNavItem = document.getElementById('seller-nav-item');
-    if (!sellerNavItem) return;
+    if (!sellerNavItem || !user) return;
 
-    if (user && user.vai_tro === 'seller') {
+    if (user.vai_tro === 'seller') {
         sellerNavItem.style.display = 'flex';
         sellerNavItem.querySelector('span').textContent = 'Kênh Người Bán';
-        // Cho phép click để xem tiến trình hoặc dashboard
+        
         sellerNavItem.onclick = () => {
             if (user.trang_thai_xac_thuc === 'verified') {
                 window.location.href = '/pages/seller/dashboard.html';
@@ -446,9 +457,10 @@ async function checkSellerStatus() {
                 showProfileSection('seller');
             }
         };
-    } else if (user && user.vai_tro === 'customer') {
+    } else if (user.vai_tro === 'customer') {
         sellerNavItem.style.display = 'flex';
         sellerNavItem.querySelector('span').textContent = 'Trở Thành Người Bán';
+        sellerNavItem.onclick = () => showProfileSection('seller');
     }
 }
 
@@ -463,12 +475,11 @@ function openSellerRegistration() {
 
 // Cập nhật giao diện section người bán dựa trên trạng thái
 function updateSellerSection() {
-    const user = getUser();
+    const user = currentUser || getUser();
     const container = document.getElementById('seller-section');
-    if (!container) return;
+    if (!container || !user) return;
 
-    // Chỉ thay đổi nội dung nếu user đã đăng ký (là seller)
-    if (user && user.vai_tro === 'seller') {
+    if (user.vai_tro === 'seller') {
         if (user.trang_thai_xac_thuc === 'pending') {
             container.innerHTML = `
                 <div class="glass-card" style="padding:3rem;text-align:center;">
@@ -503,14 +514,26 @@ function updateSellerSection() {
             container.innerHTML = `
                 <div class="glass-card" style="padding:3rem;text-align:center;">
                     <div style="font-size:4rem;margin-bottom:1.5rem;">✅</div>
-                    <h2 style="color:var(--success);margin-bottom:1rem;">Bạn đã là Người bán</h2>
-                    <p style="color:var(--dark-400);margin-bottom:2rem;">Chào mừng bạn đến với cộng đồng người bán của Vipo!</p>
-                    <a href="/pages/seller/dashboard.html" class="btn btn-primary btn-lg">
-                        <i class="fas fa-store"></i> Truy cập Kênh Người Bán
+                    <h2 style="color:var(--success);margin-bottom:1rem;">Chúc mừng! Bạn đã là Người bán</h2>
+                    <p style="color:var(--dark-400);margin-bottom:2rem;">Hồ sơ của bạn đã được Admin phê duyệt. Bây giờ bạn có thể bắt đầu kinh doanh trên Vipo!</p>
+                    <a href="/pages/seller/dashboard.html" class="btn btn-primary btn-lg" style="box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);">
+                        <i class="fas fa-store"></i> Truy cập Kênh Người Bán Ngay
                     </a>
                 </div>
             `;
         }
+    } else {
+        // Giao diện cho khách hàng chưa đăng ký
+        container.innerHTML = `
+            <div class="glass-card" style="padding:3rem;text-align:center;">
+                <div style="font-size:4rem;margin-bottom:1.5rem;">🚀</div>
+                <h2 style="margin-bottom:1rem;">Bắt đầu kinh doanh cùng Vipo</h2>
+                <p style="color:var(--dark-400);margin-bottom:2rem;max-width:500px;margin-inline:auto;">Tiếp cận hàng triệu khách hàng và quản lý gian hàng của bạn một cách chuyên nghiệp.</p>
+                <button onclick="openSellerRegistration()" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i> Đăng ký ngay
+                </button>
+            </div>
+        `;
     }
 }
 

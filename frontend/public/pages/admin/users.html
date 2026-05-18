@@ -18,6 +18,19 @@
         .status-verified { background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
         .status-rejected { background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:600; }
         .reject-reason { width:100%; padding:8px; background:var(--dark-700); border:1px solid var(--dark-600); border-radius:8px; color:var(--white); font-size:0.85rem; margin-top:6px; resize:none; }
+        
+        /* Modal Detail */
+        .detail-modal { position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; display:none; align-items:center; justify-content:center; padding:2rem; }
+        .detail-content { background:var(--dark-800); width:100%; max-width:800px; max-height:90vh; border-radius:20px; border:1px solid var(--dark-700); overflow-y:auto; position:relative; }
+        .detail-header { padding:1.5rem; border-bottom:1px solid var(--dark-700); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--dark-800); z-index:1; }
+        .detail-body { padding:1.5rem; }
+        .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem; }
+        .info-item { display:flex; flex-direction:column; gap:4px; }
+        .info-label { font-size:0.8rem; color:var(--dark-400); text-transform:uppercase; letter-spacing:0.5px; }
+        .info-value { color:var(--white); font-weight:500; }
+        .doc-preview-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:1rem; margin-top:1rem; }
+        .doc-item { text-align:center; }
+        .doc-img { width:100%; height:120px; object-fit:cover; border-radius:10px; border:1px solid var(--dark-600); cursor:pointer; }
     </style>
 </head>
 <body>
@@ -54,14 +67,25 @@
             <div id="users-content"><div class="spinner" style="margin:3rem auto;"></div></div>
         </main>
     </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="detail-modal">
+        <div class="detail-content">
+            <div class="detail-header">
+                <h3><i class="fas fa-id-card"></i> Chi tiết hồ sơ xác thực</h3>
+                <button class="modal-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="detail-body" id="detail-body">
+                <!-- Content goes here -->
+            </div>
+        </div>
+    </div>
     <script src="/js/api.js"></script>
     <script>
     if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
 
     const roleLabel = {admin:'Admin', seller:'Người bán', customer:'Khách hàng'};
     const roleColor = {admin:'var(--danger)', seller:'var(--warning)', customer:'var(--primary-light)'};
-    let currentTab = 'pending';
-
     function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -70,83 +94,190 @@
         else loadAllUsers();
     }
 
+    function getFilters() {
+        const fromDate = document.getElementById('from-date')?.value || '';
+        const toDate = document.getElementById('to-date')?.value || '';
+        let q = '';
+        if(fromDate) q += `&fromDate=${fromDate}`;
+        if(toDate) q += `&toDate=${toDate}`;
+        return q;
+    }
+
     async function loadPendingSellers() {
         const el = document.getElementById('users-content');
-        el.innerHTML = '<div class="spinner" style="margin:3rem auto;"></div>';
-        const r = await api.get('/admin/pending-sellers');
+        el.innerHTML = `
+        <div class="glass" style="padding:12px;margin-bottom:1rem;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.85rem;color:var(--dark-400);">Từ ngày:</span>
+                <input type="date" class="form-control" id="from-date" onchange="loadPendingSellers()" style="width:auto;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.85rem;color:var(--dark-400);">Đến ngày:</span>
+                <input type="date" class="form-control" id="to-date" onchange="loadPendingSellers()" style="width:auto;">
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="resetFilters('pending')" style="padding:8px 12px;"><i class="fas fa-sync"></i> Làm mới</button>
+        </div>
+        <div id="pending-list"><div class="spinner" style="margin:3rem auto;"></div></div>`;
+        
+        const q = getFilters();
+        const r = await api.get(`/admin/pending-sellers?${q}`);
+        const listEl = document.getElementById('pending-list');
         document.getElementById('cnt-pending').textContent = r.success ? r.data.length : 0;
 
         if (!r.success || r.data.length === 0) {
-            el.innerHTML = `<div class="glass-card" style="padding:3rem;text-align:center;">
+            listEl.innerHTML = `<div class="glass-card" style="padding:3rem;text-align:center;">
                 <i class="fas fa-check-circle" style="font-size:3rem;color:var(--success);opacity:0.5;display:block;margin-bottom:1rem;"></i>
-                <p style="color:var(--dark-400);">Không có người bán nào chờ xác thực!</p>
+                <p style="color:var(--dark-400);">Không có hồ sơ nào chờ duyệt trong khoảng thời gian này!</p>
             </div>`;
             return;
         }
 
-        el.innerHTML = `<div class="table-container"><table class="data-table">
+        listEl.innerHTML = `<div class="table-container"><table class="data-table">
             <thead><tr>
-                <th>Thông tin</th><th>CCCD mặt trước</th><th>CCCD mặt sau</th>
-                <th>GP Kinh doanh</th><th>Ảnh khuôn mặt</th><th>Ngày đăng ký</th><th>Thao tác</th>
+                <th>Thông tin Seller</th><th>Tên Shop</th><th>Mã số thuế</th><th>Ngày đăng ký</th><th>Thao tác</th>
             </tr></thead>
             <tbody>${r.data.map(u => `<tr id="urow-${u.id}">
                 <td>
                     <div style="font-weight:600;color:var(--white);">${u.ho_ten}</div>
                     <div style="font-size:0.8rem;color:var(--dark-400);">${u.email}</div>
-                    <div style="font-size:0.8rem;color:var(--dark-400);">${u.so_dien_thoai||''}</div>
                 </td>
-                <td>${u.cccd_mat_truoc ? `<img src="/${u.cccd_mat_truoc}" class="doc-thumb" onclick="viewImg('/${u.cccd_mat_truoc}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
-                <td>${u.cccd_mat_sau ? `<img src="/${u.cccd_mat_sau}" class="doc-thumb" onclick="viewImg('/${u.cccd_mat_sau}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
-                <td>${u.giay_phep_kinh_doanh ? `<img src="/${u.giay_phep_kinh_doanh}" class="doc-thumb" onclick="viewImg('/${u.giay_phep_kinh_doanh}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
-                <td>${u.anh_guong_mat ? `<img src="/${u.anh_guong_mat}" class="doc-thumb" onclick="viewImg('/${u.anh_guong_mat}')">` : '<span style="color:var(--dark-500)">—</span>'}</td>
+                <td><div style="font-weight:600;color:var(--primary-light);">${u.ten_shop}</div></td>
+                <td><code style="background:var(--dark-700);padding:2px 6px;border-radius:4px;">${u.ma_so_thue||'—'}</code></td>
                 <td style="font-size:0.8rem;">${new Date(u.ngay_tao).toLocaleDateString('vi-VN')}</td>
                 <td>
-                    <div style="display:flex;flex-direction:column;gap:6px;min-width:160px;">
-                        <button class="btn btn-sm btn-success" onclick="verifySeller(${u.id},'verified')">
-                            <i class="fas fa-check"></i> Xác thực
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-sm btn-outline" onclick="showUserDetail(${JSON.stringify(u).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-eye"></i> Xem chi tiết
                         </button>
-                        <div>
-                            <textarea class="reject-reason" id="reason-${u.id}" rows="2" placeholder="Lý do từ chối..."></textarea>
-                            <button class="btn btn-sm btn-danger" onclick="verifySeller(${u.id},'rejected')" style="width:100%;margin-top:4px;">
-                                <i class="fas fa-times"></i> Từ chối
-                            </button>
-                        </div>
+                        <button class="btn btn-sm btn-success" onclick="verifySeller(${u.id},'verified')">
+                            <i class="fas fa-check"></i> Duyệt
+                        </button>
                     </div>
                 </td>
             </tr>`).join('')}</tbody>
         </table></div>`;
     }
 
-    function viewImg(src) {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-        overlay.innerHTML = `<img src="${src}" style="max-width:90%;max-height:90%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">`;
-        overlay.onclick = () => overlay.remove();
-        document.body.appendChild(overlay);
+    function resetFilters(tab) {
+        if(document.getElementById('from-date')) document.getElementById('from-date').value = '';
+        if(document.getElementById('to-date')) document.getElementById('to-date').value = '';
+        if(tab === 'pending') loadPendingSellers();
+        else {
+            if(document.getElementById('search-input')) document.getElementById('search-input').value = '';
+            if(document.getElementById('role-filter')) document.getElementById('role-filter').value = '';
+            fetchUsers();
+        }
     }
 
-    async function verifySeller(id, status) {
-        const reason = document.getElementById('reason-' + id)?.value;
+    function showUserDetail(u) {
+        const modal = document.getElementById('detail-modal');
+        const body = document.getElementById('detail-body');
+        
+        let shipping = '—';
+        try {
+            if(u.phuong_thuc_van_chuyen) {
+                const methods = JSON.parse(u.phuong_thuc_van_chuyen);
+                const labels = {
+                    'giao_hang_nhanh': 'Giao hàng nhanh',
+                    'giao_hang_tiet_kiem': 'Giao hàng tiết kiệm',
+                    'tu_den_lay': 'Tự đến lấy'
+                };
+                shipping = methods.map(m => labels[m] || m).join(', ');
+            }
+        } catch(e) {}
+
+        body.innerHTML = `
+            <div class="info-grid">
+                <div class="info-item"><span class="info-label">Họ tên chủ shop</span><span class="info-value">${u.ho_ten}</span></div>
+                <div class="info-item"><span class="info-label">Email</span><span class="info-value">${u.email}</span></div>
+                <div class="info-item"><span class="info-label">Số điện thoại</span><span class="info-value">${u.so_dien_thoai||'—'}</span></div>
+                <div class="info-item"><span class="info-label">Ngày đăng ký</span><span class="info-value">${new Date(u.ngay_tao).toLocaleString('vi-VN')}</span></div>
+            </div>
+            
+            <h4 style="color:var(--primary-light);margin-bottom:1rem;border-bottom:1px solid var(--dark-700);padding-bottom:0.5rem;">
+                <i class="fas fa-store"></i> Thông tin Gian hàng
+            </h4>
+            <div class="info-grid">
+                <div class="info-item"><span class="info-label">Tên gian hàng</span><span class="info-value" style="font-size:1.1rem;color:var(--warning);">${u.ten_shop}</span></div>
+                <div class="info-item"><span class="info-label">Mã số thuế</span><span class="info-value">${u.ma_so_thue||'—'}</span></div>
+                <div class="info-item" style="grid-column:span 2;"><span class="info-label">Địa chỉ kho</span><span class="info-value">${u.dia_chi_kho}</span></div>
+                <div class="info-item" style="grid-column:span 2;"><span class="info-label">Phương thức vận chuyển</span><span class="info-value">${shipping}</span></div>
+                <div class="info-item" style="grid-column:span 2;"><span class="info-label">Mô tả shop</span><span class="info-value">${u.mo_ta_shop||'—'}</span></div>
+            </div>
+
+            <h4 style="color:var(--primary-light);margin-bottom:1rem;border-bottom:1px solid var(--dark-700);padding-bottom:0.5rem;">
+                <i class="fas fa-file-alt"></i> Tài liệu xác thực
+            </h4>
+            <div class="doc-preview-grid">
+                <div class="doc-item">
+                    <div class="info-label" style="margin-bottom:4px;">CCCD Mặt trước</div>
+                    <img src="/${u.cccd_mat_truoc}" class="doc-img" onclick="viewImg('/${u.cccd_mat_truoc}')">
+                </div>
+                <div class="doc-item">
+                    <div class="info-label" style="margin-bottom:4px;">CCCD Mặt sau</div>
+                    <img src="/${u.cccd_mat_sau}" class="doc-img" onclick="viewImg('/${u.cccd_mat_sau}')">
+                </div>
+                <div class="doc-item">
+                    <div class="info-label" style="margin-bottom:4px;">Giấy phép KD</div>
+                    <img src="/${u.giay_phep_kinh_doanh}" class="doc-img" onclick="viewImg('/${u.giay_phep_kinh_doanh}')">
+                </div>
+                <div class="doc-item">
+                    <div class="info-label" style="margin-bottom:4px;">Ảnh khuôn mặt</div>
+                    <img src="/${u.anh_guong_mat}" class="doc-img" onclick="viewImg('/${u.anh_guong_mat}')">
+                </div>
+            </div>
+
+            <div style="margin-top:2.5rem;padding:1.5rem;background:var(--dark-700);border-radius:14px;display:flex;gap:1rem;align-items:flex-end;">
+                <div style="flex:1;">
+                    <span class="info-label">Hành động phê duyệt</span>
+                    <textarea class="reject-reason" id="modal-reason" rows="2" placeholder="Lý do từ chối (bắt buộc nếu từ chối)..."></textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-danger" onclick="verifySeller(${u.id},'rejected','modal')">Từ chối</button>
+                    <button class="btn btn-success" onclick="verifySeller(${u.id},'verified','modal')">Phê duyệt ngay</button>
+                </div>
+            </div>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    function closeDetail() { document.getElementById('detail-modal').style.display = 'none'; }
+
+    async function verifySeller(id, status, source = 'table') {
+        const reasonId = source === 'modal' ? 'modal-reason' : 'reason-' + id;
+        const reason = document.getElementById(reasonId)?.value;
         if (status === 'rejected' && !reason) { showToast('Vui lòng nhập lý do từ chối', 'warning'); return; }
+        
         const r = await api.put(`/admin/verify-seller/${id}`, { trang_thai_xac_thuc: status, ly_do_tu_choi: reason || null });
         if (r.success) {
             showToast(status === 'verified' ? '✅ Đã xác thực người bán!' : '❌ Đã từ chối người bán!');
+            closeDetail();
             const row = document.getElementById('urow-' + id);
             if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(() => { row.remove(); loadPendingSellers(); }, 300); }
+            else loadPendingSellers();
         } else showToast(r.message, 'error');
     }
 
     async function loadAllUsers() {
         const el = document.getElementById('users-content');
         el.innerHTML = `
-        <div class="glass" style="padding:12px;margin-bottom:1rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <input class="form-control" style="max-width:250px;" placeholder="Tìm kiếm tên, email..." id="search-input" oninput="fetchUsers()">
+        <div class="glass" style="padding:12px;margin-bottom:1rem;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <input class="form-control" style="max-width:200px;" placeholder="Tên, Email, Shop..." id="search-input" oninput="fetchUsers()">
             <select class="form-control" style="width:auto;" id="role-filter" onchange="fetchUsers()">
                 <option value="">Tất cả vai trò</option>
                 <option value="customer">Khách hàng</option>
                 <option value="seller">Người bán</option>
                 <option value="admin">Admin</option>
             </select>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.85rem;color:var(--dark-400);">Từ:</span>
+                <input type="date" class="form-control" id="from-date" onchange="fetchUsers()" style="width:auto;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:0.85rem;color:var(--dark-400);">Đến:</span>
+                <input type="date" class="form-control" id="to-date" onchange="fetchUsers()" style="width:auto;">
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="resetFilters('all')" style="padding:8px 12px;"><i class="fas fa-sync"></i></button>
         </div>
         <div id="users-table"><div class="spinner" style="margin:3rem auto;"></div></div>`;
         fetchUsers();
@@ -155,7 +286,7 @@
     async function fetchUsers() {
         const search = document.getElementById('search-input')?.value || '';
         const role = document.getElementById('role-filter')?.value || '';
-        let q = '?1=1';
+        let q = '?' + getFilters();
         if(search) q += `&search=${encodeURIComponent(search)}`;
         if(role) q += `&vai_tro=${role}`;
         const r = await api.get(`/admin/users${q}`);
@@ -167,20 +298,30 @@
         const verifyClass = { pending:'status-pending', verified:'status-verified', rejected:'status-rejected', unverified:'' };
 
         el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
-            <th>ID</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th>
+            <th>ID</th><th>Họ tên / Shop</th><th>Email / SĐT</th><th>Vai trò</th>
             <th>Xác thực</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th>
         </tr></thead><tbody>${r.data.map(u => `<tr>
             <td>${u.id}</td>
-            <td style="font-weight:500;color:var(--white);">${u.ho_ten}</td>
-            <td style="font-size:0.85rem;">${u.email}</td>
-            <td>${u.so_dien_thoai||'—'}</td>
+            <td>
+                <div style="font-weight:500;color:var(--white);">${u.ho_ten}</div>
+                ${u.ten_shop ? `<div style="font-size:0.8rem;color:var(--warning);">Shop: ${u.ten_shop}</div>` : ''}
+            </td>
+            <td style="font-size:0.85rem;">
+                <div>${u.email}</div>
+                <div style="color:var(--dark-400)">${u.so_dien_thoai||'—'}</div>
+            </td>
             <td><span style="color:${roleColor[u.vai_tro]};font-weight:600;">${roleLabel[u.vai_tro]}</span></td>
             <td>${u.vai_tro==='seller'?`<span class="${verifyClass[u.trang_thai_xac_thuc]||''}">${verifyLabel[u.trang_thai_xac_thuc]||u.trang_thai_xac_thuc||'—'}</span>`:'—'}</td>
             <td><span class="status ${u.trang_thai==='active'?'status-active':'status-locked'}">${u.trang_thai==='active'?'Hoạt động':'Đã khóa'}</span></td>
             <td style="font-size:0.8rem;">${new Date(u.ngay_tao).toLocaleDateString('vi-VN')}</td>
-            <td>${u.vai_tro!=='admin'?`<button class="btn btn-sm ${u.trang_thai==='active'?'btn-danger':'btn-success'}" onclick="toggleUser(${u.id},'${u.trang_thai==='active'?'locked':'active'}')">
-                <i class="fas fa-${u.trang_thai==='active'?'lock':'lock-open'}"></i>
-            </button>`:'—'}</td>
+            <td>
+                <div style="display:flex;gap:4px;">
+                    ${u.vai_tro==='seller' ? `<button class="btn btn-sm btn-outline" title="Xem chi tiết" onclick="showUserDetail(${JSON.stringify(u).replace(/"/g, '&quot;')})"><i class="fas fa-eye"></i></button>` : ''}
+                    ${u.vai_tro!=='admin'?`<button class="btn btn-sm ${u.trang_thai==='active'?'btn-danger':'btn-success'}" onclick="toggleUser(${u.id},'${u.trang_thai==='active'?'locked':'active'}')">
+                        <i class="fas fa-${u.trang_thai==='active'?'lock':'lock-open'}"></i>
+                    </button>`:'—'}
+                </div>
+            </td>
         </tr>`).join('')}</tbody></table></div>`;
     }
 

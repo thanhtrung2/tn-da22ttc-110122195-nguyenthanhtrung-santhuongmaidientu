@@ -41,18 +41,27 @@ const getDashboard = async (req, res) => {
 // Quản lý người dùng
 const getAllUsers = async (req, res) => {
     try {
-        const { vai_tro, search, trang_thai_xac_thuc } = req.query;
-        let sql = 'SELECT id, ho_ten, email, so_dien_thoai, vai_tro, trang_thai, trang_thai_xac_thuc, cccd_mat_truoc, cccd_mat_sau, giay_phep_kinh_doanh, anh_guong_mat, ngay_tao FROM nguoi_dung WHERE 1=1';
+        const { vai_tro, search, trang_thai_xac_thuc, fromDate, toDate } = req.query;
+        let sql = `SELECT u.id, u.ho_ten, u.email, u.so_dien_thoai, u.vai_tro, u.trang_thai, u.trang_thai_xac_thuc, 
+                    u.cccd_mat_truoc, u.cccd_mat_sau, u.giay_phep_kinh_doanh, u.anh_guong_mat, u.ngay_tao,
+                    s.ten_shop, s.mo_ta as mo_ta_shop, s.dia_chi_kho, s.ma_so_thue
+                    FROM nguoi_dung u
+                    LEFT JOIN shop s ON u.id = s.nguoi_ban_id
+                    WHERE 1=1`;
         const params = [];
 
-        if (vai_tro) { sql += ' AND vai_tro = ?'; params.push(vai_tro); }
-        if (search) { sql += ' AND (ho_ten LIKE ? OR email LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
-        if (trang_thai_xac_thuc) { sql += ' AND trang_thai_xac_thuc = ?'; params.push(trang_thai_xac_thuc); }
-        sql += ' ORDER BY ngay_tao DESC';
+        if (vai_tro) { sql += ' AND u.vai_tro = ?'; params.push(vai_tro); }
+        if (search) { sql += ' AND (u.ho_ten LIKE ? OR u.email LIKE ? OR s.ten_shop LIKE ?)'; params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+        if (trang_thai_xac_thuc) { sql += ' AND u.trang_thai_xac_thuc = ?'; params.push(trang_thai_xac_thuc); }
+        if (fromDate) { sql += ' AND u.ngay_tao >= ?'; params.push(fromDate); }
+        if (toDate) { sql += ' AND u.ngay_tao <= ?'; params.push(toDate + ' 23:59:59'); }
+        
+        sql += ' ORDER BY u.ngay_tao DESC';
 
         const [rows] = await pool.query(sql, params);
         res.json({ success: true, data: rows });
     } catch (error) {
+        console.error('GetAllUsers error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
@@ -60,15 +69,24 @@ const getAllUsers = async (req, res) => {
 // Lấy danh sách người bán chờ xác thực
 const getPendingSellers = async (req, res) => {
     try {
-        const [rows] = await pool.query(
-            `SELECT id, ho_ten, email, so_dien_thoai, cccd_mat_truoc, cccd_mat_sau, 
-             giay_phep_kinh_doanh, anh_guong_mat, trang_thai_xac_thuc, ngay_tao 
-             FROM nguoi_dung 
-             WHERE vai_tro = 'seller' AND trang_thai_xac_thuc = 'pending'
-             ORDER BY ngay_tao DESC`
-        );
+        const { fromDate, toDate } = req.query;
+        let sql = `SELECT u.id, u.ho_ten, u.email, u.so_dien_thoai, u.cccd_mat_truoc, u.cccd_mat_sau, 
+                    u.giay_phep_kinh_doanh, u.anh_guong_mat, u.trang_thai_xac_thuc, u.ngay_tao,
+                    s.ten_shop, s.mo_ta as mo_ta_shop, s.dia_chi_kho, s.ma_so_thue, s.phuong_thuc_van_chuyen
+                    FROM nguoi_dung u 
+                    JOIN shop s ON u.id = s.nguoi_ban_id
+                    WHERE u.vai_tro = 'seller' AND u.trang_thai_xac_thuc = 'pending'`;
+        const params = [];
+        
+        if (fromDate) { sql += ' AND u.ngay_tao >= ?'; params.push(fromDate); }
+        if (toDate) { sql += ' AND u.ngay_tao <= ?'; params.push(toDate + ' 23:59:59'); }
+        
+        sql += ' ORDER BY u.ngay_tao DESC';
+
+        const [rows] = await pool.query(sql, params);
         res.json({ success: true, data: rows });
     } catch (error) {
+        console.error('GetPendingSellers error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
@@ -89,15 +107,19 @@ const verifySellerAccount = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do từ chối' });
         }
 
+        if (!req.user || !req.user.id) {
+            throw new Error('Không tìm thấy thông tin Admin thực hiện phê duyệt');
+        }
+
         // 1. Cập nhật thông tin xác thực trên bảng nguoi_dung
-        await connection.query(
+        const [updateUserResult] = await connection.query(
             'UPDATE nguoi_dung SET trang_thai_xac_thuc = ?, ly_do_tu_choi = ?, ngay_xac_thuc = NOW() WHERE id = ? AND vai_tro = ?',
             [trang_thai_xac_thuc, ly_do_tu_choi || null, userId, 'seller']
         );
 
         // 2. Cập nhật bảng shop
         const shopStatus = trang_thai_xac_thuc === 'verified' ? 'active' : 'rejected';
-        await connection.query(
+        const [updateShopResult] = await connection.query(
             'UPDATE shop SET trang_thai = ?, ly_do_tu_choi = ?, ngay_duyet = NOW(), admin_duyet_id = ? WHERE nguoi_ban_id = ?',
             [shopStatus, ly_do_tu_choi || null, req.user.id, userId]
         );
@@ -105,24 +127,26 @@ const verifySellerAccount = async (req, res) => {
         if (trang_thai_xac_thuc === 'verified') {
             // 3. Lấy thông tin shop để tạo gian_hang
             const [shops] = await connection.query('SELECT * FROM shop WHERE nguoi_ban_id = ?', [userId]);
-            if (shops.length > 0) {
-                const shop = shops[0];
-                // Kiểm tra gian_hang đã tồn tại chưa
-                const [existingGianHang] = await connection.query('SELECT id FROM gian_hang WHERE nguoi_ban_id = ?', [userId]);
-                
-                if (existingGianHang.length === 0) {
-                    // Tạo gian_hang mới
-                    await connection.query(
-                        'INSERT INTO gian_hang (nguoi_ban_id, ten_gian_hang, mo_ta, dia_chi, shop_id, trang_thai) VALUES (?, ?, ?, ?, ?, "active")',
-                        [userId, shop.ten_shop, shop.mo_ta, shop.dia_chi_kho, shop.id]
-                    );
-                } else {
-                    // Cập nhật gian_hang hiện có
-                    await connection.query(
-                        'UPDATE gian_hang SET ten_gian_hang = ?, mo_ta = ?, dia_chi = ?, shop_id = ?, trang_thai = "active" WHERE nguoi_ban_id = ?',
-                        [shop.ten_shop, shop.mo_ta, shop.dia_chi_kho, shop.id, userId]
-                    );
-                }
+            if (shops.length === 0) {
+                throw new Error('Không tìm thấy thông tin đăng ký shop của người dùng này');
+            }
+            
+            const shop = shops[0];
+            // Kiểm tra gian_hang đã tồn tại chưa
+            const [existingGianHang] = await connection.query('SELECT id FROM gian_hang WHERE nguoi_ban_id = ?', [userId]);
+            
+            if (existingGianHang.length === 0) {
+                // Tạo gian_hang mới
+                await connection.query(
+                    'INSERT INTO gian_hang (nguoi_ban_id, ten_gian_hang, mo_ta, dia_chi, shop_id, trang_thai) VALUES (?, ?, ?, ?, ?, "active")',
+                    [userId, shop.ten_shop, shop.mo_ta || '', shop.dia_chi_kho, shop.id]
+                );
+            } else {
+                // Cập nhật gian_hang hiện có
+                await connection.query(
+                    'UPDATE gian_hang SET ten_gian_hang = ?, mo_ta = ?, dia_chi = ?, shop_id = ?, trang_thai = "active" WHERE nguoi_ban_id = ?',
+                    [shop.ten_shop, shop.mo_ta || '', shop.dia_chi_kho, shop.id, userId]
+                );
             }
 
             // 4. Gửi thông báo thành công cho seller
@@ -146,11 +170,16 @@ const verifySellerAccount = async (req, res) => {
             message: trang_thai_xac_thuc === 'verified' ? 'Xác thực người bán thành công' : 'Đã từ chối xác thực người bán'
         });
     } catch (error) {
-        await connection.rollback();
-        console.error('Verify seller error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi server' });
+        if (connection) await connection.rollback();
+        console.error('Verify seller error detailed:', {
+            error: error.message,
+            stack: error.stack,
+            userId: req.params.id,
+            body: req.body
+        });
+        res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 };
 

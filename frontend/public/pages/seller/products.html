@@ -88,8 +88,14 @@
                     </div>
                     <div class="form-group">
                         <label>Hình ảnh sản phẩm</label>
-                        <input type="file" class="form-control" id="f-img" accept="image/*" onchange="previewImage(this)">
-                        <img id="img-preview" class="img-preview" style="display:none;margin-top:8px;">
+                        <div style="display:flex;gap:10px;align-items:flex-start;">
+                            <input type="file" class="form-control" id="f-img" accept="image/*" onchange="previewImage(this)" style="flex:1;">
+                            <div id="img-preview-container" style="display:none;position:relative;flex-shrink:0;">
+                                <img id="img-preview" class="img-preview">
+                                <button type="button" onclick="removeImage()" style="position:absolute;top:-8px;right:-8px;background:var(--danger);color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,0.2);" title="Xóa ảnh"><i class="fas fa-times" style="font-size:0.8rem;"></i></button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="f-remove-img" value="false">
                     </div>
                     <div class="form-group">
                         <label>Giá bán (VND) *</label>
@@ -126,12 +132,23 @@
     if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
 
     function previewImage(input) {
+        const prevContainer = document.getElementById('img-preview-container');
         const prev = document.getElementById('img-preview');
+        document.getElementById('f-remove-img').value = 'false';
         if (input.files && input.files[0]) {
             const reader = new FileReader();
-            reader.onload = e => { prev.src = e.target.result; prev.style.display='block'; };
+            reader.onload = e => { prev.src = e.target.result; prevContainer.style.display='block'; };
             reader.readAsDataURL(input.files[0]);
+        } else {
+            prevContainer.style.display = 'none';
         }
+    }
+
+    function removeImage() {
+        document.getElementById('f-img').value = '';
+        document.getElementById('img-preview').src = '';
+        document.getElementById('img-preview-container').style.display = 'none';
+        document.getElementById('f-remove-img').value = 'true';
     }
 
     function closeOnOverlay(e) { if (e.target === document.getElementById('product-modal')) hideForm(); }
@@ -210,7 +227,8 @@
         document.getElementById('f-sl').value = '';
         document.getElementById('f-mota').value = '';
         document.getElementById('f-img').value = '';
-        document.getElementById('img-preview').style.display = 'none';
+        document.getElementById('img-preview-container').style.display = 'none';
+        document.getElementById('f-remove-img').value = 'false';
         document.getElementById('product-modal').style.display = 'flex';
     }
 
@@ -227,7 +245,14 @@
         document.getElementById('f-giakm').value = p.gia_khuyen_mai||'';
         document.getElementById('f-sl').value = p.so_luong_ton;
         document.getElementById('f-mota').value = p.mo_ta||'';
-        if (p.hinh_anh) { document.getElementById('img-preview').src = p.hinh_anh; document.getElementById('img-preview').style.display = 'block'; }
+        document.getElementById('f-img').value = '';
+        document.getElementById('f-remove-img').value = 'false';
+        if (p.hinh_anh) { 
+            document.getElementById('img-preview').src = getProductImage(p.hinh_anh); 
+            document.getElementById('img-preview-container').style.display = 'block'; 
+        } else {
+            document.getElementById('img-preview-container').style.display = 'none';
+        }
         document.getElementById('form-title').textContent = 'Sửa sản phẩm';
         document.getElementById('product-modal').style.display = 'flex';
     }
@@ -244,6 +269,7 @@
         fd.append('mo_ta', document.getElementById('f-mota').value);
         const file = document.getElementById('f-img').files[0];
         if(file) fd.append('hinh_anh', file);
+        fd.append('remove_hinh_anh', document.getElementById('f-remove-img').value);
 
         const r = id ? await api.put(`/products/${id}`, fd) : await api.post('/products', fd);
         if(r.success) {

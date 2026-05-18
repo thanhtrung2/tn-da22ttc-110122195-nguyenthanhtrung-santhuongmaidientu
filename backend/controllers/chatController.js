@@ -88,4 +88,39 @@ const getUnreadCount = async (req, res) => {
     }
 };
 
-module.exports = { getConversations, getMessages, sendMessage, getUnreadCount };
+// Xóa tin nhắn đơn lẻ
+const deleteMessage = async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        const [result] = await pool.query(
+            'DELETE FROM tin_nhan WHERE id = ? AND nguoi_gui_id = ?',
+            [messageId, req.user.id]
+        );
+
+        if (result.affectedRows > 0) {
+            res.json({ success: true, message: 'Đã xóa tin nhắn' });
+        } else {
+            res.status(403).json({ success: false, message: 'Không có quyền xóa tin nhắn này hoặc tin nhắn không tồn tại' });
+        }
+    } catch (error) {
+        console.error('Delete message API error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+// Xóa cuộc hội thoại
+const deleteConversation = async (req, res) => {
+    try {
+        const otherUserId = req.params.userId;
+        await pool.query(
+            'DELETE FROM tin_nhan WHERE (nguoi_gui_id = ? AND nguoi_nhan_id = ?) OR (nguoi_gui_id = ? AND nguoi_nhan_id = ?)',
+            [req.user.id, otherUserId, otherUserId, req.user.id]
+        );
+        res.json({ success: true, message: 'Đã xóa cuộc hội thoại' });
+    } catch (error) {
+        console.error('Delete conversation API error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+module.exports = { getConversations, getMessages, sendMessage, getUnreadCount, deleteMessage, deleteConversation };

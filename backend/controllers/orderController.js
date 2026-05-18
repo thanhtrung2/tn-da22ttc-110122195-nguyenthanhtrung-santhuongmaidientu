@@ -7,7 +7,7 @@ const createOrder = async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { dia_chi_giao, so_dien_thoai, phuong_thuc_thanh_toan, ghi_chu } = req.body;
+        const { dia_chi_giao, so_dien_thoai, phuong_thuc_thanh_toan, ghi_chu, ma_khuyen_mai } = req.body;
 
         if (!dia_chi_giao || !so_dien_thoai) {
             return res.status(400).json({ success: false, message: 'Vui lòng nhập địa chỉ và số điện thoại' });
@@ -48,6 +48,28 @@ const createOrder = async (req, res) => {
                 const price = item.gia_khuyen_mai || item.gia;
                 tongTien += price * item.so_luong;
             });
+
+            if (ma_khuyen_mai) {
+                const [promotions] = await connection.query(
+                    `SELECT * FROM khuyen_mai 
+                     WHERE ten_khuyen_mai = ? AND trang_thai = 'active'
+                     AND CURDATE() >= ngay_bat_dau AND CURDATE() <= ngay_ket_thuc
+                     AND gian_hang_id = ?
+                     LIMIT 1`,
+                    [ma_khuyen_mai, shopId]
+                );
+                if (promotions.length > 0) {
+                    const promo = promotions[0];
+                    let discount = 0;
+                    if (promo.loai === 'phan_tram') {
+                        discount = tongTien * (promo.gia_tri / 100);
+                    } else {
+                        discount = promo.gia_tri;
+                    }
+                    if (discount > tongTien) discount = tongTien;
+                    tongTien = Math.max(0, tongTien - discount);
+                }
+            }
 
             const maGiaoDich = 'DH' + Date.now() + Math.random().toString(36).substr(2, 4).toUpperCase();
 
@@ -245,4 +267,32 @@ const getShopOrders = async (req, res) => {
     }
 };
 
-module.exports = { createOrder, getMyOrders, getOrderById, cancelOrder, updateOrderStatus, getShopOrders };
+// Khách hàng xác nhận đã nhận hàng (hoàn thành đơn)
+const completeOrderCustomer = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+
+        // Check if order belongs to buyer and is active
+        const [order] = await pool.query(
+            "SELECT * FROM don_hang WHERE id = ? AND nguoi_mua_id = ? AND trang_thai IN ('cho_xac_nhan', 'da_xac_nhan', 'dang_giao')",
+            [orderId, req.user.id]
+        );
+
+        if (order.length === 0) {
+            return res.status(400).json({ success: false, message: 'Đơn hàng không ở trạng thái có thể hoàn thành' });
+        }
+
+        // Update status to 'hoan_thanh' and mark payment as 'paid'
+        await pool.query(
+            "UPDATE don_hang SET trang_thai = 'hoan_thanh', trang_thai_thanh_toan = 'paid' WHERE id = ? AND nguoi_mua_id = ?",
+            [orderId, req.user.id]
+        );
+
+        res.json({ success: true, message: 'Xác nhận đã nhận hàng thành công. Hãy đánh giá sản phẩm nhé!' });
+    } catch (error) {
+        console.error('Complete order customer error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+module.exports = { createOrder, getMyOrders, getOrderById, cancelOrder, updateOrderStatus, getShopOrders, completeOrderCustomer };

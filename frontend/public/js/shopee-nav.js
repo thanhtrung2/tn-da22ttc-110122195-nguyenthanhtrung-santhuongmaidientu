@@ -56,12 +56,10 @@ function searchProducts() {
     const searchInput = document.getElementById('search-input');
     if (!searchInput) return;
     const query = searchInput.value.trim();
-    if (query) {
-        if (window.location.pathname.includes('products.html') && window.applyFilters) {
-            window.applyFilters();
-        } else {
-            window.location.href = `/pages/products.html?search=${encodeURIComponent(query)}`;
-        }
+    if (typeof applyFilters === 'function') {
+        applyFilters();
+    } else {
+        window.location.href = `/pages/products.html?search=${encodeURIComponent(query)}`;
     }
 }
 
@@ -123,9 +121,47 @@ async function updateNotificationBadge() {
     } catch (e) { console.error('Fetch notifications error:', e); }
 }
 
+async function loadNavbarNotifications() {
+    if (!isLoggedIn()) return;
+    try {
+        const result = await api.get('/notifications?limit=5');
+        const list = document.getElementById('navbar-notifications-list');
+        if (result.success && list) {
+            if (result.data.length === 0) {
+                list.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--dark-400);">Không có thông báo mới</div>';
+                return;
+            }
+            let html = '';
+            result.data.slice(0, 5).forEach(notif => {
+                const isRead = notif.trang_thai === 'read';
+                html += `
+                    <div class="notification-item ${isRead ? 'read' : 'unread'}" style="padding: 12px 15px; border-bottom: 1px solid var(--dark-700); cursor: pointer; display: flex; gap: 10px;" onclick="window.location.href='/pages/profile.html#notifications'">
+                        <div style="flex-shrink: 0; color: var(--primary); font-size: 1.2rem;">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 4px; color: ${isRead ? 'var(--dark-300)' : 'var(--white)'}">${notif.tieu_de}</div>
+                            <div style="font-size: 0.8rem; color: var(--dark-400); margin-bottom: 4px;">${notif.noi_dung}</div>
+                            <div style="font-size: 0.75rem; color: var(--primary-dark)">${new Date(notif.ngay_tao).toLocaleString('vi-VN')}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+    } catch (e) {
+        console.error('Fetch notifications error:', e);
+    }
+}
+
 function toggleNotifications() {
     const dropdown = document.getElementById('notifications-dropdown');
-    if (dropdown) dropdown.classList.toggle('show');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+        if (dropdown.classList.contains('show')) {
+            loadNavbarNotifications();
+        }
+    }
 }
 
 document.addEventListener('click', (e) => {

@@ -101,7 +101,8 @@
         // Parse URL params
         const params = new URLSearchParams(window.location.search);
         if (params.get('search')) document.getElementById('search-input').value = params.get('search');
-        if (params.get('danh_muc_id')) document.getElementById('filter-category').value = params.get('danh_muc_id');
+        const catId = params.get('danh_muc_id') || params.get('category');
+        if (catId) document.getElementById('filter-category').value = catId;
 
         // Load categories  
         async function loadCategories() {
@@ -111,9 +112,10 @@
                 result.data.forEach(c => {
                     select.innerHTML += `<option value="${c.id}">${c.ten_danh_muc}</option>`;
                 });
-                if (params.get('danh_muc_id')) {
-                    select.value = params.get('danh_muc_id');
-                    const cat = result.data.find(c => c.id == params.get('danh_muc_id'));
+                const currentCatId = params.get('danh_muc_id') || params.get('category');
+                if (currentCatId) {
+                    select.value = currentCatId;
+                    const cat = result.data.find(c => c.id == currentCatId);
                     if (cat) {
                         document.getElementById('page-title').textContent = cat.ten_danh_muc;
                         document.getElementById('breadcrumb-text').textContent = cat.ten_danh_muc;
@@ -201,21 +203,24 @@
         async function addToCartQ(id) {
             if (!isLoggedIn()) { showToast('Vui lòng đăng nhập','warning'); return; }
             const r = await api.post('/cart', { san_pham_id: id, so_luong: 1 });
-            if (r.success) { showToast('Đã thêm vào giỏ hàng!'); updateCartCount(); }
+            if (r.success) { showToast('Đã thêm vào giỏ hàng!'); updateNavbarCartCount(); }
             else showToast(r.message,'error');
         }
 
         async function buyNow(id) {
             if (!isLoggedIn()) { showToast('Vui lòng đăng nhập','warning'); location.href='/pages/login.html'; return; }
             const r = await api.post('/cart', { san_pham_id: id, so_luong: 1 });
-            if (r.success) { updateCartCount(); location.href='/pages/checkout.html'; }
+            if (r.success) { updateNavbarCartCount(); location.href='/pages/checkout.html'; }
             else showToast(r.message,'error');
         }
 
-        loadCategories();
-        loadProducts();
-        <script src="/js/seller-registration.js"></script>
-</script>
-<script src="/js/shopee-nav.js"></script>
+        async function initPage() {
+            await loadCategories();
+            loadProducts(1);
+        }
+        initPage();
+    </script>
+    <script src="/js/seller-registration.js"></script>
+    <script src="/js/shopee-nav.js"></script>
 </body>
 </html>

@@ -39,11 +39,12 @@ const createVnpayPayment = async (req, res) => {
         sortedParams['vnp_SecureHash'] = signed;
 
         const paymentUrl = vnpUrl + '?' + new URLSearchParams(sortedParams).toString();
+        console.log('VNPay URL Created:', paymentUrl);
 
         res.json({ success: true, data: { paymentUrl } });
     } catch (error) {
-        console.error('VNPay error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi tạo thanh toán VNPay' });
+        console.error('VNPay Create Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi tạo thanh toán VNPay: ' + error.message });
     }
 };
 
@@ -111,6 +112,8 @@ const createMomoPayment = async (req, res) => {
             redirectUrl, ipnUrl, lang, requestType, autoCapture, extraData, signature
         };
 
+        console.log('Sending request to MoMo:', JSON.stringify(requestBody));
+
         const response = await fetch(process.env.MOMO_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -118,15 +121,17 @@ const createMomoPayment = async (req, res) => {
         });
 
         const data = await response.json();
+        console.log('MoMo API Response:', data);
 
         if (data.resultCode === 0) {
             res.json({ success: true, data: { paymentUrl: data.payUrl } });
         } else {
-            res.status(400).json({ success: false, message: data.message || 'Lỗi tạo thanh toán Momo' });
+            console.error('MoMo Business Error:', data);
+            res.status(400).json({ success: false, message: data.message || 'Lỗi từ phía MoMo' });
         }
     } catch (error) {
-        console.error('Momo error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi tạo thanh toán Momo' });
+        console.error('MoMo System Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi hệ thống khi tạo thanh toán MoMo: ' + error.message });
     }
 };
 

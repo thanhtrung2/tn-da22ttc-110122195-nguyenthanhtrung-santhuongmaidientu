@@ -241,7 +241,7 @@
                         <strong>${shop.diem_trung_binh ? parseFloat(shop.diem_trung_binh).toFixed(1) : '—'}</strong>
                         <span>Đánh giá</span>
                     </div>
-                    <button class="btn btn-outline" onclick="location.href='/pages/chat.html?userId=${shop.nguoi_ban_id}'">
+                    <button class="btn btn-outline" onclick="location.href='/pages/chat.html?userId=${shop.nguoi_ban_id}&shopName=${encodeURIComponent(shop.ten_gian_hang)}'">
                         <i class="fas fa-comments"></i> Chat ngay
                     </button>
                 </div>
@@ -357,14 +357,14 @@
     async function addToCartQ(id) {
         if (!isLoggedIn()) { showToast('Vui lòng đăng nhập', 'warning'); return; }
         const r = await api.post('/cart', { san_pham_id: id, so_luong: 1 });
-        if (r.success) { showToast('Đã thêm vào giỏ hàng!'); updateCartCount(); }
+        if (r.success) { showToast('Đã thêm vào giỏ hàng!'); updateNavbarCartCount(); }
         else showToast(r.message, 'error');
     }
 
     async function buyNow(id) {
         if (!isLoggedIn()) { showToast('Vui lòng đăng nhập', 'warning'); location.href = '/pages/login.html'; return; }
         const r = await api.post('/cart', { san_pham_id: id, so_luong: 1 });
-        if (r.success) { updateCartCount(); location.href = '/pages/checkout.html'; }
+        if (r.success) { updateNavbarCartCount(); location.href = '/pages/checkout.html'; }
         else showToast(r.message, 'error');
     }
 

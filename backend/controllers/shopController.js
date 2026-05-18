@@ -99,4 +99,20 @@ const getAllShops = async (req, res) => {
     }
 };
 
-module.exports = { createShop, getMyShop, updateShop, getShopById, getAllShops };
+// Lấy gian hàng theo ID người bán (public)
+const getShopBySellerId = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT g.*, nd.ho_ten as ten_nguoi_ban FROM gian_hang g JOIN nguoi_dung nd ON g.nguoi_ban_id = nd.id WHERE g.nguoi_ban_id = ?`,
+            [req.params.sellerId]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Gian hàng của người bán này không tồn tại hoặc chưa tạo' });
+        }
+        res.json({ success: true, data: rows[0] });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+module.exports = { createShop, getMyShop, updateShop, getShopById, getAllShops, getShopBySellerId };

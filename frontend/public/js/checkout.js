@@ -4,6 +4,7 @@
 
 let cartData = [];
 let totalAmount = 0;
+let appliedVoucher = null;
 
 // Khởi tạo trang checkout
 async function initCheckout() {
@@ -73,8 +74,18 @@ function displayCheckoutSummary() {
 
     // Calculate totals
     const shippingFee = 0; // Free shipping
-    const tax = 0; // No tax for now
-    const finalTotal = totalAmount + shippingFee + tax;
+    let discountAmount = 0;
+
+    if (appliedVoucher) {
+        if (appliedVoucher.loai === 'phan_tram') {
+            discountAmount = totalAmount * (appliedVoucher.gia_tri / 100);
+        } else {
+            discountAmount = appliedVoucher.gia_tri;
+        }
+        if (discountAmount > totalAmount) discountAmount = totalAmount; // Cannot discount more than total
+    }
+
+    const finalTotal = Math.max(0, totalAmount + shippingFee - discountAmount);
 
     html += `
         <div style="padding-top:1rem;margin-top:0.5rem;">
@@ -86,6 +97,12 @@ function displayCheckoutSummary() {
                 <span style="color:var(--dark-400);">Phí giao hàng</span>
                 <span style="color:var(--success);">Miễn phí</span>
             </div>
+            ${discountAmount > 0 ? `
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
+                <span style="color:var(--dark-400);">Khuyến mãi</span>
+                <span style="color:var(--success);">- ${formatPrice(discountAmount)}</span>
+            </div>
+            ` : ''}
             <div style="display:flex;justify-content:space-between;padding-top:1rem;border-top:1px solid var(--dark-700);">
                 <strong>Tổng cộng</strong>
                 <strong style="font-family:'Outfit';font-size:1.3rem;color:var(--danger);">${formatPrice(finalTotal)}</strong>
@@ -97,6 +114,40 @@ function displayCheckoutSummary() {
     `;
 
     container.innerHTML = html;
+}
+
+// Áp dụng khuyến mãi
+async function applyVoucher() {
+    const code = document.getElementById('voucher-code').value.trim();
+    const msg = document.getElementById('voucher-message');
+    msg.style.display = 'block';
+
+    if (!code) {
+        msg.textContent = 'Vui lòng nhập mã khuyến mãi';
+        msg.style.color = 'var(--danger)';
+        return;
+    }
+
+    // Pass shop_ids to check if the voucher belongs to any of the shops in the cart
+    const shopIds = cartData.map(shop => shop.gian_hang_id).join(',');
+
+    try {
+        const result = await api.get(`/promotions/check?code=${code}&shop_ids=${shopIds}`);
+        if (result.success) {
+            appliedVoucher = result.data;
+            msg.textContent = `Áp dụng thành công mã giảm ${appliedVoucher.loai === 'phan_tram' ? appliedVoucher.gia_tri + '%' : formatPrice(appliedVoucher.gia_tri)}`;
+            msg.style.color = 'var(--success)';
+            displayCheckoutSummary();
+        } else {
+            msg.textContent = result.message || 'Mã khuyến mãi không hợp lệ';
+            msg.style.color = 'var(--danger)';
+            appliedVoucher = null;
+            displayCheckoutSummary();
+        }
+    } catch (e) {
+        msg.textContent = 'Lỗi khi kiểm tra mã';
+        msg.style.color = 'var(--danger)';
+    }
 }
 
 // Setup payment method listeners
@@ -118,6 +169,15 @@ async function placeOrder() {
     const sdt = document.getElementById('sdt').value.trim();
     const diachi = document.getElementById('diachi').value.trim();
 
+    // Reset borders
+    document.getElementById('ten').style.borderColor = '';
+    document.getElementById('sdt').style.borderColor = '';
+    document.getElementById('diachi').style.borderColor = '';
+
+    if (!ten) document.getElementById('ten').style.borderColor = 'var(--danger)';
+    if (!sdt) document.getElementById('sdt').style.borderColor = 'var(--danger)';
+    if (!diachi) document.getElementById('diachi').style.borderColor = 'var(--danger)';
+
     if (!ten || !sdt || !diachi) {
         showToast('Vui lòng nhập đầy đủ thông tin giao hàng', 'error');
         return;
@@ -125,6 +185,7 @@ async function placeOrder() {
 
     // Validate phone number
     if (!/^[0-9]{10}$/.test(sdt.replace(/\D/g, ''))) {
+        document.getElementById('sdt').style.borderColor = 'var(--danger)';
         showToast('Số điện thoại không hợp lệ', 'error');
         return;
     }
@@ -141,7 +202,8 @@ async function placeOrder() {
             dia_chi_giao: diachi,
             so_dien_thoai: sdt,
             phuong_thuc_thanh_toan: paymentMethod,
-            ghi_chu: ghichu
+            ghi_chu: ghichu,
+            ma_khuyen_mai: appliedVoucher ? appliedVoucher.ten_khuyen_mai : null
         });
 
         if (result.success) {

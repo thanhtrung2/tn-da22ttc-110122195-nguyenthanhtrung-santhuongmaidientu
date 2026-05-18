@@ -66,7 +66,11 @@ const updateProduct = async (req, res) => {
 
         let hinh_anh = product[0].hinh_anh;
         const newImage = getImageUrl(req.file);
-        if (newImage) hinh_anh = newImage;
+        if (newImage) {
+            hinh_anh = newImage;
+        } else if (req.body.remove_hinh_anh === 'true') {
+            hinh_anh = null;
+        }
 
         await pool.query(
             'UPDATE san_pham SET ten_san_pham = ?, mo_ta = ?, gia = ?, gia_khuyen_mai = ?, so_luong_ton = ?, danh_muc_id = ?, hinh_anh = ?, trang_thai = ? WHERE id = ?',
@@ -130,36 +134,39 @@ const getMyProducts = async (req, res) => {
 const getAllProducts = async (req, res) => {
     try {
         const { search, danh_muc_id, min_gia, max_gia, sort, page = 1, limit = 12 } = req.query;
-        let sql = `SELECT sp.*, gh.ten_gian_hang, dm.ten_danh_muc,
-            (SELECT AVG(so_sao) FROM danh_gia WHERE san_pham_id = sp.id) as diem_trung_binh,
-            (SELECT COUNT(*) FROM danh_gia WHERE san_pham_id = sp.id) as so_danh_gia
-            FROM san_pham sp 
+        let baseSql = `FROM san_pham sp 
             JOIN gian_hang gh ON sp.gian_hang_id = gh.id 
             LEFT JOIN danh_muc dm ON sp.danh_muc_id = dm.id
             WHERE sp.trang_thai = 'active' AND sp.trang_thai_duyet = 'approved' AND gh.trang_thai = 'active'`;
+        
         const params = [];
 
         if (search) {
-            sql += ' AND (sp.ten_san_pham LIKE ? OR sp.mo_ta LIKE ?)';
+            baseSql += ' AND (sp.ten_san_pham LIKE ? OR sp.mo_ta LIKE ?)';
             params.push(`%${search}%`, `%${search}%`);
         }
         if (danh_muc_id) {
-            sql += ' AND sp.danh_muc_id = ?';
+            baseSql += ' AND sp.danh_muc_id = ?';
             params.push(danh_muc_id);
         }
         if (min_gia) {
-            sql += ' AND sp.gia >= ?';
+            baseSql += ' AND sp.gia >= ?';
             params.push(min_gia);
         }
         if (max_gia) {
-            sql += ' AND sp.gia <= ?';
+            baseSql += ' AND sp.gia <= ?';
             params.push(max_gia);
         }
 
         // Count total
-        const countSql = sql.replace(/SELECT .+? FROM/, 'SELECT COUNT(*) as total FROM');
+        const countSql = `SELECT COUNT(*) as total ${baseSql}`;
         const [countResult] = await pool.query(countSql, params);
         const total = countResult[0].total;
+
+        let sql = `SELECT sp.*, gh.ten_gian_hang, dm.ten_danh_muc,
+            (SELECT AVG(so_sao) FROM danh_gia WHERE san_pham_id = sp.id) as diem_trung_binh,
+            (SELECT COUNT(*) FROM danh_gia WHERE san_pham_id = sp.id) as so_danh_gia
+            ${baseSql}`;
 
         // Sort
         switch (sort) {

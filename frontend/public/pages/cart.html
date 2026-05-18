@@ -98,19 +98,19 @@
                 const price = item.gia_khuyen_mai && item.gia_khuyen_mai < item.gia ? item.gia_khuyen_mai : item.gia;
                 const subtotal = price * item.so_luong;
                 total += subtotal;
-                html += `<div style="display:flex;gap:1rem;align-items:center;padding:0.8rem 0;border-bottom:1px solid rgba(255,255,255,0.03);" id="item-${item.id}">
-                    <img src="${getProductImage(item.hinh_anh)}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;">
+                html += `<div style="display:flex;gap:1rem;align-items:center;padding:0.8rem 0;border-bottom:1px solid var(--dark-800);" id="item-${item.id}">
+                    <img src="${getProductImage(item.hinh_anh)}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                     <div style="flex:1;">
-                        <a href="/pages/product-detail.html?id=${item.san_pham_id}" style="font-weight:600;font-size:0.9rem;color:var(--white);">${item.ten_san_pham}</a>
-                        <div style="color:var(--danger);font-weight:700;margin-top:4px;">${formatPrice(price)}</div>
+                        <a href="/pages/product-detail.html?id=${item.san_pham_id}" style="font-weight:600;font-size:0.95rem;color:var(--dark-100);text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--dark-100)'">${item.ten_san_pham}</a>
+                        <div style="color:var(--danger);font-weight:700;margin-top:6px;font-size:0.9rem;">${formatPrice(price)}</div>
                     </div>
-                    <div style="display:flex;align-items:center;border:1px solid var(--dark-700);border-radius:8px;">
-                        <button onclick="updateQty(${item.id},${item.so_luong-1})" style="width:30px;height:30px;background:var(--dark-700);border:none;color:white;cursor:pointer;">-</button>
-                        <span style="width:40px;text-align:center;font-size:0.85rem;">${item.so_luong}</span>
-                        <button onclick="updateQty(${item.id},${item.so_luong+1})" style="width:30px;height:30px;background:var(--dark-700);border:none;color:white;cursor:pointer;">+</button>
+                    <div style="display:flex;align-items:center;background:var(--dark-900);border:1px solid var(--dark-700);border-radius:24px;padding:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.02);">
+                        <button onclick="updateQty(${item.id},${item.so_luong-1})" style="width:28px;height:28px;border-radius:50%;background:white;border:1px solid var(--dark-700);color:var(--dark-200);cursor:pointer;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:all 0.2s;" onmouseover="this.style.transform='scale(1.05)';this.style.color='var(--primary)'" onmouseout="this.style.transform='scale(1)';this.style.color='var(--dark-200)'">-</button>
+                        <span style="width:40px;text-align:center;font-weight:700;font-size:1rem;color:var(--dark-100);">${item.so_luong}</span>
+                        <button onclick="updateQty(${item.id},${item.so_luong+1})" style="width:28px;height:28px;border-radius:50%;background:white;border:1px solid var(--dark-700);color:var(--dark-200);cursor:pointer;font-weight:bold;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:all 0.2s;" onmouseover="this.style.transform='scale(1.05)';this.style.color='var(--primary)'" onmouseout="this.style.transform='scale(1)';this.style.color='var(--dark-200)'">+</button>
                     </div>
-                    <div style="width:120px;text-align:right;font-weight:700;color:var(--white);">${formatPrice(subtotal)}</div>
-                    <button onclick="removeItem(${item.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1.1rem;" title="Xóa"><i class="fas fa-trash"></i></button>
+                    <div style="width:120px;text-align:right;font-family:'Outfit';font-size:1.1rem;font-weight:700;color:var(--danger);">${formatPrice(subtotal)}</div>
+                    <button onclick="removeItem(${item.id})" style="background:none;border:none;color:var(--dark-400);cursor:pointer;font-size:1.1rem;padding:8px;transition:color 0.2s;" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--dark-400)'" title="Xóa"><i class="fas fa-trash-alt"></i></button>
                 </div>`;
             });
             html += '</div>';
@@ -134,18 +134,17 @@
 
     async function removeItem(id) {
         const r = await api.delete(`/cart/${id}`);
-        if(r.success) { showToast('Đã xóa'); loadCart(); updateCartCount(); }
+        if(r.success) { showToast('Đã xóa'); loadCart(); updateNavbarCartCount(); }
     }
 
     async function clearAll() {
         if(!confirm('Xóa tất cả sản phẩm?')) return;
         await api.delete('/cart/clear');
-        loadCart(); updateCartCount();
+        loadCart(); updateNavbarCartCount();
     }
 
     loadCart();
-        <script src="/js/seller-registration.js"></script>
-</script>
-<script src="/js/shopee-nav.js"></script>
+    </script>
+    <script src="/js/shopee-nav.js"></script>
 </body>
 </html>

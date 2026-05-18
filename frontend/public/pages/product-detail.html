@@ -72,7 +72,16 @@
             <div><div class="skeleton" style="padding-top:100%;border-radius:16px;"></div></div>
             <div><div class="skeleton" style="height:30px;margin-bottom:1rem;"></div></div>
         </div>
-        <div style="margin-top:3rem;" id="reviews-section"></div>
+
+        <!-- Full-width Product Description Card -->
+        <div class="glass-card" style="padding:2rem;margin-top:2rem;display:none;" id="desc-card">
+            <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.2rem;border-bottom:1px solid var(--dark-700);padding-bottom:0.75rem;">
+                <i class="fas fa-file-alt" style="color:var(--primary-light);margin-right:8px;"></i> Mô tả chi tiết sản phẩm
+            </h3>
+            <div id="desc-content" style="font-size:0.95rem;color:var(--dark-200);line-height:1.8;margin:0;"></div>
+        </div>
+
+        <div style="margin-top:2rem;" id="reviews-section"></div>
     </div>
 
     <script src="/js/api.js"></script>
@@ -110,14 +119,20 @@
                     <span style="font-family:'Outfit';font-size:2rem;font-weight:800;color:var(--danger);">${formatPrice(price)}</span>
                     ${hd ? `<span style="font-size:1rem;color:var(--dark-500);text-decoration:line-through;margin-left:12px;">${formatPrice(product.gia)}</span>` : ''}
                 </div>
-                <p style="font-size:0.85rem;color:var(--dark-400);line-height:1.8;margin-bottom:1.5rem;">${product.mo_ta||'Chưa có mô tả'}</p>
                 <div style="margin-bottom:1.5rem;font-size:0.85rem;">Còn lại: <strong style="color:${product.so_luong_ton>0?'var(--success)':'var(--danger)'}">${product.so_luong_ton>0?product.so_luong_ton+' sp':'Hết hàng'}</strong></div>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;">
-                    <span style="font-size:0.85rem;">Số lượng:</span>
-                    <div style="display:flex;border:1px solid var(--dark-700);border-radius:10px;overflow:hidden;">
-                        <button onclick="chgQty(-1)" style="width:36px;height:36px;background:var(--dark-700);border:none;color:white;cursor:pointer;">-</button>
-                        <input type="number" id="qty" value="1" min="1" max="${product.so_luong_ton}" style="width:50px;text-align:center;background:var(--dark-800);border:none;color:white;">
-                        <button onclick="chgQty(1)" style="width:36px;height:36px;background:var(--dark-700);border:none;color:white;cursor:pointer;">+</button>
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+                    <span style="font-size:0.95rem;font-weight:500;color:var(--dark-300);">Số lượng:</span>
+                    <div style="display:flex;align-items:center;background:var(--dark-900);border:1px solid var(--dark-700);border-radius:24px;padding:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.02);">
+                        <button onclick="chgQty(-1)" style="width:34px;height:34px;border-radius:50%;background:white;border:1px solid var(--dark-700);color:var(--dark-200);cursor:pointer;font-weight:bold;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:all 0.2s;" onmouseover="this.style.transform='scale(1.05)';this.style.color='var(--primary)'" onmouseout="this.style.transform='scale(1)';this.style.color='var(--dark-200)'">-</button>
+                        
+                        <style>
+                            input[type=number]::-webkit-inner-spin-button, 
+                            input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+                            input[type=number] { -moz-appearance: textfield; appearance: none; }
+                        </style>
+                        <input type="number" id="qty" value="1" min="1" max="${product.so_luong_ton}" style="width:50px;text-align:center;background:transparent;border:none;color:var(--dark-100);font-weight:700;font-size:1.1rem;outline:none;">
+                        
+                        <button onclick="chgQty(1)" style="width:34px;height:34px;border-radius:50%;background:white;border:1px solid var(--dark-700);color:var(--dark-200);cursor:pointer;font-weight:bold;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,0.05);transition:all 0.2s;" onmouseover="this.style.transform='scale(1.05)';this.style.color='var(--primary)'" onmouseout="this.style.transform='scale(1)';this.style.color='var(--dark-200)'">+</button>
                     </div>
                 </div>
                 <div style="display:flex;gap:1rem;flex-wrap:wrap;">
@@ -128,7 +143,7 @@
                         <i class="fas fa-bolt"></i> Mua ngay
                     </button>
                 </div>
-                <button class="btn btn-outline btn-sm" style="width:100%;margin-top:0.5rem;" onclick="location.href='/pages/chat.html?userId=${product.nguoi_ban_id}'">
+                <button class="btn btn-outline btn-sm" style="width:100%;margin-top:0.5rem;" onclick="location.href='/pages/chat.html?userId=${product.nguoi_ban_id}&shopName=${encodeURIComponent(product.ten_gian_hang)}'">
                     <i class="fas fa-comments"></i> Chat với người bán
                 </button>
             </div>
@@ -142,21 +157,33 @@
                 </button>
             </div>
         </div>`;
+
+        if (product.mo_ta) {
+            document.getElementById('desc-content').innerHTML = product.mo_ta;
+            document.getElementById('desc-card').style.display = 'block';
+        } else {
+            document.getElementById('desc-card').style.display = 'none';
+        }
         loadReviews();
     }
 
-    function chgQty(d) { const i=document.getElementById('qty'); let v=parseInt(i.value)+d; i.value=Math.max(1,Math.min(v,product.so_luong_ton)); }
+    function chgQty(d) {
+        const i = document.getElementById('qty');
+        let v = parseInt(i.value) || 1;
+        v += d;
+        i.value = Math.max(1, Math.min(v, product.so_luong_ton || 999));
+    }
 
     async function addCart() {
         if(!isLoggedIn()){showToast('Vui lòng đăng nhập','warning');return;}
         const r=await api.post('/cart',{san_pham_id:pid,so_luong:parseInt(document.getElementById('qty').value)});
-        if(r.success){showToast('Đã thêm vào giỏ!');updateCartCount();}else showToast(r.message,'error');
+        if(r.success){showToast('Đã thêm vào giỏ!');updateNavbarCartCount();}else showToast(r.message,'error');
     }
 
     async function buyNow() {
         if(!isLoggedIn()){showToast('Vui lòng đăng nhập','warning');location.href='/pages/login.html';return;}
         const r=await api.post('/cart',{san_pham_id:pid,so_luong:parseInt(document.getElementById('qty').value)});
-        if(r.success){updateCartCount();location.href='/pages/checkout.html';}
+        if(r.success){updateNavbarCartCount();location.href='/pages/checkout.html';}
         else showToast(r.message,'error');
     }
 
@@ -188,8 +215,8 @@
     }
 
     load();
-        <script src="/js/seller-registration.js"></script>
 </script>
+<script src="/js/seller-registration.js"></script>
 <script src="/js/shopee-nav.js"></script>
 </body>
 </html>
