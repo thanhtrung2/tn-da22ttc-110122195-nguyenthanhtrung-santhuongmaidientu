@@ -31,7 +31,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
                     <div class="topbar-user" id="topbar-user">
                         <!-- Sẽ được load động -->
                     </div>
@@ -48,8 +48,8 @@
                 </a>
                 
                 <div class="shopee-search">
-                    <div class="search-box">
-                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
                         <button class="search-btn" onclick="searchProducts()">
                             <i class="fas fa-search"></i>
                         </button>

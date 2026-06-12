@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đánh giá sản phẩm - Seller - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .star { color: #334155; font-size: 0.85rem; }
+        .star.active { color: #f59e0b; }
+        .star.big { font-size: 1.1rem; }
+        .review-card {
+            background: white; border: 1px solid #e2e8f0;
+            border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+            transition: all 0.2s; position: relative;
+        }
+        .review-card:hover { border-color: #c7d2fe; box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
+        .review-card::before {
+            content: '\f10d'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
+            position: absolute; top: 14px; right: 18px; font-size: 1.5rem;
+            color: #e2e8f0; z-index: 0;
+        }
+        .filter-btn {
+            padding: 7px 16px; border-radius: 20px; border: 1.5px solid #e2e8f0;
+            background: white; color: #475569; font-size: 0.82rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: #6366f1; color: #6366f1; }
+        .filter-btn.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+        .bar-track { height: 8px; border-radius: 4px; background: #f1f5f9; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #f59e0b, #f97316); transition: width 0.6s ease; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #f1f5f9; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container">
+        <a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a>
+        <div class="navbar-actions" id="nav-actions"></div>
+    </div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-store"></i></div>
+                <h4 style="font-size:0.95rem;" id="shop-name">Gian hàng</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+                <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+                <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+                <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/reviews.html" class="active"><i class="fas fa-star"></i> Đánh giá</a>
+                <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+                <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
+                <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
+                <a href="/pages/complaint.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Về trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;color:var(--text-primary);">⭐ Đánh giá sản phẩm</h1>
+
+            <!-- Thống kê tổng quan -->
+            <div style="display:grid;grid-template-columns:200px 160px 1fr;gap:1.25rem;margin-bottom:1.5rem;" id="stats-area">
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:16px;padding:1.5rem;text-align:center;">
+                    <div style="font-size:2.2rem;font-weight:800;color:#f59e0b;line-height:1;" id="avg-rating">-</div>
+                    <div style="margin:6px 0;display:flex;justify-content:center;gap:2px;" id="avg-stars"></div>
+                    <div style="font-size:0.78rem;color:#94a3b8;font-weight:500;">Điểm trung bình</div>
+                </div>
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:16px;padding:1.5rem;text-align:center;display:flex;flex-direction:column;justify-content:center;">
+                    <div style="font-size:2.2rem;font-weight:800;color:#6366f1;line-height:1;" id="total-reviews">0</div>
+                    <div style="font-size:0.78rem;color:#94a3b8;font-weight:500;margin-top:6px;">Tổng đánh giá</div>
+                </div>
+                <div style="background:white;border:1px solid #e2e8f0;border-radius:16px;padding:1.25rem 1.5rem;">
+                    <div style="font-size:0.8rem;color:#64748b;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Phân bố sao</div>
+                    <div id="rating-bars"></div>
+                </div>
+            </div>
+
+            <!-- Bộ lọc -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem;" id="filter-bar">
+                <button class="filter-btn active" onclick="filterReviews('')">Tất cả</button>
+                <button class="filter-btn" onclick="filterReviews(5)">5 sao</button>
+                <button class="filter-btn" onclick="filterReviews(4)">4 sao</button>
+                <button class="filter-btn" onclick="filterReviews(3)">3 sao</button>
+                <button class="filter-btn" onclick="filterReviews(2)">2 sao</button>
+                <button class="filter-btn" onclick="filterReviews(1)">1 sao</button>
+            </div>
+
+            <!-- Danh sách đánh giá -->
+            <div id="reviews-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
+    let allReviews = [];
+    let currentFilter = '';
+
+    function renderStars(count, cls='') {
+        return Array.from({length:5},(_,i)=>`<i class="fas fa-star star ${i<count?'active':''} ${cls}"></i>`).join('');
+    }
+
+    function filterReviews(star) {
+        currentFilter = star;
+        document.querySelectorAll('#filter-bar .filter-btn').forEach((btn, idx) => {
+            const val = idx === 0 ? '' : (6 - idx);
+            btn.classList.toggle('active', val == currentFilter);
+        });
+        const filtered = currentFilter === '' ? allReviews : allReviews.filter(r => r.so_sao == currentFilter);
+        const el = document.getElementById('reviews-list');
+        if (filtered.length === 0) {
+            el.innerHTML = `<div style="text-align:center;padding:4rem 2rem;">
+                <i class="fas fa-star" style="font-size:2.5rem;color:#cbd5e1;display:block;margin-bottom:12px;"></i>
+                <p style="color:#94a3b8;font-weight:500;">Chưa có đánh giá${currentFilter !== '' ? ` ${currentFilter} sao` : ''} nào</p>
+            </div>`;
+            return;
+        }
+        el.innerHTML = filtered.map(r => `
+            <div class="review-card">
+                <div style="display:flex;gap:14px;align-items:start;position:relative;z-index:1;">
+                    <img src="${r.avatar || '/images/default-avatar.png'}" class="avatar" onerror="this.src='/images/default-avatar.png'">
+                    <div style="flex:1;min-width:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <strong style="font-size:0.95rem;color:#1e293b;">${r.ho_ten}</strong>
+                            <span style="font-size:0.75rem;color:#94a3b8;">${formatDate(r.ngay_tao)}</span>
+                        </div>
+                        <div style="margin:5px 0 6px;">${renderStars(r.so_sao, 'big')}</div>
+                        <div style="font-size:0.8rem;color:#6366f1;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-box" style="font-size:0.7rem;"></i>
+                            <a href="/pages/product-detail.html?id=${r.san_pham_id}" style="text-decoration:none;color:#6366f1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.ten_san_pham}</a>
+                        </div>
+                        ${r.binh_luan ? `<div style="background:#f8fafc;border-radius:10px;padding:10px 14px;font-size:0.9rem;color:#334155;line-height:1.6;border-left:3px solid #6366f1;">${r.binh_luan}</div>` : '<p style="font-size:0.82rem;color:#cbd5e1;font-style:italic;margin:0;">Không có nhận xét</p>'}
+                        ${r.phan_hoi ? `
+                            <div style="background:linear-gradient(135deg,rgba(99,102,241,0.05),rgba(139,92,246,0.05));border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:10px 14px;margin-top:8px;">
+                                <div style="font-size:0.75rem;color:#6366f1;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px;">
+                                    <i class="fas fa-reply" style="font-size:0.65rem;"></i> Phản hồi của Shop
+                                    <span style="font-weight:400;color:#94a3b8;margin-left:4px;">${r.ngay_phan_hoi ? formatDate(r.ngay_phan_hoi) : ''}</span>
+                                </div>
+                                <div style="font-size:0.88rem;color:#334155;line-height:1.5;">${r.phan_hoi}</div>
+                            </div>
+                        ` : `
+                            <div style="margin-top:8px;" id="reply-area-${r.id}">
+                                <button onclick="showReplyBox(${r.id})" style="font-size:0.78rem;color:#6366f1;background:none;border:1px dashed #6366f1;padding:5px 12px;border-radius:16px;cursor:pointer;font-weight:600;transition:all 0.2s;" onmouseover="this.style.background='rgba(99,102,241,0.08)'" onmouseout="this.style.background=''">
+                                    <i class="fas fa-reply"></i> Phản hồi
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function showReplyBox(reviewId) {
+        const area = document.getElementById('reply-area-' + reviewId);
+        area.innerHTML = `
+            <div style="background:#f8fafc;border-radius:10px;padding:10px;border:1px solid #e2e8f0;">
+                <textarea id="reply-text-${reviewId}" style="width:100%;min-height:60px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:0.85rem;resize:vertical;font-family:inherit;outline:none;" placeholder="Nhập phản hồi của bạn..." onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px;">
+                    <button onclick="cancelReply(${reviewId})" style="padding:4px 12px;font-size:0.78rem;border:1px solid #e2e8f0;background:white;border-radius:6px;cursor:pointer;color:#64748b;">Hủy</button>
+                    <button onclick="submitReply(${reviewId})" style="padding:4px 12px;font-size:0.78rem;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border-radius:6px;cursor:pointer;font-weight:600;">Gửi</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('reply-text-' + reviewId).focus();
+    }
+
+    function cancelReply(reviewId) {
+        const area = document.getElementById('reply-area-' + reviewId);
+        area.innerHTML = `<button onclick="showReplyBox(${reviewId})" style="font-size:0.78rem;color:#6366f1;background:none;border:1px dashed #6366f1;padding:5px 12px;border-radius:16px;cursor:pointer;font-weight:600;"><i class="fas fa-reply"></i> Phản hồi</button>`;
+    }
+
+    async function submitReply(reviewId) {
+        const textarea = document.getElementById('reply-text-' + reviewId);
+        const text = textarea.value.trim();
+        if (text.length < 2) { showToast('Phản hồi phải có ít nhất 2 ký tự', 'warning'); return; }
+        const btn = textarea.closest('div').querySelector('button:last-child');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const r = await api.post(`/reviews/${reviewId}/reply`, { phan_hoi: text });
+        if (r.success) {
+            showToast('Đã phản hồi đánh giá');
+            loadShopReviews();
+        } else {
+            showToast(r.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = 'Gửi';
+        }
+    }
+
+    async function loadShopReviews() {
+        const r = await api.get('/reviews/shop');
+        const el = document.getElementById('reviews-list');
+        if (!r.success) { el.innerHTML = '<p style="color:#ef4444;text-align:center;padding:2rem;">Lỗi tải đánh giá</p>'; return; }
+
+        allReviews = r.data.reviews || [];
+        const stats = r.data.stats || {};
+        const avg = stats.trung_binh ? Number(stats.trung_binh) : 0;
+        const total = parseInt(stats.tong) || 0;
+
+        document.getElementById('avg-rating').textContent = avg.toFixed(1);
+        document.getElementById('avg-stars').innerHTML = renderStars(Math.round(avg));
+        document.getElementById('total-reviews').textContent = total;
+
+        const barsEl = document.getElementById('rating-bars');
+        barsEl.innerHTML = [5,4,3,2,1].map(s => {
+            const count = parseInt(stats['sao_'+s]) || 0;
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+                <span style="font-size:0.78rem;color:#64748b;width:20px;text-align:right;font-weight:600;">${s}</span>
+                <i class="fas fa-star" style="color:#f59e0b;font-size:0.65rem;"></i>
+                <div class="bar-track" style="flex:1;"><div class="bar-fill" style="width:${pct}%"></div></div>
+                <span style="font-size:0.75rem;color:#94a3b8;width:28px;text-align:right;">${count}</span>
+            </div>`;
+        }).join('');
+
+        filterReviews('');
+    }
+
+    loadShopReviews();
+    </script>
+</body>
+</html>

@@ -20,6 +20,7 @@
                 <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
                 <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html" class="active"><i class="fas fa-tags"></i> Khuyến mãi</a>
                 <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
@@ -36,10 +37,12 @@
                 <form onsubmit="savePromo(event)">
                     <input type="hidden" id="p-id">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                        <div class="form-group"><label>Tên khuyến mãi</label><input class="form-control" id="p-ten" required></div>
-                        <div class="form-group"><label>Loại</label><select class="form-control" id="p-loai"><option value="phan_tram">Phần trăm (%)</option><option value="co_dinh">Cố định (VND)</option></select></div>
-                        <div class="form-group"><label>Giá trị</label><input type="number" class="form-control" id="p-val" required></div>
+                        <div class="form-group"><label>Tên khuyến mãi (Mã Code)</label><input class="form-control" id="p-ten" required placeholder="VD: GIAM10K"></div>
+                        <div class="form-group"><label>Loại</label><select class="form-control" id="p-loai" onchange="updateValLabel()"><option value="phan_tram">Phần trăm (%)</option><option value="co_dinh">Cố định (VND)</option><option value="mien_phi_van_chuyen">Miễn phí vận chuyển (VND)</option></select></div>
+                        <div class="form-group"><label id="p-val-label">Giá trị giảm (%)</label><input type="number" class="form-control" id="p-val" required placeholder="VD: 10 (cho 10%)"></div>
                         <div class="form-group"><label>Mô tả</label><input class="form-control" id="p-mota"></div>
+                        <div class="form-group"><label>Số lượng tối đa</label><input type="number" class="form-control" id="p-soluong" value="100" min="1" required></div>
+                        <div class="form-group"><label>Đơn tối thiểu (VND)</label><input type="number" class="form-control" id="p-tthieu" value="0" min="0" required placeholder="VD: 100000"></div>
                         <div class="form-group"><label>Ngày bắt đầu</label><input type="date" class="form-control" id="p-start" required></div>
                         <div class="form-group"><label>Ngày kết thúc</label><input type="date" class="form-control" id="p-end" required></div>
                     </div>
@@ -52,19 +55,26 @@
     </div>
     <script src="/js/api.js"></script>
     <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+    if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
 
     async function loadPromos() {
         const r = await api.get('/promotions');
         const el = document.getElementById('promo-list');
         if(!r.success||r.data.length===0) { el.innerHTML='<p style="text-align:center;color:var(--dark-400);padding:3rem;">Chưa có khuyến mãi</p>'; return; }
         el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
-            <th>Tên</th><th>Loại</th><th>Giá trị</th><th>Bắt đầu</th><th>Kết thúc</th><th>Trạng thái</th><th>Thao tác</th>
+            <th>Mã (Code)</th><th>Loại</th><th>Giá trị giảm</th><th>Điều kiện</th><th>Đã dùng/Tổng</th><th>Thời gian</th><th>Trạng thái</th><th>Thao tác</th>
         </tr></thead><tbody>${r.data.map(p => `<tr>
             <td style="font-weight:500;color:var(--white);">${p.ten_khuyen_mai}</td>
-            <td>${p.loai==='phan_tram'?'Phần trăm':'Cố định'}</td>
-            <td style="color:var(--success);font-weight:600;">${p.loai==='phan_tram'?p.gia_tri+'%':formatPrice(p.gia_tri)}</td>
-            <td>${p.ngay_bat_dau}</td><td>${p.ngay_ket_thuc}</td>
+            <td>${p.loai==='phan_tram'?'Phần trăm':(p.loai==='co_dinh'?'Cố định':'Freeship')}</td>
+            <td style="color:var(--success);font-weight:600;">${p.loai==='phan_tram' ? p.gia_tri+'%' : formatPrice(p.gia_tri)}</td>
+            <td style="font-size:0.85rem;">${p.don_toi_thieu > 0 ? 'Từ ' + formatPrice(p.don_toi_thieu) : 'Không giới hạn'}</td>
+            <td>
+                <span style="color:${(p.da_dung||0) >= (p.so_luong||0)*0.8 ? 'var(--warning)' : 'var(--success)'}; font-weight:600;">
+                    ${p.da_dung !== null && p.da_dung !== undefined ? p.da_dung : 0}
+                </span>
+                / ${p.so_luong !== null && p.so_luong !== undefined ? p.so_luong : '—'}
+            </td>
+            <td style="font-size:0.8rem;">${p.ngay_bat_dau.split('T')[0]}<br>đến ${p.ngay_ket_thuc.split('T')[0]}</td>
             <td><span class="status ${p.trang_thai==='active'?'status-active':'status-locked'}">${p.trang_thai==='active'?'Hoạt động':'Tắt'}</span></td>
             <td><button class="btn btn-sm btn-danger" onclick="delPromo(${p.id})"><i class="fas fa-trash"></i></button></td>
         </tr>`).join('')}</tbody></table></div>`;
@@ -77,6 +87,8 @@
             loai: document.getElementById('p-loai').value,
             gia_tri: document.getElementById('p-val').value,
             mo_ta: document.getElementById('p-mota').value,
+            so_luong: parseInt(document.getElementById('p-soluong').value),
+            don_toi_thieu: parseFloat(document.getElementById('p-tthieu').value),
             ngay_bat_dau: document.getElementById('p-start').value,
             ngay_ket_thuc: document.getElementById('p-end').value
         };
@@ -92,6 +104,21 @@
     }
 
     loadPromos();
+
+    function updateValLabel() {
+        const loai = document.getElementById('p-loai').value;
+        const label = document.getElementById('p-val-label');
+        const input = document.getElementById('p-val');
+        if (loai === 'phan_tram') {
+            label.textContent = 'Giá trị giảm (%)';
+            input.placeholder = 'VD: 10 (cho 10%)';
+            input.max = 100;
+        } else {
+            label.textContent = 'Giá trị giảm (VND)';
+            input.placeholder = 'VD: 20000 (cho 20.000đ)';
+            input.removeAttribute('max');
+        }
+    }
     </script>
 </body>
 </html>

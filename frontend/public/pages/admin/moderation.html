@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Kiểm duyệt AI - Vipo Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .alert-badge {
+            display:inline-flex; align-items:center; justify-content:center;
+            background:#ef4444; color:white; border-radius:10px;
+            padding:1px 7px; font-size:0.7rem; font-weight:700;
+            margin-left:auto; min-width:20px;
+        }
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng <span class="alert-badge" id="badge-sellers" style="display:none;">0</span></a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm <span class="alert-badge" id="badge-products" style="display:none;">0</span></a>
+                <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại <span class="alert-badge" id="badge-complaints" style="display:none;">0</span></a>
+                <a href="/pages/admin/moderation.html" class="active"><i class="fas fa-shield-alt"></i> Kiểm duyệt AI</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <h1 style="margin-bottom:1.5rem;">🛡️ Quản lý Kiểm duyệt AI (Naive Bayes)</h1>
+
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <!-- Dữ liệu huấn luyện -->
+                <div class="glass-card" style="padding:1.5rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
+                        <h3 style="font-size:1.1rem; margin:0;"><i class="fas fa-database" style="color:var(--primary-light);"></i> Danh sách mẫu huấn luyện</h3>
+                        <span style="font-size: 0.85rem; color: var(--dark-400);" id="total-samples-count">Tổng số: 0 mẫu</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="table" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; padding:10px;">Văn bản mô tả</th>
+                                    <th style="width:120px; text-align:center; padding:10px;">Nhãn</th>
+                                    <th style="width:80px; text-align:center; padding:10px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="training-samples-table">
+                                <!-- Load động -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cột điều khiển -->
+                <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <!-- Thêm mẫu mới -->
+                    <div class="glass-card" style="padding:1.5rem;">
+                        <h3 style="font-size:1.1rem; margin-bottom:1rem;"><i class="fas fa-plus" style="color:var(--success);"></i> Thêm mẫu mới</h3>
+                        <form id="add-sample-form" onsubmit="addSample(event)">
+                            <div class="form-group">
+                                <label>Nội dung văn bản</label>
+                                <textarea class="form-control" id="sample-text" rows="2" placeholder="Ví dụ: Bán súng hơi tự chế đạn bi..." required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Nhãn phân loại</label>
+                                <select class="form-control" id="sample-label">
+                                    <option value="approved">Hợp lệ (Approved)</option>
+                                    <option value="rejected">Không hợp lệ / Chất cấm (Rejected)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">
+                                <i class="fas fa-save"></i> Thêm mẫu
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Huấn luyện -->
+                    <div class="glass-card" style="padding:1.5rem;">
+                        <h3 style="font-size:1.1rem; margin-bottom:1rem;"><i class="fas fa-dumbbell" style="color:var(--warning);"></i> Huấn luyện mô hình</h3>
+                        <div style="font-size:0.85rem; color:var(--dark-300); margin-bottom:1.2rem; line-height:1.5;">
+                            Đọc dữ liệu mẫu từ database và tính toán lại trọng số xác xuất. Mô hình mới sẽ được lưu cục bộ trên server.
+                        </div>
+                        <button onclick="trainModel()" class="btn btn-warning" style="width:100%; padding:10px;" id="btn-train">
+                            <i class="fas fa-cog fa-spin" style="display:none;" id="train-spinner"></i>
+                            <span id="train-text">Huấn luyện ngay</span>
+                        </button>
+                    </div>
+
+                    <!-- Kiểm thử trực tiếp -->
+                    <div class="glass-card" style="padding:1.5rem;">
+                        <h3 style="font-size:1.1rem; margin-bottom:1rem;"><i class="fas fa-vial" style="color:var(--accent);"></i> Kiểm thử mô hình</h3>
+                        <div class="form-group">
+                            <label>Nhập văn bản cần kiểm tra</label>
+                            <input class="form-control" id="test-text" placeholder="Nhập tên sản phẩm để test thử...">
+                        </div>
+                        <button onclick="testModel()" class="btn btn-outline" style="width:100%; padding:10px; margin-bottom:1rem;">
+                            <i class="fas fa-play"></i> Kiểm tra nhãn
+                        </button>
+                        <div id="test-result" style="display:none; padding:12px; border-radius:8px; font-size:0.9rem; text-align:center;">
+                            <!-- Show test result -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        if(!isLoggedIn() || getUser().vai_tro !== 'admin') location.href = '/pages/admin/login.html';
+
+        async function loadBadges() {
+            const [rPendingSellers, rPendingProducts, rDashboard] = await Promise.all([
+                api.get('/admin/pending-sellers'),
+                api.get('/admin/pending-products'),
+                api.get('/admin/dashboard')
+            ]);
+            
+            const pendingSellersCount = rPendingSellers.success ? rPendingSellers.data.length : 0;
+            const pendingProductsCount = rPendingProducts.success ? rPendingProducts.data.length : 0;
+            const pendingComplaints = rDashboard.success ? rDashboard.data.pendingComplaints : 0;
+
+            const badgeSellers = document.getElementById('badge-sellers');
+            const badgeProducts = document.getElementById('badge-products');
+            const badgeComplaints = document.getElementById('badge-complaints');
+
+            if (badgeSellers) {
+                if (pendingSellersCount > 0) { badgeSellers.textContent = pendingSellersCount; badgeSellers.style.display = 'inline-flex'; }
+                else badgeSellers.style.display = 'none';
+            }
+            if (badgeProducts) {
+                if (pendingProductsCount > 0) { badgeProducts.textContent = pendingProductsCount; badgeProducts.style.display = 'inline-flex'; }
+                else badgeProducts.style.display = 'none';
+            }
+            if (badgeComplaints) {
+                if (pendingComplaints > 0) { badgeComplaints.textContent = pendingComplaints; badgeComplaints.style.display = 'inline-flex'; }
+                else badgeComplaints.style.display = 'none';
+            }
+        }
+
+        async function loadSamples() {
+            const res = await api.get('/admin/moderation/training-data');
+            if (res.success) {
+                document.getElementById('total-samples-count').textContent = `Tổng số: ${res.data.length} mẫu`;
+                const tbody = document.getElementById('training-samples-table');
+                if (res.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:2rem; color:var(--dark-500);">Chưa có dữ liệu mẫu nào</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = res.data.map(sample => {
+                    const isApproved = sample.label === 'approved';
+                    const badgeClass = isApproved ? 'background:rgba(16,185,129,0.15); color:var(--success);' : 'background:rgba(239,68,68,0.15); color:var(--danger);';
+                    const badgeText = isApproved ? 'Hợp lệ' : 'Chất cấm';
+                    return `
+                        <tr style="border-bottom: 1px solid var(--dark-700);">
+                            <td style="padding:12px; text-align:left; font-size:0.9rem; max-width:400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sample.text}</td>
+                            <td style="padding:12px; text-align:center;">
+                                <span style="display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; ${badgeClass}">${badgeText}</span>
+                            </td>
+                            <td style="padding:12px; text-align:center;">
+                                <button class="btn btn-danger btn-sm" onclick="deleteSample(${sample.id})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function addSample(e) {
+            e.preventDefault();
+            const text = document.getElementById('sample-text').value.trim();
+            const label = document.getElementById('sample-label').value;
+
+            const res = await api.post('/admin/moderation/training-data', { text, label });
+            if (res.success) {
+                showToast('Thêm mẫu thành công!');
+                document.getElementById('sample-text').value = '';
+                await loadSamples();
+            } else {
+                showToast(res.message || 'Lỗi khi thêm mẫu', 'error');
+            }
+        }
+
+        async function deleteSample(id) {
+            if (!confirm('Bạn có chắc muốn xóa mẫu này?')) return;
+            const res = await api.delete(`/admin/moderation/training-data/${id}`);
+            if (res.success) {
+                showToast('Xóa mẫu thành công!');
+                await loadSamples();
+            } else {
+                showToast(res.message || 'Lỗi khi xóa', 'error');
+            }
+        }
+
+        async function trainModel() {
+            const btn = document.getElementById('btn-train');
+            const spinner = document.getElementById('train-spinner');
+            const text = document.getElementById('train-text');
+
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            text.textContent = 'Đang huấn luyện...';
+
+            try {
+                const res = await api.post('/admin/moderation/train', {});
+                if (res.success) {
+                    showToast('Huấn luyện mô hình Naive Bayes thành công!');
+                    console.log('Model details:', res.data);
+                } else {
+                    showToast(res.message || 'Lỗi khi huấn luyện', 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi khi kết nối server', 'error');
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                text.textContent = 'Huấn luyện ngay';
+            }
+        }
+
+        async function testModel() {
+            const textInput = document.getElementById('test-text');
+            const text = textInput.value.trim();
+            const resultBox = document.getElementById('test-result');
+
+            if (!text) {
+                showToast('Vui lòng nhập văn bản cần test', 'warning');
+                return;
+            }
+
+            try {
+                const res = await api.post('/admin/moderation/test', { text });
+                if (res.success) {
+                    const label = res.data.label;
+                    const confidence = Math.round(res.data.confidence * 100);
+                    resultBox.style.display = 'block';
+                    
+                    if (label === 'approved') {
+                        resultBox.style.background = 'rgba(16,185,129,0.15)';
+                        resultBox.style.border = '1px solid var(--success)';
+                        resultBox.style.color = 'var(--success)';
+                        resultBox.innerHTML = `<strong>Dự đoán: Hợp lệ (Approved)</strong><br><small>Độ tin cậy: ${confidence}%</small>`;
+                    } else {
+                        resultBox.style.background = 'rgba(239,68,68,0.15)';
+                        resultBox.style.border = '1px solid var(--danger)';
+                        resultBox.style.color = 'var(--danger)';
+                        resultBox.innerHTML = `<strong>Dự đoán: Chất cấm / Vũ khí (Rejected)</strong><br><small>Độ tin cậy: ${confidence}%</small>`;
+                    }
+                } else {
+                    showToast(res.message || 'Lỗi khi test', 'error');
+                }
+            } catch (e) {
+                showToast('Lỗi hệ thống', 'error');
+            }
+        }
+
+        async function init() {
+            await Promise.all([
+                loadBadges(),
+                loadSamples()
+            ]);
+        }
+
+        init();
+    </script>
+</body>
+</html>

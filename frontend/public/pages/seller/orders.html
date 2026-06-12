@@ -6,6 +6,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px); z-index: 2000;
+            display: none; align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-backdrop.show { display: flex; }
+        .modal-box {
+            width: 100%; max-width: 480px; border-radius: 16px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(255,255,255,0.1); padding: 1.75rem; color: #f1f5f9;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .modal-box h3 { font-size: 1.1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+        .modal-box textarea {
+            width: 100%; min-height: 90px; padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1);
+            color: #f1f5f9; border-radius: 10px; resize: vertical;
+            font-family: inherit; font-size: 0.9rem;
+        }
+        .modal-box textarea:focus { outline: none; border-color: var(--primary); }
+        .modal-box .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; }
+        .yc-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-left: 3px solid var(--warning);
+            border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
+        }
+        .yc-card.accepted { border-left-color: var(--success); }
+        .yc-card.rejected { border-left-color: var(--danger); opacity: 0.85; }
+    </style>
 </head>
 <body>
     <nav class="navbar"><div class="navbar-container">
@@ -23,6 +54,7 @@
                 <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html" class="active"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
                 <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
                 <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
@@ -32,6 +64,24 @@
         </aside>
         <main class="dashboard-content">
             <h1 style="margin-bottom:1.5rem;">🛒 Quản lý đơn hàng</h1>
+
+            <!-- Yêu cầu hủy đơn -->
+            <div class="glass" style="padding:1.25rem;margin-bottom:1.5rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <h2 style="font-size:1rem;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-rotate-left" style="color:var(--warning)"></i>
+                        Yêu cầu hủy đơn
+                        <span id="ycBadge" style="display:none;background:var(--danger);color:white;font-size:0.7rem;padding:2px 8px;border-radius:10px;">0</span>
+                    </h2>
+                    <div style="display:flex;gap:6px;">
+                        <button class="btn btn-sm" id="ycTabPending" style="background:var(--primary);color:white;" onclick="loadCancelRequests('cho_duyet')">Chờ duyệt</button>
+                        <button class="btn btn-sm btn-outline" onclick="loadCancelRequests('chap_nhan')">Đã chấp nhận</button>
+                        <button class="btn btn-sm btn-outline" onclick="loadCancelRequests('tu_choi')">Đã từ chối</button>
+                    </div>
+                </div>
+                <div id="ycList"><p style="color:var(--dark-400);text-align:center;padding:1rem;">Đang tải...</p></div>
+            </div>
+
             <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;flex-wrap:wrap;">
                 <button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="loadOrders('')">Tất cả</button>
                 <button class="btn btn-sm btn-outline" onclick="loadOrders('cho_xac_nhan')">Chờ xác nhận</button>
@@ -42,9 +92,40 @@
             <div id="orders-list"><div class="spinner" style="margin:3rem auto;"></div></div>
         </main>
     </div>
+
+    <!-- Modal phản hồi yêu cầu hủy -->
+    <div class="modal-backdrop" id="rejectModal" onclick="if(event.target===this) closeRejectModal()">
+        <div class="modal-box">
+            <h3><i class="fas fa-circle-xmark" style="color:var(--danger)"></i> Từ chối yêu cầu hủy</h3>
+            <p style="font-size:0.85rem;color:var(--dark-300);margin-bottom:0.75rem;">Vui lòng cho khách hàng biết lý do bạn từ chối (không bắt buộc).</p>
+            <textarea id="rejectReason" placeholder="Ví dụ: Đơn đã được đóng gói, không thể hủy..."></textarea>
+            <div class="actions">
+                <button class="btn btn-outline" onclick="closeRejectModal()">Đóng</button>
+                <button class="btn btn-danger" onclick="confirmReject()"><i class="fas fa-paper-plane"></i> Gửi từ chối</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal seller tự hủy đơn -->
+    <div class="modal-backdrop" id="sellerCancelModal" onclick="if(event.target===this) closeSellerCancelModal()">
+        <div class="modal-box">
+            <h3><i class="fas fa-times-circle" style="color:var(--danger)"></i> Hủy đơn hàng</h3>
+            <p style="font-size:0.85rem;color:var(--dark-300);margin-bottom:0.75rem;">Hành động này sẽ hủy đơn và thông báo cho khách hàng.</p>
+            <textarea id="sellerCancelReason" placeholder="Nhập lý do hủy (ít nhất 5 ký tự)..."></textarea>
+            <div class="actions">
+                <button class="btn btn-outline" onclick="closeSellerCancelModal()">Đóng</button>
+                <button class="btn btn-danger" onclick="confirmSellerCancel()"><i class="fas fa-paper-plane"></i> Xác nhận hủy</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+    if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
+
+    let currentRejectId = null;
+    let currentSellerCancelId = null;
+    let currentYcTab = 'cho_duyet';
 
     async function loadOrders(status) {
         const q = status ? `?trang_thai=${status}` : '';
@@ -63,10 +144,11 @@
             <td><span class="status ${getStatusClass(o.trang_thai)}">${getStatusLabel(o.trang_thai)}</span></td>
             <td style="font-size:0.8rem;">${formatDate(o.ngay_tao)}</td>
             <td>
-                ${o.trang_thai==='cho_xac_nhan'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'da_xac_nhan')"><i class="fas fa-check"></i></button>`:''}
-                ${o.trang_thai==='da_xac_nhan'?`<button class="btn btn-sm btn-warning" onclick="updateStatus(${o.id},'dang_giao')"><i class="fas fa-truck"></i></button>`:''}
-                ${o.trang_thai==='dang_giao'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'hoan_thanh')"><i class="fas fa-flag-checkered"></i></button>`:''}
-                <a href="/pages/order-detail.html?id=${o.id}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i></a>
+                ${o.trang_thai==='cho_xac_nhan'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'da_xac_nhan')" title="Xác nhận"><i class="fas fa-check"></i></button>`:''}
+                ${o.trang_thai==='da_xac_nhan'?`<button class="btn btn-sm btn-warning" onclick="updateStatus(${o.id},'dang_giao')" title="Chuyển giao"><i class="fas fa-truck"></i></button>`:''}
+                ${o.trang_thai==='dang_giao'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'hoan_thanh')" title="Hoàn thành"><i class="fas fa-flag-checkered"></i></button>`:''}
+                ${['cho_xac_nhan','da_xac_nhan'].includes(o.trang_thai)?`<button class="btn btn-sm btn-danger" onclick="openSellerCancelModal(${o.id})" title="Hủy đơn"><i class="fas fa-ban"></i></button>`:''}
+                <a href="/pages/order-detail.html?id=${o.id}" class="btn btn-sm btn-outline" title="Xem"><i class="fas fa-eye"></i></a>
             </td>
         </tr>`).join('')}</tbody></table></div>`;
     }
@@ -78,7 +160,129 @@
         if(r.success) { showToast('Cập nhật thành công!'); loadOrders(''); } else showToast(r.message,'error');
     }
 
+    // ====== Yêu cầu hủy đơn ======
+    async function loadCancelRequests(status) {
+        currentYcTab = status;
+        document.querySelectorAll('[id^="ycTab"]').forEach(b => {
+            b.className = 'btn btn-sm btn-outline';
+        });
+        const tabBtn = document.getElementById('ycTab' + status.split('_').map(s=>s[0].toUpperCase()+s.slice(1)).join(''));
+        if (tabBtn) {
+            tabBtn.className = 'btn btn-sm';
+            tabBtn.style.background = 'var(--primary)';
+            tabBtn.style.color = 'white';
+        }
+
+        const r = await api.get(`/orders/cancel-requests?trang_thai=${status}`);
+        const el = document.getElementById('ycList');
+        if(!r.success) { el.innerHTML='<p style="color:var(--danger);">Lỗi tải yêu cầu</p>'; return; }
+
+        // Badge đếm số chờ duyệt
+        if (status === 'cho_duyet') {
+            const badge = document.getElementById('ycBadge');
+            if (r.data.length > 0) {
+                badge.textContent = r.data.length;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        if (r.data.length === 0) {
+            el.innerHTML = `<p style="color:var(--dark-400);text-align:center;padding:1.5rem;">Không có yêu cầu nào</p>`;
+            return;
+        }
+
+        el.innerHTML = r.data.map(yc => {
+            const isPending = yc.yc_trang_thai === 'cho_duyet';
+            const isAccepted = yc.yc_trang_thai === 'chap_nhan';
+            const cardClass = isAccepted ? 'accepted' : (yc.yc_trang_thai === 'tu_choi' ? 'rejected' : '');
+            const statusLabel = isPending ? 'Chờ duyệt' : (isAccepted ? 'Đã chấp nhận' : 'Đã từ chối');
+            const statusColor = isPending ? 'var(--warning)' : (isAccepted ? 'var(--success)' : 'var(--danger)');
+            return `
+            <div class="yc-card ${cardClass}">
+                <div style="display:flex;justify-content:space-between;align-items:start;gap:1rem;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:240px;">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                            <strong>Đơn #${yc.don_hang_id}</strong>
+                            <span style="color:${statusColor};font-size:0.8rem;font-weight:600;">● ${statusLabel}</span>
+                            <span style="color:var(--dark-400);font-size:0.8rem;">${formatDate(yc.ngay_tao)}${yc.ngay_xu_ly ? ' • Xử lý: ' + formatDate(yc.ngay_xu_ly) : ''}</span>
+                        </div>
+                        <div style="font-size:0.85rem;color:var(--dark-300);line-height:1.6;">
+                            <div><strong>Khách:</strong> ${yc.ten_khach} ${yc.sdt_khach ? '(' + yc.sdt_khach + ')' : ''}</div>
+                            <div><strong>Tổng tiền:</strong> <span style="color:var(--danger);">${formatPrice(yc.tong_tien)}</span> • <strong>Mã GD:</strong> ${yc.ma_giao_dich || '—'}</div>
+                            <div style="margin-top:4px;"><strong>Lý do khách:</strong> ${yc.ly_do}</div>
+                            ${yc.phan_hoi ? `<div style="margin-top:4px;"><strong>Phản hồi:</strong> ${yc.phan_hoi}</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <a href="/pages/order-detail.html?id=${yc.don_hang_id}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Xem đơn</a>
+                        ${isPending ? `
+                            <button class="btn btn-sm btn-success" onclick="approveYC(${yc.id})"><i class="fas fa-check"></i> Chấp nhận</button>
+                            <button class="btn btn-sm btn-danger" onclick="openRejectModal(${yc.id})"><i class="fas fa-xmark"></i> Từ chối</button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function approveYC(id) {
+        if(!confirm('Chấp nhận yêu cầu hủy đơn này? Đơn sẽ chuyển sang trạng thái "Đã hủy" và hoàn trả tồn kho.')) return;
+        const r = await api.post(`/orders/cancel-requests/${id}/approve`, {});
+        if (r.success) { showToast('Đã chấp nhận yêu cầu hủy'); loadCancelRequests(currentYcTab); loadOrders(''); }
+        else showToast(r.message, 'error');
+    }
+
+    function openRejectModal(id) {
+        currentRejectId = id;
+        document.getElementById('rejectReason').value = '';
+        document.getElementById('rejectModal').classList.add('show');
+    }
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.remove('show');
+        currentRejectId = null;
+    }
+    async function confirmReject() {
+        if (!currentRejectId) return;
+        const phan_hoi = document.getElementById('rejectReason').value.trim();
+        const r = await api.post(`/orders/cancel-requests/${currentRejectId}/reject`, { phan_hoi });
+        if (r.success) { showToast('Đã từ chối yêu cầu hủy'); closeRejectModal(); loadCancelRequests(currentYcTab); }
+        else showToast(r.message, 'error');
+    }
+
+    // ====== Seller tự hủy đơn ======
+    function openSellerCancelModal(id) {
+        currentSellerCancelId = id;
+        document.getElementById('sellerCancelReason').value = '';
+        document.getElementById('sellerCancelModal').classList.add('show');
+    }
+    function closeSellerCancelModal() {
+        document.getElementById('sellerCancelModal').classList.remove('show');
+        currentSellerCancelId = null;
+    }
+    async function confirmSellerCancel() {
+        if (!currentSellerCancelId) return;
+        const ly_do = document.getElementById('sellerCancelReason').value.trim();
+        if (ly_do.length < 5) { showToast('Vui lòng nhập lý do tối thiểu 5 ký tự', 'warning'); return; }
+        const r = await api.put(`/orders/${currentSellerCancelId}/seller-cancel`, { ly_do });
+        if (r.success) { showToast('Đã hủy đơn hàng'); closeSellerCancelModal(); loadOrders(''); loadCancelRequests(currentYcTab); }
+        else showToast(r.message, 'error');
+    }
+
     loadOrders('');
+    loadCancelRequests('cho_duyet');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('trang_thai');
+    if (statusParam) {
+        loadOrders(statusParam);
+    }
+
+    window.addEventListener('vipo:new_order', () => { loadOrders(''); });
+    window.addEventListener('vipo:cancel_request_created', () => { loadCancelRequests('cho_duyet'); });
+    window.addEventListener('vipo:order_cancelled', () => { loadOrders(''); });
+    window.addEventListener('vipo:cancel_request_rejected', () => { loadCancelRequests('cho_duyet'); });
     </script>
 </body>
 </html>

@@ -1,6 +1,13 @@
 const crypto = require('crypto');
 const pool = require('../config/database');
 require('dotenv').config();
+const { PayOS } = require('@payos/node');
+
+const payos = new PayOS({
+  clientId: process.env.PAYOS_CLIENT_ID,
+  apiKey: process.env.PAYOS_API_KEY,
+  checksumKey: process.env.PAYOS_CHECKSUM_KEY
+});
 
 // ==================== VNPAY ====================
 const createVnpayPayment = async (req, res) => {
@@ -15,6 +22,13 @@ const createVnpayPayment = async (req, res) => {
         const date = new Date();
         const createDate = date.toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
         const orderId = createDate + '_' + order_id;
+
+        // Record payment attempt in thanh_toan table
+        await pool.query(
+            `INSERT INTO thanh_toan (don_hang_id, nguoi_mua_id, so_tien, phuong_thuc, ma_giao_dich_he_thong, trang_thai)
+             VALUES (?, ?, ?, 'vnpay', ?, 'pending')`,
+            [order_id, req.user.id, amount, orderId]
+        );
 
         let vnp_Params = {
             'vnp_Version': '2.1.0',
@@ -67,12 +81,37 @@ const vnpayReturn = async (req, res) => {
             const orderId = txnRef.split('_')[1];
 
             if (responseCode === '00') {
+                // Update order payment status
                 await pool.query(
                     "UPDATE don_hang SET trang_thai_thanh_toan = 'paid', ma_giao_dich = ? WHERE id = ?",
                     [txnRef, orderId]
                 );
+
+                // Update thanh_toan status to completed
+                await pool.query(
+                    "UPDATE thanh_toan SET trang_thai = 'completed', ma_giao_dich = ? WHERE ma_giao_dich_he_thong = ?",
+                    [txnRef, txnRef]
+                );
+
+                // Create invoice (hoa_don)
+                const [orderData] = await pool.query('SELECT tong_tien, thue_vat, nguoi_mua_id FROM don_hang WHERE id = ?', [orderId]);
+                if (orderData.length > 0) {
+                    const maInvoice = 'HD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                    await pool.query(
+                        `INSERT INTO hoa_don (ma_hoa_don, don_hang_id, nguoi_mua_id, tong_tien, tien_giam_gia, thue, thanh_tien, trang_thai, ngay_thanh_toan)
+                         VALUES (?, ?, ?, ?, 0.00, ?, ?, 'da_thanh_toan', CURRENT_TIMESTAMP)
+                         ON DUPLICATE KEY UPDATE trang_thai = 'da_thanh_toan', ngay_thanh_toan = CURRENT_TIMESTAMP`,
+                        [maInvoice, orderId, orderData[0].nguoi_mua_id, orderData[0].tong_tien, orderData[0].thue_vat || 0.00, orderData[0].tong_tien]
+                    );
+                }
+
                 res.redirect(`/pages/order-detail.html?id=${orderId}&payment=success`);
             } else {
+                // Update payment status to failed
+                await pool.query(
+                    "UPDATE thanh_toan SET trang_thai = 'failed' WHERE ma_giao_dich_he_thong = ?",
+                    [txnRef]
+                );
                 res.redirect(`/pages/order-detail.html?id=${orderId}&payment=failed`);
             }
         } else {
@@ -84,92 +123,201 @@ const vnpayReturn = async (req, res) => {
     }
 };
 
-// ==================== MOMO ====================
-const createMomoPayment = async (req, res) => {
+// ==================== PAYOS ====================
+const createPayosPayment = async (req, res) => {
     try {
-        const { order_id, amount, orderInfo } = req.body;
+        const { orderCode, amount, orderInfo } = req.body;
 
-        const partnerCode = process.env.MOMO_PARTNER_CODE;
-        const accessKey = process.env.MOMO_ACCESS_KEY;
-        const secretKey = process.env.MOMO_SECRET_KEY;
-        const redirectUrl = process.env.MOMO_RETURN_URL;
-        const ipnUrl = process.env.MOMO_NOTIFY_URL;
-        const requestType = 'payWithMethod';
-        const orderId = 'MOMO_' + Date.now() + '_' + order_id;
-        const requestId = orderId;
-        const extraData = '';
-        const autoCapture = true;
-        const lang = 'vi';
+        if (!orderCode || !amount) {
+            return res.status(400).json({ success: false, message: 'Thiếu thông tin thanh toán' });
+        }
 
-        const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo || 'Thanh toan don hang'}&partnerCode=${partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
-
-        const signature = crypto.createHmac('sha256', secretKey).update(rawSignature).digest('hex');
-
-        const requestBody = {
-            partnerCode, partnerName: 'KLTN2026 Shop',
-            storeId: 'KLTN2026Store', requestId, amount, orderId,
-            orderInfo: orderInfo || 'Thanh toan don hang',
-            redirectUrl, ipnUrl, lang, requestType, autoCapture, extraData, signature
+        const body = {
+            orderCode: Number(orderCode),
+            amount: Number(amount),
+            description: orderInfo ? orderInfo.substring(0, 25) : `Thanh toan DH ${orderCode}`,
+            returnUrl: `${process.env.PAYOS_RETURN_URL}`,
+            cancelUrl: `${process.env.PAYOS_CANCEL_URL}`
         };
 
-        console.log('Sending request to MoMo:', JSON.stringify(requestBody));
-
-        const response = await fetch(process.env.MOMO_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        const data = await response.json();
-        console.log('MoMo API Response:', data);
-
-        if (data.resultCode === 0) {
-            res.json({ success: true, data: { paymentUrl: data.payUrl } });
-        } else {
-            console.error('MoMo Business Error:', data);
-            res.status(400).json({ success: false, message: data.message || 'Lỗi từ phía MoMo' });
-        }
+        const paymentLinkResponse = await payos.paymentRequests.create(body);
+        
+        res.json({ success: true, data: { paymentUrl: paymentLinkResponse.checkoutUrl } });
     } catch (error) {
-        console.error('MoMo System Error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi hệ thống khi tạo thanh toán MoMo: ' + error.message });
+        console.error('PayOS Create Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi hệ thống khi tạo thanh toán PayOS: ' + error.message });
     }
 };
 
-const momoReturn = async (req, res) => {
+const payosReturn = async (req, res) => {
     try {
-        const { resultCode, orderId } = req.query;
-        const realOrderId = orderId.split('_')[2];
+        const { code, id, cancel, status, orderCode } = req.query;
 
-        if (resultCode === '0') {
-            await pool.query(
-                "UPDATE don_hang SET trang_thai_thanh_toan = 'paid', ma_giao_dich = ? WHERE id = ?",
-                [orderId, realOrderId]
+        if (code === '00' && cancel === 'false' && status === 'PAID') {
+            const [orders] = await pool.query(
+                "SELECT id, tong_tien, thue_vat, nguoi_mua_id FROM don_hang WHERE ma_giao_dich = ? AND trang_thai_thanh_toan != 'paid'",
+                [orderCode]
             );
-            res.redirect(`/pages/order-detail.html?id=${realOrderId}&payment=success`);
+
+            if (orders.length > 0) {
+                for (const order of orders) {
+                    await pool.query(
+                        "UPDATE don_hang SET trang_thai_thanh_toan = 'paid' WHERE id = ?",
+                        [order.id]
+                    );
+
+                    const sysTxnRef = 'ONLINE_' + Date.now() + '_' + order.id;
+                    await pool.query(
+                        `INSERT INTO thanh_toan (don_hang_id, nguoi_mua_id, so_tien, phuong_thuc, ma_giao_dich, ma_giao_dich_he_thong, trang_thai)
+                         VALUES (?, ?, ?, 'payos', ?, ?, 'completed')
+                         ON DUPLICATE KEY UPDATE trang_thai = 'completed'`,
+                        [order.id, order.nguoi_mua_id, order.tong_tien, orderCode, sysTxnRef]
+                    );
+
+                    const maInvoice = 'HD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                    await pool.query(
+                        `INSERT INTO hoa_don (ma_hoa_don, don_hang_id, nguoi_mua_id, tong_tien, tien_giam_gia, thue, thanh_tien, trang_thai, ngay_thanh_toan)
+                         VALUES (?, ?, ?, ?, 0.00, ?, ?, 'da_thanh_toan', CURRENT_TIMESTAMP)
+                         ON DUPLICATE KEY UPDATE trang_thai = 'da_thanh_toan', ngay_thanh_toan = CURRENT_TIMESTAMP`,
+                        [maInvoice, order.id, order.nguoi_mua_id, order.tong_tien, order.thue_vat || 0, order.tong_tien]
+                    );
+                }
+            }
+            res.redirect(`${process.env.CLIENT_URL}/pages/payment-success.html`);
         } else {
-            res.redirect(`/pages/order-detail.html?id=${realOrderId}&payment=failed`);
+            res.redirect(`${process.env.CLIENT_URL}/pages/orders.html`);
         }
     } catch (error) {
-        console.error('Momo return error:', error);
-        res.redirect('/pages/orders.html?payment=error');
+        console.error('PayOS return error:', error);
+        res.redirect(`${process.env.CLIENT_URL}/pages/orders.html`);
     }
 };
 
-const momoNotify = async (req, res) => {
+const payosCancel = async (req, res) => {
     try {
-        const { resultCode, orderId } = req.body;
-        const realOrderId = orderId.split('_')[2];
-
-        if (resultCode === 0) {
-            await pool.query(
-                "UPDATE don_hang SET trang_thai_thanh_toan = 'paid', ma_giao_dich = ? WHERE id = ?",
-                [orderId, realOrderId]
-            );
-        }
-        res.status(204).send();
+        const { orderCode } = req.query;
+        // The webhook handles failure or we can just ignore DB updates since it's cancelled
+        // Redirect to orders page with failure message
+        res.redirect(`${process.env.CLIENT_URL}/pages/orders.html?payment=cancelled`);
     } catch (error) {
-        console.error('Momo notify error:', error);
-        res.status(204).send();
+        console.error('PayOS cancel error:', error);
+        res.redirect(`${process.env.CLIENT_URL}/pages/orders.html?payment=error`);
+    }
+};
+
+const payosWebhook = async (req, res) => {
+    try {
+        const webhookData = await payos.webhooks.verify(req.body);
+
+        if (webhookData.code === '00') {
+            console.log('Webhook received success for orderCode:', webhookData.orderCode);
+            
+            const [orders] = await pool.query(
+                "SELECT id, tong_tien, thue_vat, nguoi_mua_id FROM don_hang WHERE ma_giao_dich = ? AND trang_thai_thanh_toan != 'paid'",
+                [webhookData.orderCode]
+            );
+
+            if (orders.length > 0) {
+                for (const order of orders) {
+                    await pool.query(
+                        "UPDATE don_hang SET trang_thai_thanh_toan = 'paid' WHERE id = ?",
+                        [order.id]
+                    );
+
+                    const sysTxnRef = 'ONLINE_' + Date.now() + '_' + order.id;
+                    await pool.query(
+                        `INSERT INTO thanh_toan (don_hang_id, nguoi_mua_id, so_tien, phuong_thuc, ma_giao_dich, ma_giao_dich_he_thong, trang_thai)
+                         VALUES (?, ?, ?, 'payos', ?, ?, 'completed')
+                         ON DUPLICATE KEY UPDATE trang_thai = 'completed'`,
+                        [order.id, order.nguoi_mua_id, order.tong_tien, webhookData.orderCode, sysTxnRef]
+                    );
+
+                    const maInvoice = 'HD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+                    await pool.query(
+                        `INSERT INTO hoa_don (ma_hoa_don, don_hang_id, nguoi_mua_id, tong_tien, tien_giam_gia, thue, thanh_tien, trang_thai, ngay_thanh_toan)
+                         VALUES (?, ?, ?, ?, 0.00, ?, ?, 'da_thanh_toan', CURRENT_TIMESTAMP)
+                         ON DUPLICATE KEY UPDATE trang_thai = 'da_thanh_toan', ngay_thanh_toan = CURRENT_TIMESTAMP`,
+                        [maInvoice, order.id, order.nguoi_mua_id, order.tong_tien, order.thue_vat || 0, order.tong_tien]
+                    );
+                }
+            }
+        }
+        res.json({ success: true, message: 'Webhook received' });
+    } catch (error) {
+        console.error('PayOS webhook error:', error);
+        res.status(400).json({ success: false, message: 'Webhook error' });
+    }
+};
+
+// ==================== NEW INVOICE AND PAYMENT HISTORY APIS ====================
+
+// Lấy lịch sử thanh toán của khách hàng
+const getMyPayments = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT tt.*, dh.tong_tien as order_total
+             FROM thanh_toan tt
+             JOIN don_hang dh ON tt.don_hang_id = dh.id
+             WHERE tt.nguoi_mua_id = ?
+             ORDER BY tt.ngay_tao DESC`,
+            [req.user.id]
+        );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        console.error('Get my payments error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi lấy lịch sử thanh toán' });
+    }
+};
+
+// Lấy danh sách hóa đơn của khách hàng
+const getMyInvoices = async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            `SELECT hd.*, dh.trang_thai as trang_thai_don_hang, gh.ten_gian_hang
+             FROM hoa_don hd
+             JOIN don_hang dh ON hd.don_hang_id = dh.id
+             JOIN gian_hang gh ON dh.gian_hang_id = gh.id
+             WHERE hd.nguoi_mua_id = ?
+             ORDER BY hd.ngay_lap DESC`,
+            [req.user.id]
+        );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        console.error('Get my invoices error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi lấy danh sách hóa đơn' });
+    }
+};
+
+// Lấy chi tiết hóa đơn
+const getInvoiceDetail = async (req, res) => {
+    try {
+        const [invoices] = await pool.query(
+            `SELECT hd.*, dh.trang_thai as trang_thai_don_hang, gh.ten_gian_hang, gh.dia_chi as dia_chi_shop, nd.ho_ten as ten_nguoi_mua, nd.email as email_nguoi_mua
+             FROM hoa_don hd
+             JOIN don_hang dh ON hd.don_hang_id = dh.id
+             JOIN gian_hang gh ON dh.gian_hang_id = gh.id
+             JOIN nguoi_dung nd ON hd.nguoi_mua_id = nd.id
+             WHERE hd.id = ? AND (hd.nguoi_mua_id = ? OR gh.nguoi_ban_id = ? OR nd.vai_tro = 'admin')`,
+            [req.params.id, req.user.id, req.user.id]
+        );
+
+        if (invoices.length === 0) {
+            return res.status(404).json({ success: false, message: 'Hóa đơn không tồn tại hoặc bạn không có quyền xem' });
+        }
+
+        // Lấy danh sách mặt hàng của đơn hàng liên quan
+        const [items] = await pool.query(
+            `SELECT ct.*, sp.ten_san_pham 
+             FROM chi_tiet_don_hang ct
+             JOIN san_pham sp ON ct.san_pham_id = sp.id 
+             WHERE ct.don_hang_id = ?`,
+            [invoices[0].don_hang_id]
+        );
+
+        res.json({ success: true, data: { ...invoices[0], items } });
+    } catch (error) {
+        console.error('Get invoice detail error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server khi lấy chi tiết hóa đơn' });
     }
 };
 
@@ -180,4 +328,14 @@ function sortObject(obj) {
     return sorted;
 }
 
-module.exports = { createVnpayPayment, vnpayReturn, createMomoPayment, momoReturn, momoNotify };
+module.exports = { 
+    createVnpayPayment, 
+    vnpayReturn, 
+    createPayosPayment, 
+    payosReturn, 
+    payosCancel,
+    payosWebhook,
+    getMyPayments, 
+    getMyInvoices, 
+    getInvoiceDetail 
+};

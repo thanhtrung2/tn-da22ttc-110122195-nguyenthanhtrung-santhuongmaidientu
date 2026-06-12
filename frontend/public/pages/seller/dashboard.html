@@ -40,6 +40,7 @@
                 <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
                 <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
                 <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
@@ -96,7 +97,7 @@
     </div>
     <script src="/js/api.js"></script>
     <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+    if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
 
     async function load() {
         const [shopResp, userResp, dashResp] = await Promise.all([

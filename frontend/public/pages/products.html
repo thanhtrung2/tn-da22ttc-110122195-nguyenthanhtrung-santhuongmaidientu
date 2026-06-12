@@ -101,8 +101,7 @@
         // Parse URL params
         const params = new URLSearchParams(window.location.search);
         if (params.get('search')) document.getElementById('search-input').value = params.get('search');
-        const catId = params.get('danh_muc_id') || params.get('category');
-        if (catId) document.getElementById('filter-category').value = catId;
+        let currentCategoryId = params.get('danh_muc_id') || params.get('category');
 
         // Load categories  
         async function loadCategories() {
@@ -112,10 +111,10 @@
                 result.data.forEach(c => {
                     select.innerHTML += `<option value="${c.id}">${c.ten_danh_muc}</option>`;
                 });
-                const currentCatId = params.get('danh_muc_id') || params.get('category');
-                if (currentCatId) {
-                    select.value = currentCatId;
-                    const cat = result.data.find(c => c.id == currentCatId);
+                
+                if (currentCategoryId) {
+                    select.value = currentCategoryId;
+                    const cat = result.data.find(c => c.id == currentCategoryId);
                     if (cat) {
                         document.getElementById('page-title').textContent = cat.ten_danh_muc;
                         document.getElementById('breadcrumb-text').textContent = cat.ten_danh_muc;
@@ -131,7 +130,7 @@
 
             const query = {
                 search: document.getElementById('search-input').value,
-                danh_muc_id: document.getElementById('filter-category').value,
+                danh_muc_id: document.getElementById('filter-category').value || currentCategoryId,
                 sort: document.getElementById('filter-sort').value,
                 min_gia: document.getElementById('filter-min').value,
                 max_gia: document.getElementById('filter-max').value,

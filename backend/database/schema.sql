@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS san_pham (
     gia_khuyen_mai DECIMAL(15,2),
     so_luong_ton INT DEFAULT 0,
     hinh_anh VARCHAR(500),
+    thuoc_tinh JSON,
     trang_thai ENUM('active', 'inactive', 'banned') DEFAULT 'active',
     trang_thai_duyet ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     ly_do_tu_choi TEXT,
@@ -202,6 +203,7 @@ CREATE TABLE IF NOT EXISTS shop (
     dia_chi_kho VARCHAR(500) NOT NULL,
     phuong_thuc_van_chuyen TEXT, -- JSON array: ["giao_hang_nhanh", "giao_hang_tiet_kiem", "tu_den_lay"]
     ma_so_thue VARCHAR(20) NOT NULL,
+    dong_y_chinh_sach BOOLEAN DEFAULT FALSE,
     trang_thai ENUM('pending', 'active', 'suspended', 'rejected') DEFAULT 'pending',
     ly_do_tu_choi TEXT,
     ngay_duyet TIMESTAMP NULL,
@@ -239,3 +241,45 @@ CREATE INDEX IF NOT EXISTS idx_nguoi_dung_vai_tro ON nguoi_dung(vai_tro);
 CREATE INDEX IF NOT EXISTS idx_nguoi_dung_trang_thai_xac_thuc ON nguoi_dung(trang_thai_xac_thuc);
 CREATE INDEX IF NOT EXISTS idx_shop_trang_thai ON shop(trang_thai);
 CREATE INDEX IF NOT EXISTS idx_san_pham_trang_thai_duyet ON san_pham(trang_thai_duyet);
+
+-- =====================================================
+-- BỔ SUNG BẢNG THANH TOÁN VÀ HÓA ĐƠN (KLTN2026)
+-- =====================================================
+
+-- Bảng thanh toán
+CREATE TABLE IF NOT EXISTS thanh_toan (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    don_hang_id INT NOT NULL,
+    nguoi_mua_id INT NOT NULL,
+    so_tien DECIMAL(15,2) NOT NULL,
+    phuong_thuc ENUM('cod', 'bank_transfer', 'vnpay', 'momo') NOT NULL,
+    ma_giao_dich VARCHAR(100) NULL,
+    ma_giao_dich_he_thong VARCHAR(100) UNIQUE NOT NULL,
+    trang_thai ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
+    ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ngay_cap_nhat TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ghi_chu TEXT,
+    FOREIGN KEY (don_hang_id) REFERENCES don_hang(id) ON DELETE CASCADE,
+    FOREIGN KEY (nguoi_mua_id) REFERENCES nguoi_dung(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng hóa đơn
+CREATE TABLE IF NOT EXISTS hoa_don (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ma_hoa_don VARCHAR(50) UNIQUE NOT NULL,
+    don_hang_id INT NOT NULL,
+    nguoi_mua_id INT NOT NULL,
+    ngay_lap TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    tong_tien DECIMAL(15,2) NOT NULL,
+    tien_giam_gia DECIMAL(15,2) DEFAULT 0.00,
+    thue DECIMAL(15,2) DEFAULT 0.00,
+    thanh_tien DECIMAL(15,2) NOT NULL,
+    trang_thai ENUM('chua_thanh_toan', 'da_thanh_toan', 'da_huy') DEFAULT 'chua_thanh_toan',
+    ngay_thanh_toan TIMESTAMP NULL,
+    FOREIGN KEY (don_hang_id) REFERENCES don_hang(id) ON DELETE CASCADE,
+    FOREIGN KEY (nguoi_mua_id) REFERENCES nguoi_dung(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Thêm cột bằng ALTER TABLE để hỗ trợ cập nhật DB cũ
+ALTER TABLE san_pham ADD COLUMN IF NOT EXISTS thuoc_tinh JSON;
+ALTER TABLE shop ADD COLUMN IF NOT EXISTS dong_y_chinh_sach BOOLEAN DEFAULT FALSE;

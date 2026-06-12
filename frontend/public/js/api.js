@@ -102,6 +102,7 @@ function showToast(message, type = 'success') {
     toast.innerHTML = `<i class="${icons[type] || icons.success}"></i> ${message}`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
+    return toast;
 }
 
 // Format currency VND
@@ -151,7 +152,7 @@ function getStatusClass(status) {
 
 // Default product image
 function getProductImage(url) {
-    return url || 'https://via.placeholder.com/400x400/1e293b/64748b?text=No+Image';
+    return url || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' fill='%231e293b'%3E%3Crect width='400' height='400'/%3E%3Ctext x='200' y='190' text-anchor='middle' fill='%2364748b' font-size='18' font-family='Arial'%3E%3Ctspan x='200' dy='0'%3E%F0%9F%93%82%3C/tspan%3E%3Ctspan x='200' dy='28'%3ENo Image%3C/tspan%3E%3C/text%3E%3C/svg%3E";
 }
 
 // Loading skeleton
@@ -1094,5 +1095,224 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         loadPopupConversations();
     }
+
+    // 8. Realtime thông báo đơn hàng / yêu cầu hủy
+    const ensureNotificationSocket = () => {
+        if (typeof io === 'undefined') {
+            const s = document.createElement('script');
+            s.src = '/socket.io/socket.io.js';
+            s.onload = ensureNotificationSocket;
+            document.head.appendChild(s);
+            return;
+        }
+        try {
+            const notifSocket = io({ auth: { token: getToken() } });
+            notifSocket.on('new_notification', (d) => {
+                const isSeller = getUser()?.vai_tro === 'seller';
+                const msg = d?.noi_dung || (d?.loai === 'order' ? 'Bạn có thông báo đơn hàng mới' : 'Bạn có thông báo mới');
+                const url = d?.url_lien_ket || null;
+                const toastEl = showToast(msg, 'success');
+                if (url && toastEl) {
+                    toastEl.style.cursor = 'pointer';
+                    toastEl.onclick = () => { window.location.href = url; };
+                }
+                // Cập nhật badge nếu có
+                const badge = document.getElementById('notification-count');
+                if (badge) {
+                    const cur = parseInt(badge.textContent || '0') || 0;
+                    badge.textContent = cur + 1;
+                    badge.style.display = 'inline-flex';
+                }
+            });
+            notifSocket.on('new_order', () => {
+                // Có thể emit custom event để seller dashboard cập nhật
+                window.dispatchEvent(new CustomEvent('vipo:new_order'));
+            });
+            notifSocket.on('order_cancelled', () => {
+                window.dispatchEvent(new CustomEvent('vipo:order_cancelled'));
+            });
+            notifSocket.on('cancel_request_created', () => {
+                window.dispatchEvent(new CustomEvent('vipo:cancel_request_created'));
+            });
+            notifSocket.on('cancel_request_rejected', () => {
+                window.dispatchEvent(new CustomEvent('vipo:cancel_request_rejected'));
+            });
+        } catch (e) {
+            console.error('Notification socket error:', e);
+        }
+    };
+    ensureNotificationSocket();
+
+    // 9. Global Chatbot AI Widget - hiển thị trên mọi trang public
+    const ensureChatbotWidget = () => {
+        if (document.getElementById('vipo-global-chatbot')) return;
+        const path = window.location.pathname;
+        if (path.includes('/admin/') || path.includes('/seller/') || path.includes('chatbot.html')) return;
+
+        // Inject styles
+        const style = document.createElement('style');
+        style.id = 'vipo-global-chatbot-styles';
+        style.textContent = `
+            #vipo-global-chatbot { position: fixed; bottom: 160px; right: 20px; z-index: 998; }
+            #vipo-global-chatbot .gcb-btn {
+                width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;
+                font-size: 1.4rem; box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+                display: flex; align-items: center; justify-content: center;
+                transition: transform 0.2s; position: relative;
+            }
+            #vipo-global-chatbot .gcb-btn:hover { transform: scale(1.08); }
+            #vipo-global-chatbot .gcb-btn .gcb-badge {
+                position: absolute; top: -4px; right: -4px;
+                background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700;
+                width: 18px; height: 18px; border-radius: 50%; display: none;
+                align-items: center; justify-content: center; border: 2px solid white;
+            }
+            #vipo-global-chatbot .gcb-panel {
+                position: fixed; bottom: 222px; right: 20px; width: 360px; max-width: calc(100vw - 24px);
+                height: 480px; max-height: calc(100vh - 240px);
+                background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+                display: none; flex-direction: column; z-index: 998; overflow: hidden;
+                animation: gcbSlideUp 0.25s cubic-bezier(0.4,0,0.2,1);
+            }
+            #vipo-global-chatbot .gcb-panel.show { display: flex; }
+            @keyframes gcbSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+            #vipo-global-chatbot .gcb-header {
+                padding: 12px 16px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
+                display: flex; align-items: center; justify-content: space-between; color: white;
+            }
+            #vipo-global-chatbot .gcb-header-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; }
+            #vipo-global-chatbot .gcb-header-actions { display: flex; gap: 8px; }
+            #vipo-global-chatbot .gcb-header-actions button {
+                background: transparent; border: none; color: white; cursor: pointer; font-size: 0.9rem;
+                display: flex; align-items: center; justify-content: center; padding: 2px;
+            }
+            #vipo-global-chatbot .gcb-messages {
+                flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+                background: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.85));
+            }
+            #vipo-global-chatbot .gcb-msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; font-size: 0.85rem; line-height: 1.4; word-break: break-word; }
+            #vipo-global-chatbot .gcb-msg.bot { align-self: flex-start; background: rgba(99,102,241,0.15); color: #e2e8f0; border-bottom-left-radius: 4px; }
+            #vipo-global-chatbot .gcb-msg.user { align-self: flex-end; background: linear-gradient(135deg,#6366f1,#4f46e5); color: white; border-bottom-right-radius: 4px; }
+            #vipo-global-chatbot .gcb-msg.typing { font-style: italic; opacity: 0.7; }
+            #vipo-global-chatbot .gcb-msg.typing::after { content: '...'; animation: gcbDots 1.2s infinite; }
+            @keyframes gcbDots { 0%,20% { content: '.'; } 40% { content: '..'; } 60%,100% { content: '...'; } }
+            #vipo-global-chatbot .gcb-input {
+                padding: 10px 12px; display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.08);
+            }
+            #vipo-global-chatbot .gcb-input input {
+                flex: 1; padding: 9px 14px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.08);
+                background: rgba(15,23,42,0.6); color: white; font-size: 0.85rem; outline: none;
+            }
+            #vipo-global-chatbot .gcb-input input:focus { border-color: #6366f1; }
+            #vipo-global-chatbot .gcb-input button {
+                width: 38px; height: 38px; border-radius: 50%; border: none;
+                background: #6366f1; color: white; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+            }
+            #vipo-global-chatbot .gcb-input button:hover { background: #4f46e5; }
+            #vipo-global-chatbot .gcb-suggestions { padding: 0 12px 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+            #vipo-global-chatbot .gcb-suggestions button {
+                background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2);
+                padding: 4px 10px; border-radius: 14px; font-size: 0.75rem; cursor: pointer;
+            }
+            #vipo-global-chatbot .gcb-suggestions button:hover { background: rgba(99,102,241,0.25); }
+            @media (max-width: 480px) {
+                #vipo-global-chatbot .gcb-panel { right: 12px; left: 12px; width: auto; bottom: 222px; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        const widget = document.createElement('div');
+        widget.id = 'vipo-global-chatbot';
+        widget.innerHTML = `
+            <button class="gcb-btn" title="Trợ lý AI Vipo" id="gcbToggle">
+                <i class="fas fa-robot"></i>
+                <span class="gcb-badge" id="gcbBadge">1</span>
+            </button>
+            <div class="gcb-panel" id="gcbPanel">
+                <div class="gcb-header">
+                    <div class="gcb-header-title"><i class="fas fa-robot"></i> Trợ lý Vipo AI</div>
+                    <div class="gcb-header-actions">
+                        <button onclick="window.open('/pages/chatbot.html','_blank')" title="Mở toàn màn hình"><i class="fas fa-expand"></i></button>
+                        <button onclick="window.toggleGlobalChatbot()" title="Đóng"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="gcb-messages" id="gcbMessages">
+                    <div class="gcb-msg bot">Xin chào! 👋 Tôi là <strong>trợ lý AI Vipo</strong>. Hỏi tôi bất cứ điều gì về mua hàng, đơn hàng, thanh toán, đổi trả...</div>
+                </div>
+                <div class="gcb-suggestions" id="gcbSuggestions">
+                    <button onclick="window.gcbAsk('Làm sao để đặt hàng?')">Đặt hàng</button>
+                    <button onclick="window.gcbAsk('Các phương thức thanh toán')">Thanh toán</button>
+                    <button onclick="window.gcbAsk('Chính sách đổi trả')">Đổi trả</button>
+                    <button onclick="window.gcbAsk('Thời gian giao hàng')">Giao hàng</button>
+                </div>
+                <div class="gcb-input">
+                    <input type="text" id="gcbInput" placeholder="Nhập câu hỏi..." autocomplete="off">
+                    <button onclick="window.gcbSend()" aria-label="Gửi"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(widget);
+
+        const panel = document.getElementById('gcbPanel');
+        const messagesEl = document.getElementById('gcbMessages');
+        const inputEl = document.getElementById('gcbInput');
+        const badge = document.getElementById('gcbBadge');
+
+        let isOpen = false;
+        let hasInteracted = false;
+
+        window.toggleGlobalChatbot = () => {
+            isOpen = !isOpen;
+            panel.classList.toggle('show', isOpen);
+            if (isOpen) {
+                badge.style.display = 'none';
+                hasInteracted = true;
+                setTimeout(() => inputEl.focus(), 200);
+            }
+        };
+
+        document.getElementById('gcbToggle').addEventListener('click', window.toggleGlobalChatbot);
+
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.gcbSend();
+        });
+
+        window.gcbAsk = (q) => {
+            inputEl.value = q;
+            window.gcbSend();
+        };
+
+        window.gcbSend = async () => {
+            const message = inputEl.value.trim();
+            if (!message) return;
+
+            const userMsg = document.createElement('div');
+            userMsg.className = 'gcb-msg user';
+            userMsg.textContent = message;
+            messagesEl.appendChild(userMsg);
+            inputEl.value = '';
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            const typing = document.createElement('div');
+            typing.className = 'gcb-msg bot typing';
+            typing.textContent = 'Đang suy nghĩ';
+            messagesEl.appendChild(typing);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const r = await api.post('/chatbot', { message });
+                typing.classList.remove('typing');
+                typing.textContent = r.data?.response || r.message || 'Xin lỗi, tôi chưa hiểu câu hỏi.';
+            } catch (err) {
+                typing.classList.remove('typing');
+                typing.textContent = '❌ Lỗi kết nối, vui lòng thử lại sau.';
+            }
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        };
+    };
+    ensureChatbotWidget();
 });
 

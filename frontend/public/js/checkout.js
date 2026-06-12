@@ -5,6 +5,168 @@
 let cartData = [];
 let totalAmount = 0;
 let appliedVoucher = null;
+let provincesData = [];
+let buyNowProductId = null;
+let buyNowQty = 1;
+let buyNowVariantId = null;
+
+async function loadAddressAPI() {
+    try {
+        const response = await fetch('https://provinces.open-api.vn/api/?depth=3');
+        provincesData = await response.json();
+        const tinhSelect = document.getElementById('tinh');
+        if (!tinhSelect) return;
+        provincesData.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.name;
+            option.textContent = p.name;
+            option.dataset.code = p.code;
+            tinhSelect.appendChild(option);
+        });
+        
+        await loadAddresses();
+    } catch (error) {
+        console.error('Error loading provinces:', error);
+    }
+}
+
+let savedUserAddresses = [];
+
+async function loadAddresses() {
+    try {
+        const res = await api.get('/addresses');
+        if (res.success && res.data && res.data.length > 0) {
+            savedUserAddresses = res.data;
+            const container = document.getElementById('saved-address-container');
+            const select = document.getElementById('saved-addresses');
+            
+            if (container && select) {
+                container.style.display = 'block';
+                savedUserAddresses.forEach((addr, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${addr.ho_ten} - ${addr.so_dien_thoai} - ${addr.dia_chi}${addr.la_mac_dinh ? ' (Mặc định)' : ''}`;
+                    select.appendChild(option);
+                });
+
+                const defaultIndex = savedUserAddresses.findIndex(a => a.la_mac_dinh);
+                const selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
+                select.value = selectedIndex;
+                fillAddressData(savedUserAddresses[selectedIndex]);
+            }
+        }
+    } catch (e) {
+        console.error('Lỗi khi tải địa chỉ', e);
+    }
+}
+
+function fillSavedAddress() {
+    const select = document.getElementById('saved-addresses');
+    if (!select.value) {
+        document.getElementById('ten').value = '';
+        document.getElementById('sdt').value = '';
+        document.getElementById('diachi').value = '';
+        document.getElementById('tinh').value = '';
+        loadQuanHuyen();
+        document.getElementById('quan').value = '';
+        loadPhuongXa();
+        document.getElementById('phuong').value = '';
+        return;
+    }
+    
+    const addr = savedUserAddresses[parseInt(select.value)];
+    if (addr) fillAddressData(addr);
+}
+
+function fillAddressData(address) {
+    document.getElementById('ten').value = address.ho_ten || '';
+    document.getElementById('sdt').value = address.so_dien_thoai || '';
+    
+    const fullAddress = address.dia_chi;
+    const parts = fullAddress.split(', ').map(p => p.trim());
+    if (parts.length >= 4) {
+        const tinh = parts[parts.length - 1];
+        const quan = parts[parts.length - 2];
+        const phuong = parts[parts.length - 3];
+        const diachi = parts.slice(0, parts.length - 3).join(', ');
+        
+        const tinhSelect = document.getElementById('tinh');
+        if (Array.from(tinhSelect.options).some(o => o.value === tinh)) {
+            tinhSelect.value = tinh;
+            loadQuanHuyen();
+            
+            const quanSelect = document.getElementById('quan');
+            if (Array.from(quanSelect.options).some(o => o.value === quan)) {
+                quanSelect.value = quan;
+                loadPhuongXa();
+                
+                const phuongSelect = document.getElementById('phuong');
+                if (Array.from(phuongSelect.options).some(o => o.value === phuong)) {
+                    phuongSelect.value = phuong;
+                }
+            }
+        }
+        document.getElementById('diachi').value = diachi;
+    } else {
+        document.getElementById('diachi').value = fullAddress;
+    }
+}
+
+function loadQuanHuyen() {
+    const tinhSelect = document.getElementById('tinh');
+    const quanSelect = document.getElementById('quan');
+    const phuongSelect = document.getElementById('phuong');
+    if (!tinhSelect || !quanSelect || !phuongSelect) return;
+    
+    quanSelect.innerHTML = '<option value="">-- Chọn quận/huyện --</option>';
+    phuongSelect.innerHTML = '<option value="">-- Chọn phường/xã --</option>';
+    phuongSelect.disabled = true;
+    
+    if (!tinhSelect.value) {
+        quanSelect.disabled = true;
+        return;
+    }
+    
+    quanSelect.disabled = false;
+    const selectedTinh = provincesData.find(p => p.name === tinhSelect.value);
+    if (selectedTinh && selectedTinh.districts) {
+        selectedTinh.districts.forEach(d => {
+            const option = document.createElement('option');
+            option.value = d.name;
+            option.textContent = d.name;
+            option.dataset.code = d.code;
+            quanSelect.appendChild(option);
+        });
+    }
+}
+
+function loadPhuongXa() {
+    const tinhSelect = document.getElementById('tinh');
+    const quanSelect = document.getElementById('quan');
+    const phuongSelect = document.getElementById('phuong');
+    if (!tinhSelect || !quanSelect || !phuongSelect) return;
+    
+    phuongSelect.innerHTML = '<option value="">-- Chọn phường/xã --</option>';
+    
+    if (!quanSelect.value) {
+        phuongSelect.disabled = true;
+        return;
+    }
+    
+    phuongSelect.disabled = false;
+    const selectedTinh = provincesData.find(p => p.name === tinhSelect.value);
+    if (selectedTinh) {
+        const selectedQuan = selectedTinh.districts.find(d => d.name === quanSelect.value);
+        if (selectedQuan && selectedQuan.wards) {
+            selectedQuan.wards.forEach(w => {
+                const option = document.createElement('option');
+                option.value = w.name;
+                option.textContent = w.name;
+                phuongSelect.appendChild(option);
+            });
+        }
+    }
+}
 
 // Khởi tạo trang checkout
 async function initCheckout() {
@@ -18,11 +180,25 @@ async function initCheckout() {
     if (user) {
         document.getElementById('ten').value = user.ho_ten || '';
         document.getElementById('sdt').value = user.so_dien_thoai || '';
-        document.getElementById('diachi').value = user.dia_chi || '';
     }
 
-    // Load cart summary
-    await loadCheckoutSummary();
+    // Load address API
+    await loadAddressAPI();
+
+    // Load wallet vouchers
+    await loadWalletVouchers();
+
+    // Parse URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    buyNowProductId = urlParams.get('buy_now');
+    buyNowQty = parseInt(urlParams.get('qty')) || 1;
+    buyNowVariantId = urlParams.get('variant');
+
+    if (buyNowProductId) {
+        await loadBuyNowSummary();
+    } else {
+        await loadCheckoutSummary();
+    }
 
     // Setup payment method listeners
     setupPaymentMethodListeners();
@@ -42,6 +218,50 @@ async function loadCheckoutSummary() {
     } catch (error) {
         console.error('Load checkout summary error:', error);
         showToast('Lỗi khi tải giỏ hàng', 'error');
+    }
+}
+
+// Load tóm tắt đơn hàng (mua ngay)
+async function loadBuyNowSummary() {
+    try {
+        const result = await api.get('/products/' + buyNowProductId);
+        if (!result.success) {
+            window.location.href = '/pages/products.html';
+            return;
+        }
+
+        const product = result.data;
+        let variant = null;
+        if (buyNowVariantId && product.variants) {
+            variant = product.variants.find(v => v.id == buyNowVariantId);
+        }
+
+        let price = product.gia_khuyen_mai && product.gia_khuyen_mai < product.gia ? product.gia_khuyen_mai : product.gia;
+        if (variant && variant.gia_them) {
+            price = parseFloat(price) + parseFloat(variant.gia_them);
+        }
+
+        let variantName = '';
+        if (variant) {
+            variantName = `${variant.mau_sac || ''}${variant.mau_sac && variant.kich_thuoc && variant.kich_thuoc !== 'Mặc định' ? ' / ' : ''}${variant.kich_thuoc && variant.kich_thuoc !== 'Mặc định' ? variant.kich_thuoc : ''}`.trim();
+        }
+
+        cartData = [{
+            gian_hang_id: product.gian_hang_id,
+            items: [{
+                san_pham_id: product.id,
+                ten_san_pham: variantName ? `${product.ten_san_pham} (${variantName})` : product.ten_san_pham,
+                hinh_anh: product.hinh_anh,
+                gia: price,
+                gia_khuyen_mai: null, // Đã tính gộp vào giá
+                so_luong: buyNowQty,
+                bien_the_id: buyNowVariantId
+            }]
+        }];
+        displayCheckoutSummary();
+    } catch (error) {
+        console.error('Load buy now summary error:', error);
+        showToast('Lỗi khi tải sản phẩm', 'error');
     }
 }
 
@@ -73,16 +293,31 @@ function displayCheckoutSummary() {
     });
 
     // Calculate totals
-    const shippingFee = 0; // Free shipping
+    const shippingFee = 30000 * cartData.length;
     let discountAmount = 0;
 
     if (appliedVoucher) {
+        let shopTotal = 0;
+        let eligibleShopCount = 0;
+        cartData.forEach(shop => {
+            if (!appliedVoucher.gian_hang_id || shop.gian_hang_id == appliedVoucher.gian_hang_id) {
+                shop.items.forEach(item => {
+                    const price = item.gia_khuyen_mai && item.gia_khuyen_mai < item.gia ? item.gia_khuyen_mai : item.gia;
+                    shopTotal += price * item.so_luong;
+                });
+                eligibleShopCount++;
+            }
+        });
+
         if (appliedVoucher.loai === 'phan_tram') {
-            discountAmount = totalAmount * (appliedVoucher.gia_tri / 100);
-        } else {
+            discountAmount = shopTotal * (appliedVoucher.gia_tri / 100);
+        } else if (appliedVoucher.loai === 'co_dinh') {
             discountAmount = appliedVoucher.gia_tri;
+        } else if (appliedVoucher.loai === 'mien_phi_van_chuyen') {
+            discountAmount = Math.min(30000 * eligibleShopCount, appliedVoucher.gia_tri);
         }
-        if (discountAmount > totalAmount) discountAmount = totalAmount; // Cannot discount more than total
+        
+        if (discountAmount > (shopTotal + shippingFee) && appliedVoucher.loai !== 'mien_phi_van_chuyen') discountAmount = shopTotal + shippingFee;
     }
 
     const finalTotal = Math.max(0, totalAmount + shippingFee - discountAmount);
@@ -95,7 +330,7 @@ function displayCheckoutSummary() {
             </div>
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
                 <span style="color:var(--dark-400);">Phí giao hàng</span>
-                <span style="color:var(--success);">Miễn phí</span>
+                <span>${formatPrice(shippingFee)}</span>
             </div>
             ${discountAmount > 0 ? `
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
@@ -116,38 +351,128 @@ function displayCheckoutSummary() {
     container.innerHTML = html;
 }
 
-// Áp dụng khuyến mãi
-async function applyVoucher() {
-    const code = document.getElementById('voucher-code').value.trim();
-    const msg = document.getElementById('voucher-message');
-    msg.style.display = 'block';
+let walletVouchers = [];
 
-    if (!code) {
-        msg.textContent = 'Vui lòng nhập mã khuyến mãi';
-        msg.style.color = 'var(--danger)';
+async function loadWalletVouchers() {
+    try {
+        const res = await api.get('/promotions/wallet');
+        if (res.success) {
+            walletVouchers = res.data.filter(v => v.trang_thai_vi === 'chua_dung' && v.trang_thai === 'active');
+        }
+    } catch(e) {
+        console.error('Error loading wallet vouchers:', e);
+    }
+}
+
+let tempSelectedVoucherId = null;
+
+function openVoucherModal() {
+    tempSelectedVoucherId = appliedVoucher ? appliedVoucher.vi_id : null;
+    document.getElementById('voucher-modal').style.display = 'flex';
+    renderVoucherList();
+}
+
+function closeVoucherModal() {
+    document.getElementById('voucher-modal').style.display = 'none';
+}
+
+function selectVoucher(viId) {
+    const selectedVoucher = walletVouchers.find(v => v.vi_id == viId);
+    if (!selectedVoucher) return;
+
+    let totalEligible = 0;
+    cartData.forEach(shop => {
+        if (!selectedVoucher.gian_hang_id || shop.gian_hang_id == selectedVoucher.gian_hang_id) {
+            shop.items.forEach(item => {
+                const price = item.gia_khuyen_mai && item.gia_khuyen_mai < item.gia ? item.gia_khuyen_mai : item.gia;
+                totalEligible += price * item.so_luong;
+            });
+        }
+    });
+
+    if (totalEligible < selectedVoucher.don_toi_thieu) {
+        showToast(`Đơn hàng chưa đạt tối thiểu ${formatPrice(selectedVoucher.don_toi_thieu)}`, 'error');
         return;
     }
 
-    // Pass shop_ids to check if the voucher belongs to any of the shops in the cart
-    const shopIds = cartData.map(shop => shop.gian_hang_id).join(',');
-
-    try {
-        const result = await api.get(`/promotions/check?code=${code}&shop_ids=${shopIds}`);
-        if (result.success) {
-            appliedVoucher = result.data;
-            msg.textContent = `Áp dụng thành công mã giảm ${appliedVoucher.loai === 'phan_tram' ? appliedVoucher.gia_tri + '%' : formatPrice(appliedVoucher.gia_tri)}`;
-            msg.style.color = 'var(--success)';
-            displayCheckoutSummary();
-        } else {
-            msg.textContent = result.message || 'Mã khuyến mãi không hợp lệ';
-            msg.style.color = 'var(--danger)';
-            appliedVoucher = null;
-            displayCheckoutSummary();
-        }
-    } catch (e) {
-        msg.textContent = 'Lỗi khi kiểm tra mã';
-        msg.style.color = 'var(--danger)';
+    if (tempSelectedVoucherId === viId) {
+        tempSelectedVoucherId = null; // deselect
+    } else {
+        tempSelectedVoucherId = viId;
     }
+    renderVoucherList();
+}
+
+function confirmVoucherSelection() {
+    if (tempSelectedVoucherId) {
+        appliedVoucher = walletVouchers.find(v => v.vi_id == tempSelectedVoucherId);
+        document.getElementById('selected-voucher-display').style.display = 'block';
+        
+        let discountText = '';
+        if (appliedVoucher.loai === 'phan_tram') discountText = `Giảm ${appliedVoucher.gia_tri}%`;
+        else if (appliedVoucher.loai === 'mien_phi_van_chuyen') discountText = `Miễn phí vận chuyển (Tối đa ${formatPrice(appliedVoucher.gia_tri)})`;
+        else discountText = `Giảm ${formatPrice(appliedVoucher.gia_tri)}`;
+        
+        document.getElementById('voucher-message').textContent = `${!appliedVoucher.gian_hang_id ? 'Voucher Toàn Hệ Thống' : 'Voucher Shop ' + appliedVoucher.ten_gian_hang}: ${discountText}`;
+    } else {
+        appliedVoucher = null;
+        document.getElementById('selected-voucher-display').style.display = 'none';
+    }
+    
+    closeVoucherModal();
+    displayCheckoutSummary();
+}
+
+function removeVoucher() {
+    appliedVoucher = null;
+    tempSelectedVoucherId = null;
+    document.getElementById('selected-voucher-display').style.display = 'none';
+    closeVoucherModal();
+    displayCheckoutSummary();
+}
+
+function renderVoucherList() {
+    const list = document.getElementById('voucher-list');
+    if (walletVouchers.length === 0) {
+        list.innerHTML = '<div style="text-align:center;color:var(--dark-400);padding:2rem;">Bạn chưa có mã giảm giá nào hợp lệ.</div>';
+        return;
+    }
+
+    list.innerHTML = walletVouchers.map(v => {
+        let totalEligible = 0;
+        cartData.forEach(shop => {
+            if (!v.gian_hang_id || shop.gian_hang_id == v.gian_hang_id) {
+                shop.items.forEach(item => {
+                    const price = item.gia_khuyen_mai && item.gia_khuyen_mai < item.gia ? item.gia_khuyen_mai : item.gia;
+                    totalEligible += price * item.so_luong;
+                });
+            }
+        });
+
+        const isEligible = totalEligible >= v.don_toi_thieu;
+        const isSelected = tempSelectedVoucherId == v.vi_id;
+
+        return `
+            <div style="display:flex; border: 1px solid ${isSelected ? 'var(--primary)' : 'var(--dark-700)'}; border-radius: 8px; overflow: hidden; background: ${isSelected ? 'rgba(99,102,241,0.05)' : 'var(--dark-800)'}; opacity: ${isEligible ? '1' : '0.5'}; transition: all 0.2s; cursor: ${isEligible ? 'pointer' : 'not-allowed'};" onclick="${isEligible ? `selectVoucher(${v.vi_id})` : ''}">
+                <div style="width: 100px; background: ${!v.gian_hang_id ? 'var(--warning)' : 'var(--primary)'}; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 12px; border-right: 2px dashed ${isSelected ? 'var(--primary)' : 'var(--dark-700)'};">
+                    <img src="${v.logo ? getProductImage(v.logo) : '/img/logo.png'}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;margin-bottom:8px;background:white;">
+                    <div style="font-size:0.7rem; font-weight:700; color:white; text-align:center;">${!v.gian_hang_id ? 'TOÀN SÀN' : v.ten_gian_hang}</div>
+                </div>
+                <div style="flex:1; padding: 12px; display:flex; flex-direction:column; justify-content:center;">
+                    <strong style="font-size:0.95rem; margin-bottom:4px; color: ${isSelected ? 'var(--primary-light)' : 'var(--white)'};">
+                        ${v.loai === 'phan_tram' ? `Giảm ${v.gia_tri}%` : (v.loai === 'mien_phi_van_chuyen' ? `Freeship ${formatPrice(v.gia_tri)}` : `Giảm ${formatPrice(v.gia_tri)}`)}
+                    </strong>
+                    <div style="font-size:0.8rem; color:var(--dark-300);">Đơn tối thiểu ${formatPrice(v.don_toi_thieu)}</div>
+                    ${!isEligible ? `<div style="font-size:0.75rem; color:var(--danger); margin-top:4px;">Mua thêm ${formatPrice(v.don_toi_thieu - totalEligible)} để áp dụng</div>` : ''}
+                </div>
+                <div style="padding: 12px; display:flex; align-items:center;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--dark-500)'}; display:flex; align-items:center; justify-content:center;">
+                        ${isSelected ? '<div style="width:10px;height:10px;background:var(--primary);border-radius:50%;"></div>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // Setup payment method listeners
@@ -168,20 +493,31 @@ async function placeOrder() {
     const ten = document.getElementById('ten').value.trim();
     const sdt = document.getElementById('sdt').value.trim();
     const diachi = document.getElementById('diachi').value.trim();
+    const tinh = document.getElementById('tinh').value;
+    const quan = document.getElementById('quan').value;
+    const phuong = document.getElementById('phuong').value;
 
     // Reset borders
     document.getElementById('ten').style.borderColor = '';
     document.getElementById('sdt').style.borderColor = '';
     document.getElementById('diachi').style.borderColor = '';
+    document.getElementById('tinh').style.borderColor = '';
+    document.getElementById('quan').style.borderColor = '';
+    document.getElementById('phuong').style.borderColor = '';
 
     if (!ten) document.getElementById('ten').style.borderColor = 'var(--danger)';
     if (!sdt) document.getElementById('sdt').style.borderColor = 'var(--danger)';
     if (!diachi) document.getElementById('diachi').style.borderColor = 'var(--danger)';
+    if (!tinh) document.getElementById('tinh').style.borderColor = 'var(--danger)';
+    if (!quan) document.getElementById('quan').style.borderColor = 'var(--danger)';
+    if (!phuong) document.getElementById('phuong').style.borderColor = 'var(--danger)';
 
-    if (!ten || !sdt || !diachi) {
+    if (!ten || !sdt || !diachi || !tinh || !quan || !phuong) {
         showToast('Vui lòng nhập đầy đủ thông tin giao hàng', 'error');
         return;
     }
+
+    const fullAddress = `${ten} - ${diachi}, ${phuong}, ${quan}, ${tinh}`;
 
     // Validate phone number
     if (!/^[0-9]{10}$/.test(sdt.replace(/\D/g, ''))) {
@@ -198,29 +534,67 @@ async function placeOrder() {
         const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
         const ghichu = document.getElementById('ghichu').value.trim();
 
-        const result = await api.post('/orders', {
-            dia_chi_giao: diachi,
+        // Save default address if checked
+        const saveAddress = document.getElementById('save-address')?.checked;
+        if (saveAddress) {
+            try {
+                await api.post('/addresses', {
+                    ho_ten: ten,
+                    so_dien_thoai: sdt,
+                    dia_chi: fullAddress,
+                    la_mac_dinh: true
+                });
+            } catch (e) {
+                console.error('Lỗi khi lưu địa chỉ:', e);
+            }
+        }
+
+        let result;
+        const payload = {
+            dia_chi_giao: fullAddress,
             so_dien_thoai: sdt,
             phuong_thuc_thanh_toan: paymentMethod,
             ghi_chu: ghichu,
-            ma_khuyen_mai: appliedVoucher ? appliedVoucher.ten_khuyen_mai : null
-        });
+            vi_voucher_id: appliedVoucher ? appliedVoucher.vi_id : null
+        };
+
+        if (buyNowProductId) {
+            payload.san_pham_id = buyNowProductId;
+            payload.so_luong = buyNowQty;
+            payload.bien_the_id = buyNowVariantId || null;
+            result = await api.post('/orders/buy-now', payload);
+        } else {
+            result = await api.post('/orders', payload);
+        }
 
         if (result.success) {
-            showToast('Đặt hàng thành công!');
+            if (paymentMethod === 'payos') {
+                showToast('Đang chuyển hướng đến cổng thanh toán...', 'info');
+            } else {
+                showToast('Đặt hàng thành công!');
+            }
 
             // Handle payment redirect
-            if (paymentMethod === 'momo') {
-                const orderId = result.data.orderIds[0];
+            if (paymentMethod === 'payos') {
+                const orderIds = result.data.orderIds;
                 
-                // Get order details
-                const orderResult = await api.get(`/orders/${orderId}`);
-                if (orderResult.success) {
+                let sumAmount = 0;
+                let maGiaoDich = '';
+                
+                for(let i=0; i<orderIds.length; i++) {
+                    const orderResult = await api.get(`/orders/${orderIds[i]}`);
+                    if (orderResult.success) {
+                        sumAmount += parseFloat(orderResult.data.tong_tien);
+                        maGiaoDich = orderResult.data.ma_giao_dich;
+                    }
+                }
+                
+                if (sumAmount > 0 && maGiaoDich) {
                     // Create payment
-                    const paymentResult = await api.post(`/payment/${paymentMethod}/create`, {
-                        order_id: orderId,
-                        amount: orderResult.data.tong_tien,
-                        orderInfo: `Thanh toan don hang #${orderId}`
+                    const paymentResult = await api.post(`/payment/payos/create`, {
+                        orderCode: Number(maGiaoDich),
+                        amount: sumAmount,
+                        orderInfo: `Thanh toan don hang`
                     });
 
                     if (paymentResult.success && paymentResult.data.paymentUrl) {

@@ -34,6 +34,7 @@
                 <a href="/pages/seller/products.html" class="active"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
                 <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
                 <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
@@ -75,7 +76,7 @@
                 <h3 id="form-title">Thêm sản phẩm mới</h3>
                 <button onclick="hideForm()" style="background:none;border:none;color:var(--dark-400);font-size:1.3rem;cursor:pointer;"><i class="fas fa-times"></i></button>
             </div>
-            <form onsubmit="saveProduct(event)" enctype="multipart/form-data">
+            <form onsubmit="saveProduct(event)" enctype="multipart/form-data" style="max-height:75vh;overflow-y:auto;padding-right:8px;">
                 <input type="hidden" id="edit-id">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                     <div class="form-group" style="grid-column:1/-1;">
@@ -114,7 +115,42 @@
                         <textarea class="form-control" id="f-mota" rows="4" placeholder="Nhập mô tả chi tiết về sản phẩm..."></textarea>
                     </div>
                 </div>
-                <div style="display:flex;gap:1rem;margin-top:1rem;">
+
+                <!-- BIẾN THỂ SẢN PHẨM -->
+                <div style="margin-top:1rem;border:1px solid var(--dark-700);border-radius:10px;padding:1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                        <label style="margin:0;font-weight:600;color:var(--primary-light);"><i class="fas fa-palette"></i> Biến thể sản phẩm</label>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="addVariantRow()" style="padding:4px 10px;font-size:0.78rem;">
+                            <i class="fas fa-plus"></i> Thêm biến thể
+                        </button>
+                    </div>
+                    <p style="font-size:0.75rem;color:var(--dark-400);margin:0 0 0.75rem 0;">Thêm màu sắc / kích thước nếu sản phẩm có nhiều phiên bản. Nếu không có biến thể, bỏ trống phần này.</p>
+                    <div id="variants-list"></div>
+                    <div style="margin-top:0.5rem;">
+                        <button type="button" class="btn btn-sm" onclick="addPresetVariants('clothing')" style="padding:3px 8px;font-size:0.7rem;background:var(--dark-800);border:1px solid var(--dark-700);color:var(--dark-300);border-radius:6px;cursor:pointer;">+ Quần áo (S/M/L/XL)</button>
+                        <button type="button" class="btn btn-sm" onclick="addPresetVariants('shoes')" style="padding:3px 8px;font-size:0.7rem;background:var(--dark-800);border:1px solid var(--dark-700);color:var(--dark-300);border-radius:6px;cursor:pointer;">+ Giày (38-42)</button>
+                        <button type="button" class="btn btn-sm" onclick="addPresetVariants('electronics')" style="padding:3px 8px;font-size:0.7rem;background:var(--dark-800);border:1px solid var(--dark-700);color:var(--dark-300);border-radius:6px;cursor:pointer;">+ Điện tử (64/128/256GB)</button>
+                    </div>
+                </div>
+
+                <!-- THÔNG SỐ KỸ THUẬT -->
+                <div style="margin-top:1rem;border:1px solid var(--dark-700);border-radius:10px;padding:1rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+                        <label style="margin:0;font-weight:600;color:var(--primary-light);"><i class="fas fa-list-ul"></i> Thông số kỹ thuật</label>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="addSpecRow()" style="padding:4px 10px;font-size:0.78rem;">
+                            <i class="fas fa-plus"></i> Thêm thông số
+                        </button>
+                    </div>
+                    <p style="font-size:0.75rem;color:var(--dark-400);margin:0 0 0.75rem 0;">Thêm thông số chi tiết: Chất liệu, Xuất xứ, Bảo hành, v.v.</p>
+                    <div id="specs-list"></div>
+                    <div style="margin-top:0.5rem;">
+                        <button type="button" class="btn btn-sm" onclick="addPresetSpecs('clothing')" style="padding:3px 8px;font-size:0.7rem;background:var(--dark-800);border:1px solid var(--dark-700);color:var(--dark-300);border-radius:6px;cursor:pointer;">+ Quần áo</button>
+                        <button type="button" class="btn btn-sm" onclick="addPresetSpecs('electronics')" style="padding:3px 8px;font-size:0.7rem;background:var(--dark-800);border:1px solid var(--dark-700);color:var(--dark-300);border-radius:6px;cursor:pointer;">+ Điện tử</button>
+                        <button type="button" class="btn btn-sm" onclick="addPresetSpecs('cosmetics')" style="padding:3px 8px;font-size:0.7rem;background:var(--dark-800);border:1px solid var(--dark-700);color:var(--dark-300);border-radius:6px;cursor:pointer;">+ Mỹ phẩm</button>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:1rem;margin-top:1.25rem;">
                     <button type="submit" class="btn btn-primary" style="flex:1;">
                         <i class="fas fa-paper-plane"></i> Gửi duyệt
                     </button>
@@ -129,16 +165,41 @@
 
     <script src="/js/api.js"></script>
     <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+    if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
 
-    function previewImage(input) {
+    async function previewImage(input) {
         const prevContainer = document.getElementById('img-preview-container');
         const prev = document.getElementById('img-preview');
         document.getElementById('f-remove-img').value = 'false';
         if (input.files && input.files[0]) {
+            const file = input.files[0];
             const reader = new FileReader();
             reader.onload = e => { prev.src = e.target.result; prevContainer.style.display='block'; };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
+            
+            // Immediate AI Moderation
+            const fd = new FormData();
+            fd.append('hinh_anh', file);
+            
+            // Show some loading indication
+            prev.style.opacity = '0.5';
+            
+            try {
+                const r = await api.post('/products/moderate-image', fd);
+                prev.style.opacity = '1';
+                if (r.success) {
+                    if (!r.isSafe) {
+                        showToast('CẢNH BÁO AI: ' + r.reason, 'error');
+                        // Remove image immediately
+                        removeImage();
+                    } else {
+                        showToast('AI: Hình ảnh hợp lệ!', 'success');
+                    }
+                }
+            } catch (err) {
+                prev.style.opacity = '1';
+            }
+            
         } else {
             prevContainer.style.display = 'none';
         }
@@ -152,6 +213,106 @@
     }
 
     function closeOnOverlay(e) { if (e.target === document.getElementById('product-modal')) hideForm(); }
+
+    // ===== BIẾN THỂ (VARIANTS) =====
+    let variantCounter = 0;
+    function addVariantRow(color, colorCode, size, qty, priceAdd) {
+        variantCounter++;
+        const id = variantCounter;
+        const div = document.createElement('div');
+        div.id = 'variant-' + id;
+        div.style.cssText = 'display:grid;grid-template-columns:60px 1fr 1fr 90px 90px 32px;gap:6px;align-items:center;margin-bottom:6px;';
+        div.innerHTML = `
+            <input type="color" class="form-control v-color-code" data-id="${id}" value="${colorCode||'#3b82f6'}" style="height:34px;padding:2px;cursor:pointer;border-radius:6px;" title="Mã màu">
+            <input type="text" class="form-control v-color" placeholder="Màu sắc" value="${color||''}" style="font-size:0.82rem;">
+            <input type="text" class="form-control v-size" placeholder="Kích thước" value="${size||''}" style="font-size:0.82rem;">
+            <input type="number" class="form-control v-qty" placeholder="SL" value="${qty||0}" min="0" style="font-size:0.82rem;">
+            <input type="number" class="form-control v-price" placeholder="Giá +" value="${priceAdd||0}" min="0" style="font-size:0.82rem;">
+            <button type="button" onclick="removeVariantRow(${id})" style="background:var(--danger);color:#fff;border:none;border-radius:6px;height:34px;cursor:pointer;font-size:0.8rem;" title="Xóa"><i class="fas fa-times"></i></button>
+        `;
+        document.getElementById('variants-list').appendChild(div);
+    }
+    function removeVariantRow(id) {
+        const el = document.getElementById('variant-' + id);
+        if (el) el.remove();
+    }
+    function clearVariants() {
+        document.getElementById('variants-list').innerHTML = '';
+        variantCounter = 0;
+    }
+    function getVariantsData() {
+        const rows = document.querySelectorAll('#variants-list > div');
+        const variants = [];
+        rows.forEach(row => {
+            const color = row.querySelector('.v-color')?.value.trim();
+            const colorCode = row.querySelector('.v-color-code')?.value;
+            const size = row.querySelector('.v-size')?.value.trim();
+            const qty = parseInt(row.querySelector('.v-qty')?.value) || 0;
+            const priceAdd = parseFloat(row.querySelector('.v-price')?.value) || 0;
+            if (color || size) {
+                variants.push({ mau_sac: color || null, ma_mau: colorCode || null, kich_thuoc: size || null, so_luong_ton: qty, gia_them: priceAdd });
+            }
+        });
+        return variants;
+    }
+    function addPresetVariants(type) {
+        clearVariants();
+        if (type === 'clothing') {
+            ['S','M','L','XL'].forEach(s => addVariantRow('', '#3b82f6', s, 0, 0));
+        } else if (type === 'shoes') {
+            ['38','39','40','41','42'].forEach(s => addVariantRow('', '#10b981', s, 0, 0));
+        } else if (type === 'electronics') {
+            addVariantRow('64GB', '#6366f1', '', 0, 0);
+            addVariantRow('128GB', '#8b5cf6', '', 0, 1500000);
+            addVariantRow('256GB', '#a855f7', '', 0, 3500000);
+        }
+    }
+
+    // ===== THÔNG SỐ KỸ THUẬT (SPECS) =====
+    let specCounter = 0;
+    function addSpecRow(key, value) {
+        specCounter++;
+        const id = specCounter;
+        const div = document.createElement('div');
+        div.id = 'spec-' + id;
+        div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 32px;gap:6px;align-items:center;margin-bottom:6px;';
+        div.innerHTML = `
+            <input type="text" class="form-control s-key" placeholder="Tên thông số (VD: Chất liệu)" value="${key||''}" style="font-size:0.82rem;">
+            <input type="text" class="form-control s-value" placeholder="Giá trị (VD: Cotton 100%)" value="${value||''}" style="font-size:0.82rem;">
+            <button type="button" onclick="removeSpecRow(${id})" style="background:var(--danger);color:#fff;border:none;border-radius:6px;height:34px;cursor:pointer;font-size:0.8rem;" title="Xóa"><i class="fas fa-times"></i></button>
+        `;
+        document.getElementById('specs-list').appendChild(div);
+    }
+    function removeSpecRow(id) {
+        const el = document.getElementById('spec-' + id);
+        if (el) el.remove();
+    }
+    function clearSpecs() {
+        document.getElementById('specs-list').innerHTML = '';
+        specCounter = 0;
+    }
+    function getSpecsData() {
+        const rows = document.querySelectorAll('#specs-list > div');
+        const specs = {};
+        rows.forEach(row => {
+            const k = row.querySelector('.s-key')?.value.trim();
+            const v = row.querySelector('.s-value')?.value.trim();
+            if (k && v) specs[k] = v;
+        });
+        return Object.keys(specs).length > 0 ? specs : null;
+    }
+    function addPresetSpecs(type) {
+        clearSpecs();
+        if (type === 'clothing') {
+            addSpecRow('Chất liệu', ''); addSpecRow('Xuất xứ', ''); addSpecRow('Bảo hành', '30 ngày đổi trả');
+        } else if (type === 'electronics') {
+            addSpecRow('Màn hình', ''); addSpecRow('RAM', ''); addSpecRow('Bộ nhớ trong', '');
+            addSpecRow('Pin', ''); addSpecRow('Hệ điều hành', ''); addSpecRow('Bảo hành', '12 tháng');
+        } else if (type === 'cosmetics') {
+            addSpecRow('Thương hiệu', ''); addSpecRow('Xuất xứ', ''); addSpecRow('Dung tích', '');
+            addSpecRow('Loại da', ''); addSpecRow('Hạn sử dụng', '');
+        }
+    }
 
     async function checkVerification() {
         const r = await api.get('/shops/my-shop');
@@ -229,6 +390,8 @@
         document.getElementById('f-img').value = '';
         document.getElementById('img-preview-container').style.display = 'none';
         document.getElementById('f-remove-img').value = 'false';
+        clearVariants();
+        clearSpecs();
         document.getElementById('product-modal').style.display = 'flex';
     }
 
@@ -247,11 +410,21 @@
         document.getElementById('f-mota').value = p.mo_ta||'';
         document.getElementById('f-img').value = '';
         document.getElementById('f-remove-img').value = 'false';
-        if (p.hinh_anh) { 
-            document.getElementById('img-preview').src = getProductImage(p.hinh_anh); 
-            document.getElementById('img-preview-container').style.display = 'block'; 
+        if (p.hinh_anh) {
+            document.getElementById('img-preview').src = getProductImage(p.hinh_anh);
+            document.getElementById('img-preview-container').style.display = 'block';
         } else {
             document.getElementById('img-preview-container').style.display = 'none';
+        }
+        // Load variants
+        clearVariants();
+        if (p.variants && p.variants.length > 0) {
+            p.variants.forEach(v => addVariantRow(v.mau_sac, v.ma_mau, v.kich_thuoc, v.so_luong_ton, v.gia_them));
+        }
+        // Load specs (thuoc_tinh)
+        clearSpecs();
+        if (p.thuoc_tinh && typeof p.thuoc_tinh === 'object') {
+            Object.entries(p.thuoc_tinh).forEach(([k, v]) => addSpecRow(k, String(v)));
         }
         document.getElementById('form-title').textContent = 'Sửa sản phẩm';
         document.getElementById('product-modal').style.display = 'flex';
@@ -270,6 +443,9 @@
         const file = document.getElementById('f-img').files[0];
         if(file) fd.append('hinh_anh', file);
         fd.append('remove_hinh_anh', document.getElementById('f-remove-img').value);
+        // Variants & Specs as JSON strings
+        fd.append('variants', JSON.stringify(getVariantsData()));
+        fd.append('thuoc_tinh', JSON.stringify(getSpecsData()));
 
         const r = id ? await api.put(`/products/${id}`, fd) : await api.post('/products', fd);
         if(r.success) {

@@ -21,7 +21,9 @@
                 <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/admin/orders.html" class="active"><i class="fas fa-receipt"></i> Đơn hàng</a>
                 <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/pages/admin/moderation.html"><i class="fas fa-shield-alt"></i> Kiểm duyệt AI</a>
                 <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
             </nav>
         </aside>
@@ -36,6 +38,26 @@
                 <button class="btn btn-sm btn-outline" onclick="load('da_huy')">Đã hủy</button>
             </div>
             <div id="orders-table"><div class="spinner" style="margin:3rem auto;"></div></div>
+            <!-- Order detail modal -->
+            <div id="order-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+                <div class="modal-content glass" style="max-width:900px; width:95%; padding:1rem; position:relative;">
+                    <button onclick="closeOrderModal()" class="modal-close" style="position:absolute;right:12px;top:12px;background:none;border:none;font-size:1.2rem;color:var(--dark-200);">&times;</button>
+                    <h3 id="order-modal-title">Chi tiết đơn hàng</h3>
+                    <div id="order-modal-body" style="margin-top:0.75rem; display:grid; grid-template-columns:1fr 320px; gap:1rem;">
+                        <div>
+                            <div id="order-items-container"> <!-- Items will be injected here --> </div>
+                        </div>
+                        <aside>
+                            <div style="margin-bottom:0.75rem;"><strong>Thông tin đơn hàng</strong>
+                                <div id="order-info" style="color:var(--dark-400); font-size:0.95rem; margin-top:0.5rem;"></div>
+                            </div>
+                            <div><strong>Địa chỉ giao hàng</strong>
+                                <div id="order-address" style="color:var(--dark-400); font-size:0.95rem; margin-top:0.5rem;"></div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
     <script src="/js/api.js"></script>
@@ -46,16 +68,65 @@
         const r = await api.get(`/admin/orders${q}`);
         if(!r.success) return;
         document.getElementById('orders-table').innerHTML = r.data.length>0 ? `<div class="table-container"><table class="data-table"><thead><tr>
-            <th>ID</th><th>Khách hàng</th><th>Gian hàng</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Ngày</th>
+            <th>ID</th><th>Khách hàng</th><th>Gian hàng</th><th>Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Ngày</th><th>Hành động</th>
         </tr></thead><tbody>${r.data.map(o => `<tr>
             <td><strong>#${o.id}</strong></td><td>${o.ten_nguoi_mua}</td><td>${o.ten_gian_hang}</td>
             <td style="color:var(--danger);font-weight:600;">${formatPrice(o.tong_tien)}</td>
             <td><span style="color:${o.trang_thai_thanh_toan==='paid'?'var(--success)':'var(--warning)'}">${o.trang_thai_thanh_toan==='paid'?'Đã TT':'Chưa TT'}</span></td>
             <td><span class="status ${getStatusClass(o.trang_thai)}">${getStatusLabel(o.trang_thai)}</span></td>
             <td style="font-size:0.8rem;">${formatDate(o.ngay_tao)}</td>
+            <td><button class="btn btn-sm" onclick="viewOrder(${o.id})">Xem</button></td>
         </tr>`).join('')}</tbody></table></div>` : '<p style="text-align:center;color:var(--dark-400);padding:3rem;">Không có đơn hàng</p>';
     }
     load('');
+    
+    // Hiển thị modal chi tiết đơn hàng
+    async function viewOrder(id) {
+        const r = await api.get(`/admin/orders/${id}`);
+        if (!r.success) { showToast(r.message || 'Không tải được đơn hàng', 'error'); return; }
+        const { order, items } = r.data;
+        document.getElementById('order-modal-title').textContent = `Đơn #${order.id} — ${getStatusLabel(order.trang_thai)}`;
+
+        // Items
+        const itemsHtml = items.map(it => `
+            <div class="glass-card" style="padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:center;">
+                <img src="${getProductImage(it.hinh_anh)}" style="width:64px;height:64px;border-radius:8px;object-fit:cover;" />
+                <div style="flex:1;">
+                    <div style="font-weight:600">${it.ten_san_pham}</div>
+                    <div style="color:var(--dark-400);font-size:0.9rem;">Số lượng: ${it.so_luong} × ${formatPrice(it.gia)}</div>
+                </div>
+                <div style="font-weight:700;color:var(--danger)">${formatPrice(it.so_luong * it.gia)}</div>
+            </div>
+        `).join('');
+        document.getElementById('order-items-container').innerHTML = itemsHtml || '<p style="color:var(--dark-400)">Không có sản phẩm</p>';
+
+        // Info
+        document.getElementById('order-info').innerHTML = `
+            <div>Khách hàng: <strong>${order.ten_nguoi_mua}</strong></div>
+            <div>Email: ${order.email_nguoi_mua || '—'}</div>
+            <div>SĐT: ${order.sdt_nguoi_mua || order.so_dien_thoai}</div>
+            <div style="margin-top:6px;">Phương thức: <strong>${order.phuong_thuc_thanh_toan}</strong></div>
+            <div style="margin-top:6px;border-top:1px solid var(--dark-700);padding-top:6px;font-size:0.85rem;">
+                <div>Tiền hàng: ${formatPrice(order.tien_hang !== null && order.tien_hang !== undefined ? order.tien_hang : (order.tong_tien - (order.phi_van_chuyen || 0) - (order.thue_vat || 0)))}</div>
+                <div>Phí ship: +${formatPrice(order.phi_van_chuyen || 0)}</div>
+                <div>Thuế VAT: +${formatPrice(order.thue_vat || 0)}</div>
+                <div style="color:var(--primary-light);">Phí Admin (5%): ${formatPrice(order.phi_admin || 0)}</div>
+            </div>
+            <div style="margin-top:4px;">Tổng: <strong style="color:var(--danger)">${formatPrice(order.tong_tien)}</strong></div>
+            <div style="font-size:0.85rem;color:var(--dark-400);margin-top:6px;">Ghi chú: ${order.ghi_chu || '—'}</div>
+        `;
+
+        document.getElementById('order-address').innerHTML = `
+            <div>${order.dia_chi_giao}</div>
+            <div style="margin-top:6px;color:var(--dark-400);font-size:0.9rem;">Mã giao dịch: ${order.ma_giao_dich || '—'}</div>
+        `;
+
+        document.getElementById('order-modal').style.display = 'flex';
+    }
+
+    function closeOrderModal() {
+        document.getElementById('order-modal').style.display = 'none';
+    }
     </script>
 </body>
 </html>

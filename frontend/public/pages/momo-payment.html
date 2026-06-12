@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán MoMo - KLTN2026</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --momo-pink: #a50064;
+            --momo-light: #fbe5ef;
+            --dark-900: #121212;
+            --dark-800: #1e1e1e;
+            --dark-700: #2c2c2c;
+            --dark-300: #9e9e9e;
+            --white: #ffffff;
+            --font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background-color: var(--dark-900);
+            color: var(--white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .momo-container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--dark-800);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--dark-700);
+        }
+
+        .momo-header {
+            background-color: var(--momo-pink);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .momo-header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: white;
+            padding: 4px;
+        }
+
+        .momo-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .momo-body {
+            padding: 24px;
+            text-align: center;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            background: white;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .qr-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .amount-display {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--momo-pink);
+            margin-bottom: 8px;
+        }
+
+        .order-info {
+            color: var(--dark-300);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            background: var(--dark-700);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .order-info div {
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .order-info div:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-confirm {
+            background-color: var(--momo-pink);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-confirm:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--dark-300);
+            border: none;
+            padding: 14px 24px;
+            margin-top: 12px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-cancel:hover {
+            color: white;
+        }
+
+        #loading {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="momo-container">
+        <div class="momo-header">
+            <i class="fas fa-wallet" style="font-size: 2rem;"></i>
+            <h2>Cổng thanh toán MoMo</h2>
+        </div>
+        <div class="momo-body">
+            <div class="qr-placeholder">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="QR Code">
+            </div>
+            
+            <div class="amount-display" id="amount-text">0đ</div>
+            
+            <div class="order-info">
+                <div><span>Mã đơn hàng:</span> <strong id="order-id-text" style="color: white;">...</strong></div>
+                <div><span>Thông tin:</span> <strong id="order-info-text" style="color: white;">...</strong></div>
+            </div>
+
+            <button class="btn-confirm" onclick="confirmPayment()">
+                <i class="fas fa-check-circle"></i> Xác nhận Thanh toán
+            </button>
+            <div id="loading" style="color: var(--momo-pink); font-size: 0.9rem;"><i class="fas fa-spinner fa-spin"></i> Đang xử lý...</div>
+
+            <button class="btn-cancel" onclick="cancelPayment()">Hủy thanh toán</button>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('orderId');
+        const systemOrderId = urlParams.get('systemOrderId');
+        const amount = urlParams.get('amount');
+        const orderInfo = urlParams.get('orderInfo');
+
+        document.getElementById('amount-text').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
+        document.getElementById('order-id-text').textContent = orderId || 'N/A';
+        document.getElementById('order-info-text').textContent = orderInfo || 'Thanh toán đơn hàng';
+
+        async function confirmPayment() {
+            if (!orderId || !systemOrderId) {
+                alert('Thiếu thông tin đơn hàng');
+                return;
+            }
+
+            document.querySelector('.btn-confirm').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const res = await api.post('/payment/momo-simulate', {
+                    order_id: orderId,
+                    system_order_id: systemOrderId
+                });
+
+                if (res.success) {
+                    alert('Thanh toán thành công! Sẽ chuyển hướng về trang đơn mua.');
+                    window.location.href = '/pages/orders.html';
+                } else {
+                    alert('Thanh toán thất bại: ' + res.message);
+                    document.querySelector('.btn-confirm').style.display = 'block';
+                    document.getElementById('loading').style.display = 'none';
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Có lỗi xảy ra, vui lòng thử lại.');
+                document.querySelector('.btn-confirm').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function cancelPayment() {
+            if(confirm('Bạn có chắc chắn muốn hủy thanh toán không?')) {
+                window.location.href = '/pages/orders.html';
+            }
+        }
+    </script>
+</body>
+</html>

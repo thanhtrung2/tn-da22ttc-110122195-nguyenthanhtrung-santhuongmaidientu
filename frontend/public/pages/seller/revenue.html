@@ -20,6 +20,7 @@
                 <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
                 <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
                 <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
                 <a href="/pages/seller/revenue.html" class="active"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
                 <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
@@ -29,29 +30,58 @@
         </aside>
         <main class="dashboard-content">
             <h1 style="margin-bottom:1.5rem;">📈 Báo cáo doanh thu</h1>
+            <div id="revenue-controls" class="glass-card" style="padding:1rem;margin-bottom:1.25rem;display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="rev-quick">
+                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="today">Hôm nay</button>
+                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="week">Tuần này</button>
+                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="month">Tháng này</button>
+                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="year">Năm nay</button>
+                </div>
+                <label style="font-weight:600;color:var(--text-primary);">Từ: <input type="date" id="rev-from" style="margin-left:4px;"></label>
+                <label style="font-weight:600;color:var(--text-primary);">Đến: <input type="date" id="rev-to" style="margin-left:4px;"></label>
+                <label style="font-weight:600;color:var(--text-primary);">Nhóm theo:
+                    <select id="rev-group" style="margin-left:4px;">
+                        <option value="day">Ngày</option>
+                        <option value="week">Tuần</option>
+                        <option value="month" selected>Tháng</option>
+                        <option value="year">Năm</option>
+                    </select>
+                </label>
+                <button class="btn btn-sm btn-primary" onclick="fetchRevenueRange()"><i class="fas fa-filter"></i> Xem báo cáo</button>
+            </div>
             <div id="revenue-content"><div class="spinner" style="margin:3rem auto;"></div></div>
         </main>
     </div>
     <script src="/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='seller') location.href='/';
+    if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
     async function load() {
         const r = await api.get('/admin/seller-dashboard');
         if(!r.success||!r.data) return;
         const d = r.data;
+        const totalOrders = (d.orders||[]).reduce((a,b)=>a+b.total,0);
+        const totalRevenue = d.revenue || 0;
         const el = document.getElementById('revenue-content');
+        const estProfit = Math.round(totalRevenue * 0.77);
+
         el.innerHTML = `
-        <div class="stats-grid">
-            <div class="stat-card glass-card">
-                <div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--success);"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="stat-info"><h3>${formatPrice(d.revenue)}</h3><p>Tổng doanh thu</p></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">
+            <div class="stat-card glass-card" style="text-align:center;">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">Tổng doanh thu</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--primary-light);">${formatPrice(totalRevenue)}</div>
             </div>
-            <div class="stat-card glass-card">
-                <div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light);"><i class="fas fa-receipt"></i></div>
-                <div class="stat-info"><h3>${(d.orders||[]).reduce((a,b)=>a+b.total,0)}</h3><p>Tổng đơn hàng</p></div>
+            <div class="stat-card glass-card" style="text-align:center;">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">Tổng đơn hàng</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">${totalOrders}</div>
+            </div>
+            <div class="stat-card glass-card" style="text-align:center;border:1px solid rgba(16,185,129,0.3);">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">Lợi nhuận ước tính</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--success);">${formatPrice(estProfit)}</div>
+                <div style="font-size:0.7rem;color:var(--dark-400);margin-top:2px;">Sau khi trừ phí sàn + VAT</div>
             </div>
         </div>
-        <div class="glass-card" style="padding:2rem;margin-top:1.5rem;">
+        <div class="glass-card" style="padding:2rem;margin-top:0;">
             <h3 style="margin-bottom:1.5rem;">Doanh thu theo tháng</h3>
             ${(d.monthlyRevenue||[]).length>0 ? d.monthlyRevenue.map(m => {
                 const max = Math.max(...d.monthlyRevenue.map(x=>x.doanh_thu));
@@ -63,10 +93,197 @@
                     </div>
                     <span style="width:140px;text-align:right;font-weight:700;color:var(--success);">${formatPrice(m.doanh_thu)}</span>
                 </div>`;
-            }).join('') : '<p style="text-align:center;color:var(--dark-500);">Chưa có dữ liệu doanh thu</p>'}
+            }).join('') : '<p style="text-align:center;color:var(--text-muted);font-weight:500;padding:1rem;">Chưa có dữ liệu doanh thu</p>'}
         </div>`;
     }
     load();
+
+    // Quick-range buttons (Hôm nay / Tuần này / Tháng này / Năm nay)
+    function pad(n){ return n<10 ? '0'+n : ''+n; }
+    function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+    function applyQuickRange(range) {
+        const today = new Date();
+        let from, to = new Date(today);
+        const groupSel = document.getElementById('rev-group');
+        if (range === 'today') {
+            from = new Date(today);
+            groupSel.value = 'day';
+        } else if (range === 'week') {
+            from = new Date(today);
+            const dow = (from.getDay()+6)%7; // Monday = 0
+            from.setDate(from.getDate() - dow);
+            groupSel.value = 'day';
+        } else if (range === 'month') {
+            from = new Date(today.getFullYear(), today.getMonth(), 1);
+            groupSel.value = 'day';
+        } else if (range === 'year') {
+            from = new Date(today.getFullYear(), 0, 1);
+            groupSel.value = 'month';
+        }
+        document.getElementById('rev-from').value = toISO(from);
+        document.getElementById('rev-to').value = toISO(to);
+        document.querySelectorAll('.rev-quick-btn').forEach(b => b.classList.toggle('btn-primary', b.dataset.range===range));
+        document.querySelectorAll('.rev-quick-btn').forEach(b => b.classList.toggle('btn-outline', b.dataset.range!==range));
+        fetchRevenueRange();
+    }
+    document.querySelectorAll('.rev-quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyQuickRange(btn.dataset.range));
+    });
+
+    function groupLabel(g) {
+        return { day:'ngày', week:'tuần', month:'tháng', year:'năm' }[g] || g;
+    }
+
+    let revenueChart = null;
+    async function fetchRevenueRange() {
+        const from = document.getElementById('rev-from').value;
+        const to = document.getElementById('rev-to').value;
+        const group = document.getElementById('rev-group').value;
+        const q = [];
+        if (from) q.push(`from=${from}`);
+        if (to) q.push(`to=${to}`);
+        if (group) q.push(`groupBy=${group}`);
+        const qs = q.length?`?${q.join('&')}`:'';
+        const r = await api.get(`/admin/seller-revenue${qs}`);
+        if(!r.success) { showToast(r.message||'Không tải được dữ liệu','error'); return; }
+        const rows = r.data;
+        const container = document.getElementById('revenue-content');
+        const labels = rows.map(x => x.thoi_gian || x.thang);
+        const dataPoints = rows.map(x => parseFloat(x.doanh_thu||0));
+        if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+
+        let grandRevenue = 0, grandPhiAdmin = 0, grandVat = 0;
+        rows.forEach(rw => {
+            grandRevenue += parseFloat(rw.doanh_thu)||0;
+            grandPhiAdmin += parseFloat(rw.phi_admin)||0;
+            grandVat += parseFloat(rw.thue_vat)||0;
+        });
+        const grandProfit = grandRevenue - grandPhiAdmin - grandVat;
+
+        let html = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">
+            <div class="glass-card" style="padding:1.25rem;text-align:center;">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">Tổng doanh thu</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--primary-light);">${formatPrice(grandRevenue)}</div>
+            </div>
+            <div class="glass-card" style="padding:1.25rem;text-align:center;border:1px solid rgba(239,68,68,0.3);">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">Phí sàn (Admin thu)</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--danger);">-${formatPrice(grandPhiAdmin)}</div>
+            </div>
+            <div class="glass-card" style="padding:1.25rem;text-align:center;border:1px solid rgba(245,158,11,0.3);">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">VAT</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--warning);">-${formatPrice(grandVat)}</div>
+            </div>
+            <div class="glass-card" style="padding:1.25rem;text-align:center;border:1px solid rgba(16,185,129,0.3);">
+                <div style="font-size:0.8rem;color:var(--dark-400);margin-bottom:4px;">Lợi nhuận bạn nhận</div>
+                <div style="font-size:1.4rem;font-weight:800;color:var(--success);">${formatPrice(grandProfit)}</div>
+            </div>
+        </div>
+        <div class="glass-card" style="padding:1rem;margin-bottom:1rem;"><canvas id="revenueChart" style="height:200px;"></canvas></div>
+        <div class="glass-card" style="padding:1rem;"><h3 style="margin-bottom:0.75rem;">Chi tiết theo ${groupLabel(group)}</h3><div>`;
+        if (rows.length===0) {
+            html += '<p style="text-align:center;color:var(--text-muted);padding:12px;font-weight:500;">Không có dữ liệu trong khoảng thời gian này</p>';
+        } else {
+            rows.forEach((rw, idx) => {
+                const label = rw.thoi_gian || rw.thang;
+                const revenue = parseFloat(rw.doanh_thu)||0;
+                const phiAdmin = parseFloat(rw.phi_admin)||0;
+                const vat = parseFloat(rw.thue_vat)||0;
+                const profit = revenue - phiAdmin - vat;
+                html += `<details style="margin-bottom:8px;"><summary style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:12px 14px;border-radius:8px;background:var(--dark-800);border:1px solid var(--dark-700);">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-chevron-right" style="font-size:0.7rem;color:var(--dark-400);transition:transform 0.2s;"></i>
+                        <strong style="color:var(--text-primary);">${label}</strong>
+                        <span style="font-size:0.75rem;color:var(--dark-400);">(${rw.so_don} đơn)</span>
+                    </div>
+                    <div style="display:flex;gap:16px;align-items:center;font-size:0.85rem;">
+                        <span style="color:var(--danger);">-${formatPrice(phiAdmin + vat)}</span>
+                        <span style="font-weight:800;color:var(--success);">${formatPrice(profit)}</span>
+                    </div>
+                </summary><div class="detail-orders" style="padding:12px;border:1px solid var(--dark-700);border-top:none;border-radius:0 0 8px 8px;background:var(--dark-900);">Đang tải...</div></details>`;
+            });
+            html += `<div style="display:flex;justify-content:space-between;padding:12px 14px;border-top:2px solid var(--dark-600);margin-top:4px;border-radius:8px;background:rgba(16,185,129,0.06);font-size:0.9rem;">
+                <strong style="color:var(--text-primary);">Tổng cộng (${rows.reduce((a,b)=>a+(b.so_don||0),0)} đơn)</strong>
+                <div style="display:flex;gap:16px;">
+                    <span style="color:var(--danger);font-weight:700;">-${formatPrice(grandPhiAdmin + grandVat)}</span>
+                    <span style="font-weight:800;color:var(--success);font-size:1rem;">${formatPrice(grandProfit)}</span>
+                </div>
+            </div>`;
+        }
+        html += '</div></div>';
+        container.innerHTML = html;
+
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        revenueChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Doanh thu (VND)', data: dataPoints, backgroundColor: 'rgba(99,102,241,0.7)' }] }, options: { responsive:true, scales: { y: { ticks: { callback: v => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v) } } } } });
+
+        document.querySelectorAll('details').forEach((det, idx) => {
+            det.addEventListener('toggle', async (e) => {
+                if (!det.open) return;
+                det.querySelector('i.fa-chevron-right').style.transform = 'rotate(90deg)';
+                const detailEl = det.querySelector('.detail-orders');
+                const row = rows[idx];
+                let gFrom, gTo;
+                if (group === 'day') { gFrom = row.thoi_gian; gTo = row.thoi_gian; }
+                else if (group === 'week') {
+                    const [y, w] = row.thoi_gian.split('-W');
+                    const wkStart = new Date(parseInt(y),0,1+(parseInt(w)-1)*7);
+                    gFrom = toISO(wkStart);
+                    const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
+                    gTo = toISO(wkEnd);
+                } else if (group === 'month') {
+                    const [y, m] = row.thoi_gian.split('-');
+                    gFrom = `${y}-${m}-01`;
+                    const next = new Date(parseInt(y), parseInt(m), 1); next.setMonth(next.getMonth()+1); next.setDate(0);
+                    gTo = toISO(next);
+                } else if (group === 'year') { gFrom = row.thoi_gian+'-01-01'; gTo = row.thoi_gian+'-12-31'; }
+
+                detailEl.innerHTML = '<div class="spinner" style="margin:8px auto;"></div>';
+                try {
+                    const or = await api.get(`/orders/shop-orders?from=${gFrom}&to=${gTo}&trang_thai=hoan_thanh`);
+                    if (!or.success || !or.data || or.data.length===0) {
+                        detailEl.innerHTML = '<p style="color:var(--dark-400);text-align:center;padding:8px;">Không có đơn trong khoảng này</p>';
+                        return;
+                    }
+
+                    let th = `<div style="display:grid;grid-template-columns:60px 1fr 100px 90px 80px 110px;gap:6px;padding:6px 0;font-size:0.72rem;font-weight:700;color:var(--dark-400);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--dark-700);margin-bottom:4px;">
+                        <span>#Đơn</span><span>Khách hàng</span><span style="text-align:right;">Tổng tiền</span><span style="text-align:right;">Phí sàn</span><span style="text-align:right;">VAT</span><span style="text-align:right;color:var(--success);">Bạn nhận</span>
+                    </div>`;
+
+                    let tGB = 0, tPS = 0, tVT = 0;
+                    or.data.forEach(o => {
+                        const gb = parseFloat(o.tong_tien)||0;
+                        const ps = parseFloat(o.phi_admin)||0;
+                        const vt = parseFloat(o.thue_vat)||0;
+                        tGB += gb; tPS += ps; tVT += vt;
+                        th += `<div style="display:grid;grid-template-columns:60px 1fr 100px 90px 80px 110px;gap:6px;padding:8px 0;border-bottom:1px solid var(--dark-800);font-size:0.82rem;align-items:center;">
+                            <a href="/pages/order-detail.html?id=${o.id}" style="font-weight:700;color:var(--primary-light);text-decoration:none;">#${o.id}</a>
+                            <div>
+                                <div style="color:var(--text-primary);font-weight:500;">${o.ten_nguoi_mua}</div>
+                                <div style="font-size:0.72rem;color:var(--dark-400);">${formatDate(o.ngay_tao)}</div>
+                            </div>
+                            <div style="text-align:right;font-weight:600;">${formatPrice(gb)}</div>
+                            <div style="text-align:right;color:var(--danger);font-weight:600;">-${formatPrice(ps)}</div>
+                            <div style="text-align:right;color:var(--warning);font-weight:600;">-${formatPrice(vt)}</div>
+                            <div style="text-align:right;font-weight:800;color:var(--success);">${formatPrice(gb - ps - vt)}</div>
+                        </div>`;
+                    });
+                    const tNhan = tGB - tPS - tVT;
+                    th += `<div style="display:grid;grid-template-columns:60px 1fr 100px 90px 80px 110px;gap:6px;padding:10px 0;border-top:2px solid var(--dark-600);margin-top:4px;font-size:0.85rem;font-weight:700;">
+                        <span></span><span style="color:var(--text-primary);">Tổng (${or.data.length} đơn)</span>
+                        <span style="text-align:right;">${formatPrice(tGB)}</span>
+                        <span style="text-align:right;color:var(--danger);">-${formatPrice(tPS)}</span>
+                        <span style="text-align:right;color:var(--warning);">-${formatPrice(tVT)}</span>
+                        <span style="text-align:right;color:var(--success);font-size:0.95rem;">${formatPrice(tNhan)}</span>
+                    </div>`;
+
+                    detailEl.innerHTML = th;
+                } catch (err) { detailEl.innerHTML = '<p style="color:var(--danger);padding:8px;">Lỗi tải dữ liệu</p>'; }
+            });
+            det.addEventListener('toggle', () => {
+                if (!det.open) det.querySelector('i.fa-chevron-right').style.transform = '';
+            });
+        });
+    }
     </script>
 </body>
 </html>

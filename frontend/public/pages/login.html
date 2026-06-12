@@ -45,8 +45,12 @@
                         </button>
                     </div>
                 </div>
-                <div style="text-align:right; margin-top:-10px; margin-bottom:15px;">
-                    <a href="#" style="color:var(--primary-light);font-size:0.9rem;text-decoration:none;">Quên mật khẩu?</a>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--dark-300);">
+                        <input type="checkbox" id="remember-me" style="accent-color:var(--primary);width:15px;height:15px;">
+                        Nhớ mật khẩu
+                    </label>
+                    <a href="#" style="color:var(--primary-light);font-size:0.85rem;text-decoration:none;">Quên mật khẩu?</a>
                 </div>
                 <div id="error-msg" style="color:var(--danger);font-size:0.85rem;margin-bottom:1rem;display:none;"></div>
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;" id="login-btn">
@@ -65,9 +69,11 @@
         // Redirect if already logged in
         if (isLoggedIn()) window.location.href = '/';
 
-        // Tạm thời vô hiệu hóa Google OAuth
-        function showGoogleMessage() {
-            showToast('Google OAuth đang được cấu hình lại. Vui lòng sử dụng đăng nhập thường.', 'info');
+        // Khôi phục email đã nhớ
+        const savedEmail = localStorage.getItem('vipo_remember_email');
+        if (savedEmail) {
+            document.getElementById('email').value = savedEmail;
+            document.getElementById('remember-me').checked = true;
         }
 
         function togglePassword() {
@@ -85,8 +91,15 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
             errorMsg.style.display = 'none';
 
+            const email = document.getElementById('email').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            // Lưu / xóa email nhớ
+            if (rememberMe) localStorage.setItem('vipo_remember_email', email);
+            else localStorage.removeItem('vipo_remember_email');
+
             const result = await api.post('/auth/login', {
-                email: document.getElementById('email').value,
+                email,
                 mat_khau: document.getElementById('password').value
             });
 

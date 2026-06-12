@@ -1,13 +1,13 @@
 function loadTopbarUser() {
     const topbarUser = document.getElementById('topbar-user');
     if (!topbarUser) return;
-    
+
     if (isLoggedIn()) {
         const user = JSON.parse(localStorage.getItem('user')) || {};
         const userName = user.ho_ten || 'Tài khoản';
 
         let sellerLink = '';
-        if (user.vai_tro === 'seller') {
+        if (user.vai_tro === 'seller' && user.trang_thai_xac_thuc === 'verified') {
             sellerLink = '<a href="/pages/seller/dashboard.html"><i class="fas fa-store"></i> Gian hàng của tôi</a>';
         } else if (user.vai_tro === 'admin') {
             sellerLink = '<a href="/pages/admin/dashboard.html"><i class="fas fa-cog"></i> Quản trị hệ thống</a>';
@@ -56,12 +56,16 @@ function searchProducts() {
     const searchInput = document.getElementById('search-input');
     if (!searchInput) return;
     const query = searchInput.value.trim();
+    const dd = document.getElementById('search-suggestions-dropdown');
+    if (dd) dd.classList.add('hidden');
     if (typeof applyFilters === 'function') {
         applyFilters();
     } else {
         window.location.href = `/pages/products.html?search=${encodeURIComponent(query)}`;
     }
 }
+
+
 
 // Update cart count từ API
 async function updateNavbarCartCount() {
@@ -180,9 +184,126 @@ window.addEventListener('scroll', () => {
     }
 });
 
+// Autocomplete search suggestions
+function initSearchSuggestions() {
+    const searchInput = document.getElementById('search-input');
+    if (!searchInput) return;
+
+    // Create suggestions dropdown
+    let dropdown = document.getElementById('search-suggestions-dropdown');
+    if (!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.id = 'search-suggestions-dropdown';
+        dropdown.className = 'search-suggestions-dropdown hidden';
+        
+        // Append to parent of searchInput (which is .search-box)
+        searchInput.parentElement.appendChild(dropdown);
+    }
+
+    let debounceTimer;
+    
+    // Fetch suggestions
+    const fetchSuggestions = async (val) => {
+        if (!val || val.trim().length === 0) {
+            dropdown.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const result = await api.get(`/products/suggest?q=${encodeURIComponent(val)}`);
+            if (result.success && (result.data.products.length > 0 || result.data.categories.length > 0 || (result.data.tags && result.data.tags.length > 0))) {
+                let html = '';
+                const qEsc = val.replace(/'/g, "\\'");
+                
+                // Render Categories
+                if (result.data.categories.length > 0) {
+                    html += `<div class="suggest-section">
+                        <div class="suggest-section-title"><i class="fas fa-folder"></i> Danh mục liên quan</div>`;
+                    result.data.categories.forEach(cat => {
+                        const catEsc = cat.ten_danh_muc.replace(/'/g, "\\'");
+                        html += `
+                            <div class="suggest-item category-item" onclick="document.getElementById('search-input').value='${catEsc}';${typeof applyFilters==='function'?'applyFilters()':'window.location.href=\'/pages/products.html?search='+encodeURIComponent(cat.ten_danh_muc)+'\''}">
+                                <i class="fas fa-search-plus"></i>
+                                <span>Tìm "${val}" trong <strong>${cat.ten_danh_muc}</strong></span>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                // Render Tags
+                if (result.data.tags && result.data.tags.length > 0) {
+                    html += `<div class="suggest-section">
+                        <div class="suggest-section-title"><i class="fas fa-tags"></i> Từ khóa gợi ý</div>
+                        <div class="suggest-tags-wrap">`;
+                    result.data.tags.forEach(t => {
+                        const tEsc = t.replace(/'/g, "\\'");
+                        const action = typeof applyFilters==='function' 
+                            ? `document.getElementById('search-input').value='${tEsc}';applyFilters()`
+                            : `window.location.href='/pages/products.html?search='+encodeURIComponent('${tEsc}')`;
+                        html += `<span class="suggest-tag-btn" onclick="${action}"><i class="fas fa-search"></i>${t}</span>`;
+                    });
+                    html += `</div></div>`;
+                }
+
+                // Render Products
+                if (result.data.products.length > 0) {
+                    html += `<div class="suggest-section">
+                        <div class="suggest-section-title"><i class="fas fa-box-open"></i> Sản phẩm gợi ý</div>`;
+                    result.data.products.forEach(p => {
+                        const price = p.gia_khuyen_mai && p.gia_khuyen_mai < p.gia ? p.gia_khuyen_mai : p.gia;
+                        const img = typeof getProductImage === 'function' ? getProductImage(p.hinh_anh) : (p.hinh_anh || '/uploads/products/default.jpg');
+                        html += `
+                            <a class="suggest-item" href="/pages/product-detail.html?id=${p.id}">
+                                <img src="${img}" alt="${p.ten_san_pham}" onerror="this.src='${typeof getProductImage==='function'?getProductImage(null):''}'">
+                                <div class="suggest-item-info">
+                                    <span class="suggest-item-name">${p.ten_san_pham}</span>
+                                    <span class="suggest-item-shop"><i class="fas fa-store"></i> ${p.ten_gian_hang || p.ten_danh_muc || ''}</span>
+                                </div>
+                                <span class="suggest-item-price">${typeof formatPrice==='function'?formatPrice(price):new Intl.NumberFormat('vi-VN').format(price)+'đ'}</span>
+                            </a>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                dropdown.innerHTML = html;
+                dropdown.classList.remove('hidden');
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error('Fetch suggest error:', err);
+        }
+    };
+
+    searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetchSuggestions(val);
+        }, 200);
+    });
+
+    searchInput.addEventListener('focus', (e) => {
+        const val = e.target.value.trim();
+        if (val.length > 0) {
+            fetchSuggestions(val);
+        }
+    });
+
+    // Close suggestions on outside click
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     loadTopbarUser();
     updateNavbarCartCount();
     updateNotificationBadge();
+    initSearchSuggestions();
 });
 

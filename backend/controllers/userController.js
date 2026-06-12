@@ -46,7 +46,36 @@ const getProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
         }
 
-        res.json({ success: true, data: rows[0] });
+        const user = rows[0];
+
+        // If user is a seller, include shop info from gian_hang and shop tables
+        if (user.vai_tro === 'seller') {
+            const [gh] = await pool.query(
+                'SELECT id as gian_hang_id, ten_gian_hang, mo_ta, trang_thai as trang_thai_gian_hang FROM gian_hang WHERE nguoi_ban_id = ?',
+                [req.user.id]
+            );
+            if (gh.length > 0) {
+                user.gian_hang_id = gh[0].gian_hang_id;
+                user.ten_gian_hang = gh[0].ten_gian_hang;
+                user.mo_ta_gian_hang = gh[0].mo_ta;
+                user.trang_thai_gian_hang = gh[0].trang_thai_gian_hang;
+            }
+            const [sh] = await pool.query(
+                'SELECT id as shop_id, ten_shop, mo_ta as mo_ta_shop, dia_chi_kho, phuong_thuc_van_chuyen, ma_so_thue, trang_thai as trang_thai_shop FROM shop WHERE nguoi_ban_id = ?',
+                [req.user.id]
+            );
+            if (sh.length > 0) {
+                user.shop_id = sh[0].shop_id;
+                user.ten_shop = sh[0].ten_shop;
+                user.mo_ta_shop = sh[0].mo_ta_shop;
+                user.dia_chi_kho = sh[0].dia_chi_kho;
+                user.phuong_thuc_van_chuyen = sh[0].phuong_thuc_van_chuyen;
+                user.ma_so_thue = sh[0].ma_so_thue;
+                user.trang_thai_shop = sh[0].trang_thai_shop;
+            }
+        }
+
+        res.json({ success: true, data: user });
     } catch (error) {
         console.error('Get profile error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server' });
@@ -108,21 +137,24 @@ const upgradeToSeller = async (req, res) => {
     try {
         await connection.beginTransaction();
         
-        // Kiểm tra user hiện tại có phải customer không
-        if (req.user.vai_tro !== 'customer') {
+        // Kiểm tra user hiện tại: chỉ customer HOẶC seller bị từ chối mới được đăng ký/đăng ký lại
+        const [currentUser] = await connection.query(
+            'SELECT vai_tro, trang_thai_xac_thuc FROM nguoi_dung WHERE id = ?',
+            [req.user.id]
+        );
+        const dbVaiTro = currentUser[0].vai_tro;
+        const dbTrangThai = currentUser[0].trang_thai_xac_thuc;
+        const isRejectedSeller = dbVaiTro === 'seller' && dbTrangThai === 'rejected';
+        
+        if (dbVaiTro !== 'customer' && !isRejectedSeller) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Chỉ tài khoản khách hàng mới có thể đăng ký bán hàng' 
+                message: 'Chỉ tài khoản khách hàng hoặc tài khoản bị từ chối mới có thể đăng ký bán hàng' 
             });
         }
 
-        // Kiểm tra user đã đăng ký seller chưa
-        const [existingSeller] = await connection.query(
-            'SELECT id FROM nguoi_dung WHERE id = ? AND vai_tro = "seller"',
-            [req.user.id]
-        );
-
-        if (existingSeller.length > 0) {
+        // Nếu là seller pending/verified, không cho đăng ký thêm
+        if (dbVaiTro === 'seller' && ['pending', 'verified'].includes(dbTrangThai)) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Tài khoản đã được đăng ký bán hàng' 
@@ -130,7 +162,7 @@ const upgradeToSeller = async (req, res) => {
         }
 
         // Validate dữ liệu đầu vào
-        const { ten_shop, mo_ta_shop, dia_chi_kho, phuong_thuc_van_chuyen, ma_so_thue } = req.body;
+        const { ten_shop, mo_ta_shop, dia_chi_kho, phuong_thuc_van_chuyen, ma_so_thue, dong_y_chinh_sach } = req.body;
 
         if (!ten_shop || !mo_ta_shop || !dia_chi_kho || !phuong_thuc_van_chuyen) {
             return res.status(400).json({ 
@@ -138,9 +170,16 @@ const upgradeToSeller = async (req, res) => {
                 message: 'Vui lòng điền đầy đủ các thông tin bắt buộc' 
             });
         }
+        
+        if (dong_y_chinh_sach !== 'true') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Bạn phải đồng ý với chính sách và điều khoản của sàn' 
+            });
+        }
 
         // Validate mã số thuế (nếu có)
-        if (ma_so_thue) {
+        if (ma_so_thue && ma_so_thue !== 'undefined') {
             const taxCodeRegex = /^\d{10,13}$/;
             if (!taxCodeRegex.test(ma_so_thue)) {
                 return res.status(400).json({ 
@@ -163,15 +202,16 @@ const upgradeToSeller = async (req, res) => {
         const [shopResult] = await connection.query(
             `INSERT INTO shop (
                 nguoi_ban_id, ten_shop, mo_ta, dia_chi_kho, 
-                phuong_thuc_van_chuyen, ma_so_thue, trang_thai, 
+                phuong_thuc_van_chuyen, ma_so_thue, dong_y_chinh_sach, trang_thai, 
                 ngay_tao, ngay_cap_nhat
-            ) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                 ten_shop = VALUES(ten_shop),
                 mo_ta = VALUES(mo_ta),
                 dia_chi_kho = VALUES(dia_chi_kho),
                 phuong_thuc_van_chuyen = VALUES(phuong_thuc_van_chuyen),
                 ma_so_thue = VALUES(ma_so_thue),
+                dong_y_chinh_sach = VALUES(dong_y_chinh_sach),
                 trang_thai = 'pending',
                 ngay_cap_nhat = NOW()`,
             [
@@ -180,7 +220,8 @@ const upgradeToSeller = async (req, res) => {
                 mo_ta_shop,
                 dia_chi_kho,
                 phuong_thuc_van_chuyen,
-                ma_so_thue || null
+                (ma_so_thue === 'undefined' || !ma_so_thue) ? '' : ma_so_thue,
+                dong_y_chinh_sach === 'true'
             ]
         );
 
@@ -196,6 +237,7 @@ const upgradeToSeller = async (req, res) => {
              giay_phep_kinh_doanh = ?, 
              anh_guong_mat = ?, 
              trang_thai_xac_thuc = 'pending',
+             ly_do_tu_choi = NULL,
              ngay_cap_nhat = NOW()
              WHERE id = ?`,
             [

@@ -32,7 +32,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
                     <div class="topbar-user" id="topbar-user">
                         <!-- Sẽ được load động -->
                     </div>
@@ -49,8 +49,8 @@
                 </a>
                 
                 <div class="shopee-search">
-                    <div class="search-box">
-                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
                         <button class="search-btn" onclick="searchProducts()">
                             <i class="fas fa-search"></i>
                         </button>
@@ -77,6 +77,9 @@
                     </div>
                     <div class="profile-user-info">
                         <div class="profile-username" id="sidebar-username">thanhtrung923</div>
+                        <div id="sidebar-shop-name" style="font-size:0.78rem;color:var(--primary-light);font-weight:600;margin-top:3px;display:none;">
+                            <i class="fas fa-store"></i> <span id="sidebar-shop-name-text"></span>
+                        </div>
                         <div class="profile-edit-link">
                             <i class="fas fa-edit"></i> Sửa Hồ Sơ
                         </div>
@@ -100,6 +103,10 @@
                     <a href="#" class="profile-nav-item" data-section="vouchers">
                         <i class="fas fa-ticket-alt" style="color: #ff6b35;"></i>
                         <span>Kho Voucher</span>
+                    </a>
+                    <a href="#" class="profile-nav-item" data-section="addresses">
+                        <i class="fas fa-map-marker-alt" style="color: #ef4444;"></i>
+                        <span>Địa Chỉ Nhận Hàng</span>
                     </a>
                     <a href="#" class="profile-nav-item" data-section="seller" id="seller-nav-item" style="display: none;">
                         <i class="fas fa-store" style="color: #10b981;"></i>
@@ -333,6 +340,22 @@
                     </div>
                 </div>
 
+                <!-- Addresses Section -->
+                <div id="addresses-section" class="profile-section">
+                    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--dark-700); padding-bottom:1rem; margin-bottom:1.5rem;">
+                        <div>
+                            <h2>Địa Chỉ Của Tôi</h2>
+                            <p style="color:var(--dark-400); font-size:0.9rem; margin:0;">Quản lý địa chỉ nhận hàng của bạn</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddressModal()">
+                            <i class="fas fa-plus"></i> Thêm Địa Chỉ Mới
+                        </button>
+                    </div>
+                    <div id="profile-addresses-container" style="display:flex; flex-direction:column; gap:1rem;">
+                        <div class="spinner" style="margin:2rem auto;"></div>
+                    </div>
+                </div>
+
                 <!-- Seller Registration Section -->
                 <div id="seller-section" class="profile-section">
                     <div class="section-header">
@@ -388,7 +411,7 @@
                                         <i class="fas fa-shield-alt" style="color: #f59e0b;"></i>
                                     </div>
                                     <h5>Thanh toán an toàn</h5>
-                                    <p>Hệ thống thanh toán bảo mật với VNPay, Momo và COD</p>
+                                    <p>Hệ thống thanh toán bảo mật với VNPay, PayOS và COD</p>
                                 </div>
                                 <div class="benefit-card">
                                     <div class="benefit-icon">
@@ -622,7 +645,21 @@
 
                     <!-- Step 5: Complete -->
                     <div id="seller-step-5" class="step-content" style="display: none;">
-                        <div style="text-align: center;">
+                        <h3 style="color: #1e293b; margin-bottom: 1.5rem;">Xác nhận thông tin</h3>
+                        
+                        <div id="registration-summary" style="margin-bottom: 1.5rem; text-align: left; background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <!-- Summary will be populated by JS -->
+                        </div>
+                        
+                        <div class="form-group" style="text-align: left; margin-bottom: 2rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
+                            <label style="display: flex; gap: 1rem; align-items: flex-start; cursor: pointer;">
+                                <input type="checkbox" id="dong_y_chinh_sach" style="margin-top: 0.3rem; transform: scale(1.2);">
+                                <span>Tôi đã đọc và đồng ý với <a href="/pages/complaint-policy.html" target="_blank" style="color: #6366f1;">Chính sách & Điều khoản của sàn Vipo</a> dành cho người bán, bao gồm các quy định về đăng bán sản phẩm và xử lý vi phạm.</span>
+                            </label>
+                            <div id="dong_y_chinh_sach_message" class="validation-message"></div>
+                        </div>
+                        
+                        <div style="text-align: center; display: none;" id="registration-success-msg">
                             <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
                             <h3 style="color: #1e293b; margin-bottom: 1rem;">Hoàn tất đăng ký!</h3>
                             <p style="color: #6b7280; margin-bottom: 2rem;">Thông tin của bạn đã được gửi và đang chờ xét duyệt. Chúng tôi sẽ thông báo kết quả trong vòng 24-48 giờ.</p>
@@ -646,6 +683,58 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address Modal -->
+    <div id="address-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <div class="modal-header" style="padding: 1.2rem; border-bottom: 1px solid var(--dark-700);">
+                <h3 id="address-modal-title" style="margin: 0; font-size: 1.15rem; font-weight: 600;">Thêm Địa Chỉ Mới</h3>
+                <button onclick="closeAddressModal()" class="modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--dark-400);">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <input type="hidden" id="address-id">
+                <div class="form-group">
+                    <label>Họ tên người nhận <span style="color:#ef4444;">*</span></label>
+                    <input type="text" class="form-control" id="addr-name" placeholder="Họ tên đầy đủ...">
+                </div>
+                <div class="form-group">
+                    <label>Số điện thoại <span style="color:#ef4444;">*</span></label>
+                    <input type="text" class="form-control" id="addr-phone" placeholder="Số điện thoại nhận hàng...">
+                </div>
+                <div style="display:flex;gap:10px;margin-bottom:1rem;">
+                    <div class="form-group" style="flex:1">
+                        <label>Tỉnh/Thành phố <span style="color:#ef4444;">*</span></label>
+                        <select class="form-control" id="addr-province" onchange="loadDistrictsProfile()">
+                            <option value="">Chọn Tỉnh/Thành phố</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Quận/Huyện <span style="color:#ef4444;">*</span></label>
+                        <select class="form-control" id="addr-district" onchange="loadWardsProfile()">
+                            <option value="">Chọn Quận/Huyện</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Phường/Xã <span style="color:#ef4444;">*</span></label>
+                        <select class="form-control" id="addr-ward">
+                            <option value="">Chọn Phường/Xã</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Địa chỉ cụ thể <span style="color:#ef4444;">*</span></label>
+                    <textarea class="form-control" id="addr-detail" rows="2" placeholder="Số nhà, tên đường..."></textarea>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;">
+                    <input type="checkbox" id="addr-default" style="accent-color:var(--primary)">
+                    <label for="addr-default" style="margin:0;font-size:0.85rem;color:var(--dark-300);cursor:pointer;">Đặt làm địa chỉ mặc định</label>
+                </div>
+                <button onclick="saveAddress()" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                    <i class="fas fa-save"></i> Lưu địa chỉ
+                </button>
             </div>
         </div>
     </div>

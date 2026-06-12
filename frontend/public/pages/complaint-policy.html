@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chính sách khiếu nại - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .policy-tabs { display:flex; gap:8px; margin-bottom:1.5rem; border-bottom:2px solid var(--dark-700); padding-bottom:0; }
+        .policy-tab { padding:12px 20px; cursor:pointer; border:none; background:transparent; font-size:0.95rem; font-weight:600; color:var(--text-muted); border-bottom:3px solid transparent; margin-bottom:-2px; transition:all 0.2s; }
+        .policy-tab:hover { color:var(--primary); }
+        .policy-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+        .policy-section { display:none; }
+        .policy-section.active { display:block; animation:fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:translateY(0);} }
+        .policy-card { background:white; border:1px solid var(--dark-700); border-radius:12px; padding:1.5rem; margin-bottom:1rem; }
+        .policy-card h3 { color:var(--text-primary); margin-bottom:0.75rem; display:flex; align-items:center; gap:10px; }
+        .policy-card h3 i { color:var(--primary); }
+        .policy-card p, .policy-card li { color:var(--text-secondary); line-height:1.7; }
+        .policy-card ul, .policy-card ol { padding-left:1.5rem; margin:0.5rem 0; }
+        .policy-card li { margin-bottom:6px; }
+        .info-box { padding:12px 16px; border-radius:8px; margin:0.75rem 0; border-left:4px solid; }
+        .info-box.warn { background:rgba(245, 158, 11, 0.08); border-color:#f59e0b; }
+        .info-box.danger { background:rgba(239, 68, 68, 0.08); border-color:#ef4444; }
+        .info-box.success { background:rgba(34, 197, 94, 0.08); border-color:#22c55e; }
+        .info-box.primary { background:rgba(99, 102, 241, 0.08); border-color:#6366f1; }
+        .info-box strong { color:var(--text-primary); }
+        .info-box p { color:var(--text-secondary); margin:0; }
+        .timeline-step { display:flex; gap:1rem; padding:1rem 0; border-bottom:1px dashed var(--dark-700); }
+        .timeline-step:last-child { border-bottom:none; }
+        .timeline-num { flex-shrink:0; width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; }
+        .timeline-content h4 { color:var(--text-primary); margin-bottom:4px; }
+        .timeline-content p { color:var(--text-secondary); font-size:0.9rem; margin:0; }
+        .reason-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px; margin-top:0.75rem; }
+        .reason-item { padding:12px; background:var(--dark-900); border-radius:8px; border:1px solid var(--dark-700); }
+        .reason-item i { color:var(--primary); margin-right:8px; }
+        .reason-item strong { display:block; color:var(--text-primary); font-size:0.9rem; margin-bottom:4px; }
+        .reason-item span { color:var(--text-muted); font-size:0.8rem; }
+        .cta-banner { background:linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color:white; padding:2rem; border-radius:12px; text-align:center; margin-top:2rem; }
+        .cta-banner h2 { color:white; margin-bottom:0.5rem; }
+        .cta-banner p { color:rgba(255,255,255,0.9); margin-bottom:1rem; }
+        .cta-banner .btn { background:white; color:var(--primary); font-weight:700; }
+        .cta-banner .btn:hover { background:rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+    <nav class="shopee-navbar">
+        <div class="shopee-topbar">
+            <div class="navbar-container">
+                <div class="topbar-left"></div>
+                <div class="topbar-right">
+                    <div class="topbar-notifications">
+                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i> Thông Báo
+                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                        </a>
+                        <div class="notifications-dropdown" id="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4>Thông báo</h4>
+                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
+                            </div>
+                            <div class="notifications-list" id="navbar-notifications-list"></div>
+                        </div>
+                    </div>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <div class="topbar-user" id="topbar-user"></div>
+                </div>
+            </div>
+        </div>
+        <div class="shopee-main-nav">
+            <div class="navbar-container">
+                <a href="/" class="shopee-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Vipo</span>
+                </a>
+                <div class="shopee-search">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
+                        <button class="search-btn" onclick="searchProducts()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="shopee-actions">
+                    <a href="/pages/cart.html" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1><i class="fas fa-balance-scale"></i> Chính sách khiếu nại</h1>
+            <p style="color:var(--text-muted); margin-top:8px;">
+                Quy định và quy trình giải quyết khiếu nại giữa Người mua, Gian hàng và Vipo. Áp dụng từ ngày 01/01/2026.
+            </p>
+        </div>
+
+        <!-- Phần mở đầu chung -->
+        <div class="policy-card">
+            <h3><i class="fas fa-info-circle"></i> 1. Giới thiệu chung</h3>
+            <p>
+                Vipo là sàn thương mại điện tử trung gian, kết nối <strong>Người mua</strong> và <strong>Gian hàng</strong> (Người bán).
+                Chính sách này quy định quyền, nghĩa vụ và quy trình khiếu nại để bảo vệ lợi ích hợp pháp của các bên,
+                đảm bảo giao dịch minh bạch, công bằng và đúng pháp luật Việt Nam.
+            </p>
+            <div class="info-box primary">
+                <p><strong><i class="fas fa-lightbulb"></i> Phạm vi áp dụng:</strong> Mọi đơn hàng, giao dịch, sản phẩm và dịch vụ phát sinh trên nền tảng Vipo.</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="policy-tabs">
+            <button class="policy-tab active" onclick="showTab('buyer', this)"><i class="fas fa-user"></i> Dành cho Người mua</button>
+            <button class="policy-tab" onclick="showTab('seller', this)"><i class="fas fa-store"></i> Dành cho Gian hàng</button>
+            <button class="policy-tab" onclick="showTab('process', this)"><i class="fas fa-cogs"></i> Quy trình xử lý</button>
+            <button class="policy-tab" onclick="showTab('common', this)"><i class="fas fa-gavel"></i> Quy định chung</button>
+        </div>
+
+        <!-- TAB: NGƯỜI MUA -->
+        <div id="tab-buyer" class="policy-section active">
+
+            <div class="policy-card">
+                <h3><i class="fas fa-shield-alt"></i> 2.1. Quyền khiếu nại của Người mua</h3>
+                <p>Người mua có quyền gửi khiếu nại khi gặp một trong các vấn đề sau:</p>
+                <div class="reason-grid">
+                    <div class="reason-item">
+                        <strong><i class="fas fa-box-open"></i> Sản phẩm lỗi</strong>
+                        <span>Hàng nhận được bị hư hỏng, không hoạt động, bị vỡ hoặc kém chất lượng so với cam kết.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Không đúng mô tả</strong>
+                        <span>Sản phẩm khác về màu sắc, kích thước, chủng loại, số lượng hoặc thương hiệu so với tin đăng.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-truck"></i> Chậm giao hàng</strong>
+                        <span>Đơn hàng giao trễ quá thời gian cam kết mà không có lý do chính đáng từ gian hàng.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-credit-card"></i> Vấn đề thanh toán</strong>
+                        <span>Bị trừ tiền sai, hoàn tiền chậm, thanh toán nhiều lần cho cùng một đơn.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-comments"></i> Thái độ phục vụ</strong>
+                        <span>Gian hàng có hành vi thiếu chuyên nghiệp, từ chối hỗ trợ hoặc xúc phạm khách hàng.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-ellipsis-h"></i> Khác</strong>
+                        <span>Các trường hợp khác chưa được liệt kê — vui lòng mô tả chi tiết khi gửi.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-clock"></i> 2.2. Thời hạn khiếu nại</h3>
+                <ul>
+                    <li><strong>Trong vòng 7 ngày</strong> kể từ ngày nhận hàng đối với khiếu nại về chất lượng, mô tả sản phẩm.</li>
+                    <li><strong>Trong vòng 30 ngày</strong> kể từ ngày đặt hàng đối với khiếu nại về thanh toán, giao hàng.</li>
+                    <li><strong>Trong vòng 15 ngày</strong> đối với khiếu nại liên quan đến bảo hành sản phẩm.</li>
+                </ul>
+                <div class="info-box warn">
+                    <p><strong>Lưu ý:</strong> Quá thời hạn nêu trên, khiếu nại có thể không được tiếp nhận hoặc bị giới hạn quyền lợi.</p>
+                </div>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-list-check"></i> 2.3. Điều kiện khiếu nại hợp lệ</h3>
+                <ol>
+                    <li>Đơn hàng được đặt và thanh toán qua nền tảng Vipo (không áp dụng cho giao dịch ngoài hệ thống).</li>
+                    <li>Người khiếu nại là chủ tài khoản đã đặt đơn hàng đó.</li>
+                    <li>Mô tả vấn đề rõ ràng, trung thực và có bằng chứng đính kèm (hình ảnh, video, hóa đơn...).</li>
+                    <li>Sản phẩm giữ nguyên trạng thái, không có dấu hiệu tự ý sửa chữa hoặc cố ý làm hư hỏng.</li>
+                    <li>Không vi phạm các quy định cấm tại mục 5 của chính sách này.</li>
+                </ol>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-handshake"></i> 2.4. Quyền lợi khi khiếu nại được chấp nhận</h3>
+                <ul>
+                    <li><strong>Hoàn tiền 100%</strong> nếu sản phẩm không được giao hoặc bị trả lại do lỗi từ gian hàng.</li>
+                    <li><strong>Đổi trả hàng miễn phí</strong> nếu sản phẩm lỗi do gian hàng/nhà sản xuất.</li>
+                    <li><strong>Hoàn tiền một phần</strong> nếu hàng không đúng mô tả nhưng người mua chấp nhận giữ lại.</li>
+                    <li>Được Vipo hỗ trợ pháp lý nếu vụ việc có tính chất nghiêm trọng.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB: GIAN HÀNG -->
+        <div id="tab-seller" class="policy-section">
+
+            <div class="policy-card">
+                <h3><i class="fas fa-store"></i> 3.1. Quyền khiếu nại của Gian hàng</h3>
+                <p>Gian hàng có quyền gửi khiếu nại đối với Người mua hoặc Vipo trong các trường hợp:</p>
+                <div class="reason-grid">
+                    <div class="reason-item">
+                        <strong><i class="fas fa-undo"></i> Trả hàng không lý do</strong>
+                        <span>Người mua trả hàng mà không có lý do chính đáng hoặc sản phẩm còn nguyên niêm phong.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-user-slash"></i> Khách hàng gian lận</strong>
+                        <span>Bằng chứng cho thấy người mua tráo đổi, sử dụng rồi đòi hoàn tiền hoặc cố ý làm hỏng hàng.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-star-half-alt"></i> Đánh giá ác ý</strong>
+                        <span>Đánh giá 1 sao kèm nội dung sai sự thật, vu khống hoặc nhằm cạnh tranh không lành mạnh.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-money-bill-wave"></i> Vấn đề thanh toán</strong>
+                        <span>Vipo chậm chuyển doanh thu, tính phí sai hoặc giữ tiền quá thời hạn quy định.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-ban"></i> Khóa tài khoản sai</strong>
+                        <span>Tài khoản gian hàng bị khóa, sản phẩm bị gỡ bỏ mà không có thông báo hoặc lý do hợp lệ.</span>
+                    </div>
+                    <div class="reason-item">
+                        <strong><i class="fas fa-shield-alt"></i> Xâm phạm quyền lợi</strong>
+                        <span>Bị shop khác sao chép thương hiệu, hình ảnh, mô tả sản phẩm hoặc cạnh tranh không lành mạnh.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-tasks"></i> 3.2. Nghĩa vụ khi bị khiếu nại</h3>
+                <p>Khi nhận được thông báo khiếu nại từ Vipo, Gian hàng có trách nhiệm:</p>
+                <ol>
+                    <li><strong>Phản hồi trong vòng 48 giờ</strong> kể từ khi nhận thông báo. Quá thời hạn, Vipo có quyền xử lý đơn phương theo hướng có lợi cho người mua.</li>
+                    <li>Cung cấp đầy đủ bằng chứng liên quan: hóa đơn, ảnh đóng gói, video xuất kho, mã vận đơn...</li>
+                    <li>Hợp tác với bộ phận xử lý của Vipo, không né tránh hoặc cung cấp thông tin giả mạo.</li>
+                    <li>Thực hiện đổi/trả/hoàn tiền theo quyết định cuối cùng của Vipo trong thời hạn quy định.</li>
+                    <li>Không liên hệ riêng để gây áp lực, đe dọa hoặc mua chuộc người mua rút khiếu nại.</li>
+                </ol>
+                <div class="info-box danger">
+                    <p><strong><i class="fas fa-exclamation-triangle"></i> Cảnh báo:</strong> Vi phạm các nghĩa vụ trên có thể dẫn đến khóa gian hàng tạm thời hoặc vĩnh viễn, đồng thời bị giữ doanh thu để bồi thường thiệt hại.</p>
+                </div>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-trophy"></i> 3.3. Quyền kháng cáo</h3>
+                <p>
+                    Trường hợp gian hàng không đồng ý với quyết định xử lý khiếu nại của Vipo, có quyền:
+                </p>
+                <ul>
+                    <li>Gửi <strong>đơn kháng cáo</strong> trong vòng <strong>7 ngày</strong> kể từ khi nhận quyết định.</li>
+                    <li>Cung cấp bằng chứng mới hoặc làm rõ thông tin đã cung cấp trước đó.</li>
+                    <li>Yêu cầu cấp quản lý cao hơn xem xét lại vụ việc.</li>
+                    <li>Trong trường hợp tranh chấp không thể giải quyết, có quyền yêu cầu trọng tài hoặc tòa án theo pháp luật Việt Nam.</li>
+                </ul>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-medal"></i> 3.4. Mức xử phạt khi gian hàng vi phạm</h3>
+                <ul>
+                    <li><strong>Lần 1:</strong> Cảnh cáo bằng văn bản, ghi nhận vào hồ sơ uy tín.</li>
+                    <li><strong>Lần 2:</strong> Giảm hiển thị sản phẩm trong 7 ngày, giữ doanh thu để bồi thường.</li>
+                    <li><strong>Lần 3:</strong> Khóa gian hàng 30 ngày, hoàn toàn bộ tiền cho người mua bị ảnh hưởng.</li>
+                    <li><strong>Vi phạm nghiêm trọng:</strong> Khóa tài khoản vĩnh viễn, chuyển hồ sơ cho cơ quan chức năng nếu có dấu hiệu lừa đảo.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB: QUY TRÌNH -->
+        <div id="tab-process" class="policy-section">
+
+            <div class="policy-card">
+                <h3><i class="fas fa-route"></i> 4.1. Quy trình giải quyết khiếu nại</h3>
+                <div class="timeline-step">
+                    <div class="timeline-num">1</div>
+                    <div class="timeline-content">
+                        <h4>Gửi khiếu nại</h4>
+                        <p>Người mua/Gian hàng truy cập trang <a href="/pages/complaint.html" style="color:var(--primary);">Khiếu nại</a>, chọn đơn hàng và loại khiếu nại, mô tả chi tiết kèm bằng chứng.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-num">2</div>
+                    <div class="timeline-content">
+                        <h4>Tiếp nhận (trong 24 giờ)</h4>
+                        <p>Vipo xác nhận đã nhận khiếu nại qua email/thông báo. Trạng thái chuyển sang <strong>"Chờ xử lý"</strong>.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-num">3</div>
+                    <div class="timeline-content">
+                        <h4>Xác minh & thu thập thông tin (3-5 ngày)</h4>
+                        <p>Đội ngũ xử lý liên hệ các bên, thu thập bằng chứng, yêu cầu gian hàng phản hồi. Trạng thái: <strong>"Đang xử lý"</strong>.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-num">4</div>
+                    <div class="timeline-content">
+                        <h4>Hòa giải (nếu cần)</h4>
+                        <p>Vipo đề xuất phương án hòa giải giữa hai bên: đổi hàng, hoàn tiền một phần, hoặc thỏa thuận khác.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-num">5</div>
+                    <div class="timeline-content">
+                        <h4>Ra quyết định (trong 7 ngày)</h4>
+                        <p>Trường hợp không hòa giải được, Vipo ra quyết định cuối cùng dựa trên bằng chứng. Trạng thái: <strong>"Đã xử lý"</strong> hoặc <strong>"Từ chối"</strong>.</p>
+                    </div>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-num">6</div>
+                    <div class="timeline-content">
+                        <h4>Thực thi & đóng vụ việc</h4>
+                        <p>Bên liên quan thực hiện đổi/trả/hoàn tiền. Khiếu nại được lưu vào lịch sử và hồ sơ uy tín.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-stopwatch"></i> 4.2. Thời gian xử lý</h3>
+                <ul>
+                    <li><strong>Khiếu nại đơn giản</strong> (hoàn tiền dưới 500.000đ, đầy đủ bằng chứng): tối đa <strong>3 ngày làm việc</strong>.</li>
+                    <li><strong>Khiếu nại phức tạp</strong> (cần điều tra, đối chứng nhiều bên): tối đa <strong>7-15 ngày làm việc</strong>.</li>
+                    <li><strong>Khiếu nại có yếu tố pháp lý</strong> (lừa đảo, hàng giả): có thể kéo dài tùy theo cơ quan chức năng.</li>
+                </ul>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-paperclip"></i> 4.3. Bằng chứng cần cung cấp</h3>
+                <ul>
+                    <li><strong>Ảnh chụp/video</strong> sản phẩm khi mở hộp, tình trạng hư hỏng (nếu có).</li>
+                    <li><strong>Hóa đơn, mã đơn hàng, mã vận đơn</strong>.</li>
+                    <li><strong>Lịch sử trò chuyện</strong> với gian hàng (chụp màn hình).</li>
+                    <li><strong>Biên lai thanh toán</strong> hoặc sao kê ngân hàng liên quan.</li>
+                    <li><strong>Bằng chứng khác:</strong> giấy bảo hành, tem mác, hộp đóng gói gốc...</li>
+                </ul>
+                <div class="info-box success">
+                    <p><strong><i class="fas fa-check-circle"></i> Mẹo:</strong> Bằng chứng càng đầy đủ, vụ việc càng được xử lý nhanh và công bằng.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: QUY ĐỊNH CHUNG -->
+        <div id="tab-common" class="policy-section">
+
+            <div class="policy-card">
+                <h3><i class="fas fa-ban"></i> 5.1. Các trường hợp không được tiếp nhận</h3>
+                <ul>
+                    <li>Khiếu nại quá thời hạn quy định.</li>
+                    <li>Thông tin sai sự thật, có dấu hiệu vu khống, gian lận.</li>
+                    <li>Đơn hàng đã được giải quyết khiếu nại trước đó (trừ trường hợp có bằng chứng mới).</li>
+                    <li>Sản phẩm bị hư hỏng do người mua sử dụng sai cách, tự ý tháo dỡ, sửa chữa.</li>
+                    <li>Sản phẩm thuộc danh mục không được đổi trả (đồ lót, thực phẩm tươi sống, mỹ phẩm đã mở...).</li>
+                    <li>Khiếu nại mang tính xúc phạm, lăng mạ, đe dọa hoặc vi phạm pháp luật.</li>
+                </ul>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-lock"></i> 5.2. Bảo mật thông tin</h3>
+                <p>
+                    Vipo cam kết bảo mật toàn bộ thông tin cá nhân, bằng chứng và nội dung khiếu nại của các bên.
+                    Thông tin chỉ được sử dụng cho mục đích xử lý vụ việc và không được tiết lộ cho bên thứ ba
+                    trừ khi có yêu cầu hợp pháp từ cơ quan nhà nước có thẩm quyền.
+                </p>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-handshake"></i> 5.3. Cam kết của Vipo</h3>
+                <ul>
+                    <li>Tiếp nhận và xử lý khiếu nại một cách <strong>công bằng, minh bạch, đúng pháp luật</strong>.</li>
+                    <li>Không thiên vị bất kỳ bên nào, ra quyết định dựa trên bằng chứng và quy định.</li>
+                    <li>Bảo vệ quyền lợi hợp pháp của cả người mua và gian hàng.</li>
+                    <li>Cập nhật trạng thái khiếu nại thường xuyên cho các bên liên quan.</li>
+                    <li>Hỗ trợ pháp lý trong các trường hợp đặc biệt cần thiết.</li>
+                </ul>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-edit"></i> 5.4. Sửa đổi chính sách</h3>
+                <p>
+                    Vipo có quyền sửa đổi, bổ sung chính sách khiếu nại để phù hợp với quy định pháp luật
+                    và thực tế vận hành. Mọi thay đổi sẽ được thông báo qua email, thông báo trong ứng dụng
+                    hoặc đăng tải công khai trên trang này ít nhất <strong>7 ngày</strong> trước khi có hiệu lực.
+                </p>
+            </div>
+
+            <div class="policy-card">
+                <h3><i class="fas fa-phone-alt"></i> 5.5. Liên hệ hỗ trợ</h3>
+                <ul>
+                    <li><strong>Hotline:</strong> 1900-XXX-XXX (8h-18h, Thứ 2 - Chủ nhật)</li>
+                    <li><strong>Email khiếu nại:</strong> <a href="mailto:khieunai@vipo.example" style="color:var(--primary);">khieunai@vipo.example</a></li>
+                    <li><strong>Email hỗ trợ chung:</strong> <a href="mailto:support@vipo.example" style="color:var(--primary);">support@vipo.example</a></li>
+                    <li><strong>Địa chỉ:</strong> Tầng 5, Tòa nhà Vipo, Quận 1, TP. Hồ Chí Minh</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-banner">
+            <h2><i class="fas fa-flag"></i> Bạn cần gửi khiếu nại?</h2>
+            <p>Truy cập trang khiếu nại để gửi yêu cầu của bạn. Đội ngũ Vipo sẽ phản hồi trong vòng 24 giờ.</p>
+            <a href="/pages/complaint.html" class="btn"><i class="fas fa-paper-plane"></i> Gửi khiếu nại ngay</a>
+            <a href="/pages/support.html" class="btn btn-outline" style="background:transparent; color:white; border-color:white; margin-left:8px;"><i class="fas fa-headset"></i> Liên hệ hỗ trợ</a>
+        </div>
+
+        <p style="text-align:center; margin-top:1.5rem; color:var(--text-muted); font-size:0.85rem;">
+            <i class="fas fa-info-circle"></i> Chính sách này có hiệu lực từ ngày 01/01/2026 và áp dụng cho mọi giao dịch trên nền tảng Vipo.
+        </p>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        function showTab(name, btn) {
+            document.querySelectorAll('.policy-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.policy-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + name).classList.add('active');
+            btn.classList.add('active');
+            window.scrollTo({ top: document.querySelector('.policy-tabs').offsetTop - 100, behavior: 'smooth' });
+        }
+    </script>
+    <script src="/js/shopee-nav.js"></script>
+</body>
+</html>

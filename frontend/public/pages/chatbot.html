@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trợ lý AI Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); min-height: 100vh; }
+        .chat-page { max-width: 820px; margin: 0 auto; padding: 100px 16px 24px; height: 100vh; display: flex; flex-direction: column; }
+        .chat-card { background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { padding: 18px 24px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: space-between; }
+        .chat-title { display: flex; align-items: center; gap: 10px; color: white; font-weight: 700; font-size: 1.1rem; }
+        .chat-status { font-size: 0.7rem; opacity: 0.8; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 0.92rem; line-height: 1.5; word-break: break-word; }
+        .msg.user { align-self: flex-end; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border-bottom-right-radius: 4px; }
+        .msg.bot { align-self: flex-start; background: rgba(99,102,241,0.12); color: #e2e8f0; border: 1px solid rgba(99,102,241,0.2); border-bottom-left-radius: 4px; }
+        .msg.typing { font-style: italic; opacity: 0.7; }
+        .msg.typing::after { content: '...'; animation: dots 1.2s infinite; }
+        @keyframes dots { 0%,20% { content: '.'; } 40% { content: '..'; } 60%,100% { content: '...'; } }
+        .chat-input-wrap { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 10px; background: rgba(15,23,42,0.6); }
+        .chat-input { flex: 1; padding: 12px 18px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); background: rgba(15,23,42,0.6); color: white; font-size: 0.95rem; outline: none; }
+        .chat-input:focus { border-color: #6366f1; }
+        .chat-send { width: 46px; height: 46px; border-radius: 50%; border: none; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+        .chat-send:hover { transform: scale(1.05); }
+        .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+        .chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 12px; }
+        .chat-suggestions button { background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); padding: 6px 14px; border-radius: 16px; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; }
+        .chat-suggestions button:hover { background: rgba(99,102,241,0.25); }
+    </style>
+</head>
+<body>
+    <div class="chat-page">
+        <div class="chat-card">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <i class="fas fa-robot" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <div>Trợ lý AI Vipo</div>
+                        <div class="chat-status"><span class="status-dot"></span> Đang hoạt động</div>
+                    </div>
+                </div>
+                <div>
+                    <a href="/" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:white;"><i class="fas fa-home"></i> Trang chủ</a>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="msg bot">Xin chào! 👋 Tôi là <strong>trợ lý AI Vipo</strong>. Tôi có thể giúp bạn:<br>• 🛒 Hướng dẫn mua hàng<br>• 📦 Tra cứu đơn hàng<br>• 💳 Thanh toán COD, VNPay, PayOS<br>• 🔄 Chính sách đổi trả<br>• 🏪 Hướng dẫn bán hàng<br>• ❓ Hỏi đáp chính sách</div>
+            </div>
+            <div class="chat-suggestions">
+                <button onclick="quickAsk('Làm sao để đặt hàng?')">🛒 Đặt hàng</button>
+                <button onclick="quickAsk('Các phương thức thanh toán được hỗ trợ?')">💳 Thanh toán</button>
+                <button onclick="quickAsk('Chính sách đổi trả như thế nào?')">🔄 Đổi trả</button>
+                <button onclick="quickAsk('Thời gian giao hàng bao lâu?')">🚚 Giao hàng</button>
+                <button onclick="quickAsk('Làm sao để trở thành người bán?')">🏪 Bán hàng</button>
+                <button onclick="quickAsk('Tôi muốn khiếu nại đơn hàng')">⚠️ Khiếu nại</button>
+            </div>
+            <div class="chat-input-wrap">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Nhập câu hỏi của bạn..." autocomplete="off">
+                <button class="chat-send" id="chatSend" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        const messagesEl = document.getElementById('chatMessages');
+        const inputEl = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('chatSend');
+
+        function appendMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = 'msg ' + role;
+            if (role === 'bot' && text === '__typing__') {
+                div.classList.add('typing');
+                div.textContent = 'Đang suy nghĩ';
+            } else {
+                div.innerHTML = text;
+            }
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return div;
+        }
+
+        function quickAsk(q) {
+            inputEl.value = q;
+            sendMessage();
+        }
+
+        async function sendMessage() {
+            const message = inputEl.value.trim();
+            if (!message) return;
+            inputEl.value = '';
+            sendBtn.disabled = true;
+
+            appendMessage(message, 'user');
+            const typingNode = appendMessage('__typing__', 'bot');
+
+            try {
+                const r = await api.post('/chatbot', { message });
+                typingNode.classList.remove('typing');
+                typingNode.innerHTML = (r.data?.response || r.message || 'Xin lỗi, tôi chưa hiểu câu hỏi của bạn.').replace(/\n/g, '<br>');
+            } catch (err) {
+                typingNode.classList.remove('typing');
+                typingNode.textContent = '❌ Lỗi kết nối. Vui lòng thử lại sau.';
+            }
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            sendBtn.disabled = false;
+            inputEl.focus();
+        }
+
+        inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        inputEl.focus();
+    </script>
+</body>
+</html>

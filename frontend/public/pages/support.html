@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hỗ Trợ - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="shopee-navbar">
+        <!-- Top Bar -->
+        <div class="shopee-topbar">
+            <div class="navbar-container">
+                <div class="topbar-left">
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-notifications">
+                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i> Thông Báo
+                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                        </a>
+                        <div class="notifications-dropdown" id="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4>Thông báo</h4>
+                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
+                            </div>
+                            <div class="notifications-list" id="navbar-notifications-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <div class="topbar-user" id="topbar-user">
+                        <!-- Sẽ được load động -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Navbar -->
+        <div class="shopee-main-nav">
+            <div class="navbar-container">
+                <a href="/" class="shopee-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Vipo</span>
+                </a>
+                
+                <div class="shopee-search">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
+                        <button class="search-btn" onclick="searchProducts()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="shopee-actions">
+                    <a href="/pages/cart.html" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header"><h1><i class="fas fa-headset"></i> Hỗ Trợ</h1></div>
+
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:2rem;align-items:start;">
+            <div>
+                <div class="glass-card" style="padding:1.5rem;margin-bottom:1rem;">
+                    <h3>Liên hệ bộ phận hỗ trợ</h3>
+                    <p style="color:var(--dark-400);">Gửi yêu cầu cho đội ngũ hỗ trợ của chúng tôi. Thời gian phản hồi thường trong vòng 24 giờ.</p>
+                    <form onsubmit="submitSupport(event)" style="margin-top:1rem;">
+                        <div class="form-group"><label>Email liên hệ</label><input class="form-control" id="support_email" type="email" placeholder="Email của bạn" required></div>
+                        <div class="form-group"><label>Tiêu đề</label><input class="form-control" id="support_subject" type="text" placeholder="Tiêu đề vấn đề" required></div>
+                        <div class="form-group"><label>Nội dung</label><textarea class="form-control" id="support_message" rows="6" placeholder="Mô tả chi tiết vấn đề" required></textarea></div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Gửi yêu cầu</button>
+                        <button type="button" class="btn btn-outline" onclick="toggleChatbot()" style="margin-left:8px;"><i class="fas fa-robot"></i> Chat trực tiếp</button>
+                    </form>
+                </div>
+
+                <div class="glass-card" style="padding:1.5rem;">
+                    <h3>Câu hỏi thường gặp (FAQ)</h3>
+                    <div style="margin-top:0.75rem;">
+                        <details style="margin-bottom:0.5rem;"><summary><strong>1. Thời gian giao hàng mất bao lâu?</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Thời gian giao hàng thường từ 2-7 ngày tùy địa điểm và phương thức vận chuyển.</div></details>
+                        <details style="margin-bottom:0.5rem;"><summary><strong>2. Làm sao để yêu cầu hoàn tiền?</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Mở mục đơn hàng, chọn yêu cầu trả hàng/hoàn tiền và làm theo hướng dẫn. Bạn cũng có thể gửi thông tin tại form ở trên.</div></details>
+                        <details style="margin-bottom:0.5rem;"><summary><strong>3. Tôi muốn khiếu nại về sản phẩm</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Vui lòng xem <a href="/pages/complaint-policy.html">Chính sách khiếu nại</a> để hiểu quy trình, sau đó truy cập trang <a href="/pages/complaint.html">Gửi khiếu nại</a> để gửi thông tin chi tiết và bằng chứng.</div></details>
+                        <details style="margin-bottom:0.5rem;"><summary><strong>4. Liên hệ với người bán như thế nào?</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Vào trang gian hàng của sản phẩm và nhấn "Liên hệ" hoặc sử dụng chat trong trang sản phẩm.</div></details>
+                    </div>
+                </div>
+            </div>
+
+            <aside>
+                <div class="glass-card" style="padding:1rem;margin-bottom:1rem;">
+                    <h4>Hỗ trợ khẩn cấp</h4>
+                    <p style="color:var(--dark-400);">Số điện thoại: <strong>1900-XXX-XXX</strong></p>
+                    <p style="color:var(--dark-400);">Email: <a href="mailto:support@vipo.example">support@vipo.example</a></p>
+                    <p style="margin-top:0.5rem;display:flex;gap:8px;flex-wrap:wrap;">
+                        <a href="/pages/complaint.html" class="btn btn-outline" style="display:inline-block;">Gửi khiếu nại</a>
+                        <a href="/pages/complaint-policy.html" class="btn btn-outline" style="display:inline-block;">Chính sách</a>
+                    </p>
+                </div>
+
+                <div class="glass-card" style="padding:1rem;">
+                    <h4>Giờ làm việc</h4>
+                    <p style="color:var(--dark-400);">Thứ 2 - Thứ 7: 08:00 - 18:00</p>
+                    <p style="color:var(--dark-400);">Chủ nhật: 09:00 - 17:00</p>
+                </div>
+            </aside>
+        </div>
+
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    async function submitSupport(e) {
+        e.preventDefault();
+        const email = document.getElementById('support_email').value;
+        const subject = document.getElementById('support_subject').value;
+        const message = document.getElementById('support_message').value;
+        try {
+            const r = await api.post('/support', { email, subject, message });
+            if (r.success) { showToast('Yêu cầu đã được gửi. Chúng tôi sẽ phản hồi sớm.'); e.target.reset(); }
+            else showToast(r.message || 'Không thể gửi yêu cầu', 'error');
+        } catch (err) { console.error(err); showToast('Lỗi máy chủ', 'error'); }
+    }
+    </script>
+<script src="/js/shopee-nav.js"></script>
+</body>
+</html>

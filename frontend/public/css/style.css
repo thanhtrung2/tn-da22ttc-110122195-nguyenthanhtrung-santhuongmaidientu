@@ -18,15 +18,15 @@
     --dark-800: #ffffff;
     --dark-700: #e2e8f0;
     --dark-600: #cbd5e1;
-    --dark-500: #94a3b8;
-    --dark-400: #64748b;
+    --dark-500: #64748b;
+    --dark-400: #475569;
     --dark-300: #334155;
     --dark-200: #1e293b;
     --dark-100: #0f172a;
     --white: #ffffff;
     --text-primary: #1e293b;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
+    --text-secondary: #334155;
+    --text-muted: #475569;
     --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(0, 0, 0, 0.05);
     --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
@@ -1053,7 +1053,7 @@ a:hover {
 }
 
 .form-control::placeholder {
-    color: var(--dark-500);
+    color: var(--dark-300);
 }
 
 textarea.form-control {
@@ -1376,12 +1376,13 @@ select.form-control {
 
 .page-header .breadcrumb {
     font-size: 0.85rem;
-    color: var(--text-muted);
+    color: var(--dark-200);
     margin-top: 8px;
 }
 
 .page-header .breadcrumb a {
-    color: var(--text-muted);
+    color: var(--dark-300);
+    font-weight: 500;
 }
 
 .page-header .breadcrumb a:hover {
@@ -2374,7 +2375,7 @@ select.form-control {
     display: flex;
     background: white;
     border-radius: var(--radius-xl);
-    overflow: hidden;
+    position: relative;
     padding: 2px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
@@ -2435,6 +2436,191 @@ select.form-control {
 .search-suggestions a:hover {
     color: white;
     border-bottom-color: white;
+}
+
+/* Search Autocomplete Dropdown */
+.search-suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    min-width: 360px;
+    background: #ffffff;
+    border: 1.5px solid #e0e7ff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(79, 70, 229, 0.15), 0 4px 16px rgba(0,0,0,0.08);
+    z-index: 99999;
+    max-height: 480px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    animation: suggestFadeIn 0.18s cubic-bezier(0.16,1,0.3,1);
+}
+
+.search-suggestions-dropdown::-webkit-scrollbar {
+    width: 4px;
+}
+.search-suggestions-dropdown::-webkit-scrollbar-track { background: transparent; }
+.search-suggestions-dropdown::-webkit-scrollbar-thumb {
+    background: #c7d2fe;
+    border-radius: 99px;
+}
+
+.search-suggestions-dropdown.hidden {
+    display: none !important;
+}
+
+@keyframes suggestFadeIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.suggest-section {
+    padding: 4px 0;
+}
+
+.suggest-section:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.suggest-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px 6px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #6366f1;
+    font-weight: 800;
+    letter-spacing: 1px;
+    background: #f8f7ff;
+}
+
+.suggest-section-title i {
+    font-size: 0.75rem;
+}
+
+.suggest-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    color: #1e293b;
+    cursor: pointer;
+    transition: background 0.12s, padding-left 0.12s;
+    text-decoration: none !important;
+    border-left: 3px solid transparent;
+}
+
+.suggest-item:hover {
+    background: #f0f0ff;
+    border-left-color: #6366f1;
+    padding-left: 20px;
+}
+
+.suggest-item.category-item {
+    font-weight: 500;
+    color: #374151;
+}
+
+.suggest-item.category-item i.fa-search-plus {
+    color: #6366f1;
+    font-size: 0.85rem;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.suggest-item img {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    flex-shrink: 0;
+    background: #f8fafc;
+}
+
+.suggest-item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.suggest-item-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.suggest-item-shop {
+    font-size: 0.73rem;
+    color: #94a3b8;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.suggest-item-shop i {
+    font-size: 0.65rem;
+    color: #a5b4fc;
+}
+
+.suggest-item-price {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #e11d48;
+    flex-shrink: 0;
+    background: #fff0f3;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+
+/* Keyword tags */
+.suggest-tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px 12px;
+}
+
+.suggest-tag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #ede9fe;
+    border: 1.5px solid #c4b5fd;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #5b21b6;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.suggest-tag-btn:hover {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+}
+
+.suggest-tag-btn i {
+    font-size: 0.7rem;
+}
+
+.suggest-divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 0;
 }
 
 .shopee-actions {
@@ -4428,4 +4614,89 @@ body {
 
 #seller-modal .modal-content {
     pointer-events: auto !important;
+}
+
+/* ==========================================
+   READABILITY PATCH - Light theme text contrast
+   Overrides inline `color:var(--dark-500/600/700)` usages that
+   are hard to read on the light background. Backgrounds and
+   borders using these variables remain unaffected.
+   ========================================== */
+[style*="color:var(--dark-500)"],
+[style*="color: var(--dark-500)"] {
+    color: #475569 !important; /* WCAG AA on white */
+}
+[style*="color:var(--dark-600)"],
+[style*="color: var(--dark-600)"] {
+    color: #64748b !important;
+}
+[style*="color:var(--dark-700)"],
+[style*="color: var(--dark-700)"] {
+    color: #64748b !important;
+}
+/* `var(--white)` used as text color is invisible on the now-white background */
+[style*="color:var(--white)"],
+[style*="color: var(--white)"] {
+    color: var(--text-primary) !important;
+}
+/* `var(--dark-200/300)` for text are dark slate colors - keep them but ensure font-weight makes them clear */
+[style*="color:var(--dark-200)"],
+[style*="color: var(--dark-200)"],
+[style*="color:var(--dark-300)"],
+[style*="color: var(--dark-300)"] {
+    color: var(--text-primary) !important;
+}
+[style*="color:var(--dark-400)"],
+[style*="color: var(--dark-400)"] {
+    color: var(--text-secondary) !important;
+}
+
+/* Ensure all empty-state messages have decent contrast */
+.empty-state, .no-data, [data-empty] {
+    color: var(--text-secondary) !important;
+    font-weight: 500;
+}
+
+/* Form inputs - clearer text and borders */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="date"], input[type="search"],
+input[type="tel"], textarea, select {
+    color: var(--text-primary);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
+input[type="number"]:focus, input[type="date"]:focus, input[type="search"]:focus,
+input[type="tel"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+input::placeholder, textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+/* Improve readability of small/secondary text */
+small, .text-muted {
+    color: var(--text-muted);
+}
+
+/* Improve table text readability */
+table td, table th {
+    color: var(--text-primary);
+}
+table th {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Date input contrast */
+input[type="date"] {
+    color-scheme: light;
 }

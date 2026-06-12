@@ -71,10 +71,31 @@
             <div>
                 <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;">
                     <h3 style="margin-bottom:1rem;"><i class="fas fa-map-marker-alt" style="color:var(--danger)"></i> Địa chỉ nhận hàng</h3>
-                    <div class="form-group"><label>Họ tên người nhận</label><input class="form-control" id="ten" value="" placeholder="Nhập họ tên..."></div>
-                    <div class="form-group"><label>Số điện thoại</label><input class="form-control" id="sdt" placeholder="Nhập SĐT..."></div>
-                    <div class="form-group"><label>Địa chỉ giao hàng</label><textarea class="form-control" id="diachi" placeholder="Nhập địa chỉ chi tiết..." rows="3"></textarea></div>
-                    <div class="form-group"><label>Ghi chú</label><input class="form-control" id="ghichu" placeholder="Ghi chú cho người bán (tùy chọn)..."></div>
+                    <div id="checkout-address-section">
+                        <div class="form-group" id="saved-address-container" style="display:none;">
+                            <label>Chọn địa chỉ đã lưu</label>
+                            <select class="form-control" id="saved-addresses" onchange="fillSavedAddress()">
+                                <option value="">-- Nhập địa chỉ mới --</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Họ và tên</label><input class="form-control" id="ten" placeholder="Nhập họ tên người nhận"></div>
+                        <div class="form-group"><label>Số điện thoại</label><input class="form-control" id="sdt" placeholder="Nhập số điện thoại"></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                            <div class="form-group"><label>Tỉnh / Thành phố</label><select class="form-control" id="tinh" onchange="loadQuanHuyen()"><option value="">-- Chọn tỉnh/thành --</option></select></div>
+                            <div class="form-group"><label>Quận / Huyện</label><select class="form-control" id="quan" onchange="loadPhuongXa()" disabled><option value="">-- Chọn quận/huyện --</option></select></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+                            <div class="form-group"><label>Phường / Xã</label><select class="form-control" id="phuong" disabled><option value="">-- Chọn phường/xã --</option></select></div>
+                            <div class="form-group"><label>Số nhà, tên đường</label><input class="form-control" id="diachi" placeholder="Số nhà, tên đường..."></div>
+                        </div>
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="save-address" style="width: auto; accent-color: var(--primary);" checked>
+                                <span>Lưu làm địa chỉ mặc định</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;"><label>Ghi chú đơn hàng</label><input class="form-control" id="ghichu" placeholder="Ghi chú cho người bán (tùy chọn)..."></div>
                 </div>
                 <div class="glass-card" style="padding:1.5rem;">
                     <h3 style="margin-bottom:1rem;"><i class="fas fa-wallet" style="color:var(--warning)"></i> Phương thức thanh toán</h3>
@@ -85,9 +106,9 @@
                             <div><strong>Thanh toán khi nhận hàng (COD)</strong><br><small style="color:var(--dark-400)">Trả tiền mặt khi nhận hàng</small></div>
                         </label>
                         <label class="pay-opt" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--dark-800);border:2px solid var(--dark-700);border-radius:12px;cursor:pointer;">
-                            <input type="radio" name="payment" value="momo" style="accent-color:var(--primary)">
-                            <i class="fas fa-wallet" style="color:#d82d8b;font-size:1.2rem;"></i>
-                            <div><strong>Momo</strong><br><small style="color:var(--dark-400)">Thanh toán qua ví Momo</small></div>
+                            <input type="radio" name="payment" value="payos" style="accent-color:var(--primary)">
+                            <i class="fas fa-qrcode" style="color:#2a71d0;font-size:1.2rem;"></i>
+                            <div><strong>PayOS</strong><br><small style="color:var(--dark-400)">Thanh toán qua PayOS</small></div>
                         </label>
                     </div>
                 </div>
@@ -97,16 +118,43 @@
                     <h3 style="margin-bottom:1rem;">Đơn hàng của bạn</h3>
                     <div id="order-summary"><div class="spinner" style="margin:1rem auto;"></div></div>
                     
-                    <!-- Voucher Input -->
+                    <!-- Voucher Selection -->
                     <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--dark-700);">
-                        <h4 style="margin-bottom: 1rem; font-size: 0.95rem; color: var(--dark-300);"><i class="fas fa-ticket-alt" style="color: var(--warning);"></i> Khuyến mãi</h4>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="voucher-code" class="form-control" placeholder="Mã giảm giá..." style="margin-bottom: 0;">
-                            <button class="btn btn-outline" onclick="applyVoucher()" style="white-space: nowrap;">Áp dụng</button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="font-size: 0.95rem; color: var(--dark-300); margin: 0;">
+                                <i class="fas fa-ticket-alt" style="color: var(--warning);"></i> Khuyến mãi (Vipo Voucher)
+                            </h4>
+                            <button class="btn btn-outline" style="padding: 4px 12px; font-size: 0.85rem;" onclick="openVoucherModal()">Chọn Voucher</button>
                         </div>
-                        <div id="voucher-message" style="font-size: 0.85rem; margin-top: 8px; display: none;"></div>
+                        <div id="selected-voucher-display" style="display:none; padding: 12px; background: rgba(99,102,241,0.1); border: 1px solid var(--primary-light); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display:flex; align-items:center; gap: 8px;">
+                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                                    <span id="voucher-message" style="font-weight: 600; color: var(--primary-light); font-size: 0.9rem;"></span>
+                                </div>
+                                <i class="fas fa-times" style="cursor: pointer; color: var(--dark-400);" onclick="removeVoucher()"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voucher Modal -->
+    <div id="voucher-modal" class="modal" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="glass-card" style="width: 100%; max-width: 500px; padding: 0; overflow: hidden; border-radius: 12px; display: flex; flex-direction: column; max-height: 80vh;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--dark-700); display: flex; justify-content: space-between; align-items: center; background: var(--dark-800);">
+                <h3 style="margin: 0; font-size: 1.1rem;">Chọn Vipo Voucher</h3>
+                <i class="fas fa-times" style="cursor: pointer; font-size: 1.2rem; color: var(--dark-300);" onclick="closeVoucherModal()"></i>
+            </div>
+            <div id="voucher-list" style="padding: 20px; overflow-y: auto; background: var(--dark-900); display: flex; flex-direction: column; gap: 12px; flex: 1;">
+                <!-- Vouchers will be rendered here -->
+            </div>
+            <div style="padding: 16px 20px; border-top: 1px solid var(--dark-700); background: var(--dark-800); text-align: right;">
+                <button class="btn btn-outline" style="margin-right: 8px; border-color: var(--danger); color: var(--danger);" onclick="removeVoucher()">Bỏ chọn</button>
+                <button class="btn btn-outline" style="margin-right: 8px;" onclick="closeVoucherModal()">Trở lại</button>
+                <button class="btn btn-primary" onclick="confirmVoucherSelection()">Đồng ý</button>
             </div>
         </div>
     </div>

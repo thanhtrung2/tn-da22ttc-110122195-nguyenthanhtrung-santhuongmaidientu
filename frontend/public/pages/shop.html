@@ -122,7 +122,7 @@
                             <div class="notifications-list" id="navbar-notifications-list"></div>
                         </div>
                     </div>
-                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
                     <div class="topbar-user" id="topbar-user"></div>
                 </div>
             </div>
@@ -134,8 +134,8 @@
                     <span>Vipo</span>
                 </a>
                 <div class="shopee-search">
-                    <div class="search-box">
-                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
                         <button class="search-btn" onclick="searchProducts()">
                             <i class="fas fa-search"></i>
                         </button>
@@ -160,6 +160,13 @@
         <!-- Shop Header -->
         <div class="shop-hero" id="shop-header">
             <div class="spinner" style="margin: 2rem auto;"></div>
+        </div>
+
+        <!-- Vouchers Section -->
+        <div id="shop-vouchers" style="margin-bottom: 2rem; display: none;">
+            <h3 style="margin-bottom: 1rem; color: var(--primary-light); font-size: 1.2rem;"><i class="fas fa-ticket-alt"></i> Mã giảm giá của Shop</h3>
+            <div id="voucher-list" style="display: flex; gap: 1rem; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem; scrollbar-width: thin;">
+            </div>
         </div>
 
         <!-- Category Tabs -->
@@ -249,7 +256,78 @@
         `;
 
         loadCategories();
+        loadShopPromotions();
         loadProducts();
+    }
+
+    async function loadShopPromotions() {
+        const r = await api.get(`/promotions/shop/${shopId}`);
+        if (!r.success || !r.data || r.data.length === 0) return;
+
+        const voucherContainer = document.getElementById('shop-vouchers');
+        const voucherList = document.getElementById('voucher-list');
+        voucherContainer.style.display = 'block';
+
+        voucherList.innerHTML = r.data.map(v => {
+            const isPercent = v.loai === 'phan_tram';
+            const isFreeship = v.loai === 'mien_phi_van_chuyen';
+            const discountText = isPercent ? `Giảm ${v.gia_tri}%` : (isFreeship ? 'Miễn phí vận chuyển' : `Giảm ${formatPrice(v.gia_tri)}`);
+            const iconClass = isFreeship ? 'fas fa-truck' : (isPercent ? 'fas fa-percent' : 'fas fa-tag');
+            const remaining = (v.so_luong || 0) - (v.da_dung || 0);
+            const pct = v.so_luong > 0 ? Math.round((v.da_dung / v.so_luong) * 100) : 0;
+            const minOrderText = v.don_toi_thieu > 0 ? `Đơn từ ${formatPrice(v.don_toi_thieu)}` : 'Không giới hạn';
+            return `
+                <div style="min-width: 260px; max-width: 280px; background: linear-gradient(135deg, rgba(238,77,45,0.1) 0%, rgba(15,23,42,0.95) 100%); border: 1px dashed var(--primary); border-radius: 14px; overflow: hidden; flex-shrink:0; box-shadow: 0 4px 15px rgba(238,77,45,0.1);">
+                    <div style="background: var(--gradient-primary); padding: 0.85rem 1rem; display:flex; align-items:center; gap:8px;">
+                        <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="${iconClass}" style="color:white;font-size:0.9rem;"></i>
+                        </div>
+                        <div style="font-weight:700;color:white;font-size:1rem;">${discountText}</div>
+                    </div>
+                    <div style="padding: 0.85rem 1rem;">
+                        <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+                            <i class="fas fa-shopping-bag" style="color:var(--dark-400);font-size:0.75rem;"></i>
+                            <span style="font-size:0.8rem;color:var(--dark-300);">${minOrderText}</span>
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--dark-400);margin-bottom:3px;">
+                                <span>Đã dùng: ${v.da_dung || 0}/${v.so_luong || 0}</span>
+                                <span style="color:${remaining < 10 ? 'var(--danger)' : 'var(--success)'}">Còn ${remaining}</span>
+                            </div>
+                            <div style="height:4px;background:var(--dark-700);border-radius:10px;overflow:hidden;">
+                                <div style="height:100%;width:${pct}%;background:var(--gradient-primary);border-radius:10px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:0.6rem 1rem;border-top:1px dashed rgba(238,77,45,0.3);display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-weight:700;color:var(--primary-light);letter-spacing:1px;font-size:0.9rem;">${v.ten_khuyen_mai}</span>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.78rem; border-radius: 20px;" onclick="saveVoucher(${v.id}, this)">
+                            <i class="fas fa-bookmark"></i> Lưu
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function saveVoucher(id, btn) {
+        if (!isLoggedIn()) {
+            showToast('Vui lòng đăng nhập để lưu mã', 'warning');
+            setTimeout(() => location.href = '/pages/login.html', 1500);
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const r = await api.post(`/promotions/save/${id}`);
+        if (r.success) {
+            btn.innerHTML = 'Đã lưu';
+            btn.className = 'btn btn-outline';
+            showToast(r.message);
+        } else {
+            btn.innerHTML = 'Lưu';
+            btn.disabled = false;
+            showToast(r.message, 'error');
+        }
     }
 
     async function loadCategories() {

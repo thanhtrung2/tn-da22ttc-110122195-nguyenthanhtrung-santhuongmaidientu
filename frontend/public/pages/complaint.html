@@ -30,7 +30,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
                     <div class="topbar-user" id="topbar-user">
                         <!-- Sẽ được load động -->
                     </div>
@@ -47,8 +47,8 @@
                 </a>
                 
                 <div class="shopee-search">
-                    <div class="search-box">
-                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
                         <button class="search-btn" onclick="searchProducts()">
                             <i class="fas fa-search"></i>
                         </button>
@@ -65,7 +65,12 @@
         </div>
     </nav>
     <div class="page-container">
-        <div class="page-header"><h1><i class="fas fa-flag"></i> Khiếu nại</h1></div>
+        <div class="page-header">
+            <h1><i class="fas fa-flag"></i> Khiếu nại</h1>
+            <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem;">
+                Trước khi gửi khiếu nại, vui lòng đọc <a href="/pages/complaint-policy.html" style="color:var(--primary);font-weight:600;"><i class="fas fa-balance-scale"></i> Chính sách khiếu nại</a> để hiểu rõ quyền lợi và quy trình xử lý.
+            </p>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
             <div class="glass-card" style="padding:2rem;">
                 <h3 style="margin-bottom:1.5rem;">Gửi khiếu nại mới</h3>

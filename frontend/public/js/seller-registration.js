@@ -287,7 +287,7 @@ function validateStep4() {
 
 function validateStep5() {
     // Kiểm tra tất cả dữ liệu đã được nhập
-    const requiredFields = ['ten_shop', 'mo_ta_shop', 'dia_chi_kho', 'phuong_thuc_van_chuyen', 'ma_so_thue'];
+    const requiredFields = ['ten_shop', 'mo_ta_shop', 'dia_chi_kho', 'phuong_thuc_van_chuyen']; // ma_so_thue là không bắt buộc
     const requiredFiles = ['cccd_mat_truoc', 'cccd_mat_sau', 'anh_guong_mat', 'giay_phep_kinh_doanh'];
     
     for (const field of requiredFields) {
@@ -303,6 +303,13 @@ function validateStep5() {
             return false;
         }
     }
+    
+    const dongYChinhSach = document.getElementById('dong_y_chinh_sach');
+    if (dongYChinhSach && !dongYChinhSach.checked) {
+        showValidationMessage('dong_y_chinh_sach_message', 'Bạn phải đồng ý với chính sách và điều khoản', 'error');
+        return false;
+    }
+    hideValidationMessage('dong_y_chinh_sach_message');
     
     return true;
 }
@@ -446,6 +453,9 @@ async function submitSellerRegistration() {
         formData.append('phuong_thuc_van_chuyen', sellerFormData.phuong_thuc_van_chuyen);
         formData.append('ma_so_thue', sellerFormData.ma_so_thue);
         
+        const dongYChinhSach = document.getElementById('dong_y_chinh_sach');
+        formData.append('dong_y_chinh_sach', dongYChinhSach && dongYChinhSach.checked ? 'true' : 'false');
+        
         // Thêm files
         formData.append('cccd_mat_truoc', uploadedFiles.cccd_mat_truoc);
         formData.append('cccd_mat_sau', uploadedFiles.cccd_mat_sau);
@@ -487,6 +497,10 @@ async function submitSellerRegistration() {
 
 // Hiển thị modal thành công
 function showSuccessModal() {
+    document.getElementById('registration-summary').style.display = 'none';
+    document.getElementById('dong_y_chinh_sach').closest('.form-group').style.display = 'none';
+    document.getElementById('registration-success-msg').style.display = 'block';
+    
     const modalContent = document.querySelector('#seller-modal .modal-content');
     modalContent.innerHTML = `
         <div style="text-align: center; padding: 3rem 2rem;">
@@ -553,13 +567,19 @@ function openSellerRegistration() {
     
     const user = JSON.parse(localStorage.getItem('user'));
     
-    // Nếu đã là seller, chuyển đến dashboard
-    if (user.vai_tro === 'seller') {
+    // Nếu đã là seller và được xác thực, chuyển đến dashboard
+    if (user.vai_tro === 'seller' && user.trang_thai_xac_thuc === 'verified') {
         window.location.href = '/pages/seller/dashboard.html';
         return;
     }
     
-    // Nếu là customer, mở modal đăng ký
+    // Nếu đang chờ duyệt, không cho đăng ký lại
+    if (user.vai_tro === 'seller' && user.trang_thai_xac_thuc === 'pending') {
+        showToast('Hồ sơ của bạn đang chờ Admin xét duyệt', 'warning');
+        return;
+    }
+    
+    // Nếu là customer hoặc seller bị từ chối, mở modal đăng ký
     document.getElementById('seller-modal').style.display = 'flex';
     
     // Đảm bảo form inputs có thể nhập được

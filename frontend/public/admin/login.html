@@ -18,34 +18,58 @@
             color: white;
         }
         .admin-login-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             padding: 3rem;
-            border-radius: 12px;
+            border-radius: 18px;
             width: 100%;
             max-width: 450px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
         }
         .admin-brand {
             text-align: center;
             font-size: 2rem;
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 0.5rem;
-            color: var(--primary-light);
+            color: #f8fafc;
+            letter-spacing: 0.06em;
         }
         .admin-subtitle {
             text-align: center;
-            color: #94a3b8;
+            color: #cbd5e1;
             margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+        .form-group {
+            margin-bottom: 1.4rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.6rem;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 0.96rem;
         }
         .form-control {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid #334155;
-            color: white;
+            width: 100%;
+            min-height: 48px;
+            padding: 0.95rem 1rem;
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid #475569;
+            border-radius: 0.9rem;
+            color: #f8fafc;
+            font-size: 1rem;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .form-control::placeholder {
+            color: #94a3b8;
+            opacity: 1;
         }
         .form-control:focus {
-            border-color: var(--primary-light);
+            border-color: #818cf8;
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.18);
+            outline: none;
         }
         .btn-admin {
             width: 100%;
@@ -54,7 +78,7 @@
             color: white;
             border: none;
             border-radius: 8px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 1rem;

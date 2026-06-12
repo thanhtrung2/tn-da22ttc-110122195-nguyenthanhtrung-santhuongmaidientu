@@ -17,7 +17,7 @@ function getImageUrl(file) {
 // Tạo sản phẩm
 const createProduct = async (req, res) => {
     try {
-        const { ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, danh_muc_id } = req.body;
+        const { ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, danh_muc_id, thuoc_tinh, variants } = req.body;
         let hinh_anh = getImageUrl(req.file);
 
         const [shop] = await pool.query('SELECT id FROM gian_hang WHERE nguoi_ban_id = ?', [req.user.id]);
@@ -36,14 +36,29 @@ const createProduct = async (req, res) => {
 
         // Tạo sản phẩm với trạng thái chờ duyệt
         const [result] = await pool.query(
-            'INSERT INTO san_pham (gian_hang_id, danh_muc_id, ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, hinh_anh, trang_thai_duyet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [shop[0].id, danh_muc_id || null, ten_san_pham, mo_ta, gia, gia_khuyen_mai || null, so_luong_ton || 0, hinh_anh, 'pending']
+            'INSERT INTO san_pham (gian_hang_id, danh_muc_id, ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, hinh_anh, thuoc_tinh, trang_thai_duyet) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [shop[0].id, danh_muc_id || null, ten_san_pham, mo_ta, gia, gia_khuyen_mai || null, so_luong_ton || 0, hinh_anh, thuoc_tinh || null, 'pending']
         );
+
+        const productId = result.insertId;
+
+        if (variants) {
+            let parsedVariants = [];
+            try { parsedVariants = JSON.parse(variants); } catch(e) {}
+            if (parsedVariants.length > 0) {
+                for (const v of parsedVariants) {
+                    await pool.query(
+                        'INSERT INTO san_pham_bien_the (san_pham_id, mau_sac, ma_mau, kich_thuoc, so_luong_ton, gia_them) VALUES (?, ?, ?, ?, ?, ?)',
+                        [productId, v.mau_sac || null, v.ma_mau || null, v.kich_thuoc || null, v.so_luong_ton || 0, v.gia_them || 0]
+                    );
+                }
+            }
+        }
 
         res.status(201).json({ 
             success: true, 
             message: 'Thêm sản phẩm thành công! Sản phẩm đang chờ Admin duyệt.', 
-            data: { id: result.insertId } 
+            data: { id: productId } 
         });
     } catch (error) {
         console.error('Create product error:', error);
@@ -54,7 +69,7 @@ const createProduct = async (req, res) => {
 // Cập nhật sản phẩm
 const updateProduct = async (req, res) => {
     try {
-        const { ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, danh_muc_id, trang_thai } = req.body;
+        const { ten_san_pham, mo_ta, gia, gia_khuyen_mai, so_luong_ton, danh_muc_id, trang_thai, thuoc_tinh, variants } = req.body;
         const productId = req.params.id;
 
         const [shop] = await pool.query('SELECT id FROM gian_hang WHERE nguoi_ban_id = ?', [req.user.id]);
@@ -73,7 +88,7 @@ const updateProduct = async (req, res) => {
         }
 
         await pool.query(
-            'UPDATE san_pham SET ten_san_pham = ?, mo_ta = ?, gia = ?, gia_khuyen_mai = ?, so_luong_ton = ?, danh_muc_id = ?, hinh_anh = ?, trang_thai = ? WHERE id = ?',
+            'UPDATE san_pham SET ten_san_pham = ?, mo_ta = ?, gia = ?, gia_khuyen_mai = ?, so_luong_ton = ?, danh_muc_id = ?, hinh_anh = ?, thuoc_tinh = ?, trang_thai = ? WHERE id = ?',
             [
                 ten_san_pham || product[0].ten_san_pham,
                 mo_ta || product[0].mo_ta,
@@ -82,10 +97,25 @@ const updateProduct = async (req, res) => {
                 so_luong_ton !== undefined ? so_luong_ton : product[0].so_luong_ton,
                 danh_muc_id || product[0].danh_muc_id,
                 hinh_anh,
+                thuoc_tinh !== undefined ? thuoc_tinh : product[0].thuoc_tinh,
                 trang_thai || product[0].trang_thai,
                 productId
             ]
         );
+
+        if (variants) {
+            let parsedVariants = [];
+            try { parsedVariants = JSON.parse(variants); } catch(e) {}
+            await pool.query('DELETE FROM san_pham_bien_the WHERE san_pham_id = ?', [productId]);
+            if (parsedVariants.length > 0) {
+                for (const v of parsedVariants) {
+                    await pool.query(
+                        'INSERT INTO san_pham_bien_the (san_pham_id, mau_sac, ma_mau, kich_thuoc, so_luong_ton, gia_them) VALUES (?, ?, ?, ?, ?, ?)',
+                        [productId, v.mau_sac || null, v.ma_mau || null, v.kich_thuoc || null, v.so_luong_ton || 0, v.gia_them || 0]
+                    );
+                }
+            }
+        }
 
         res.json({ success: true, message: 'Cập nhật sản phẩm thành công' });
     } catch (error) {
@@ -231,7 +261,38 @@ const getProductById = async (req, res) => {
             [req.params.id]
         );
 
-        res.json({ success: true, data: { ...rows[0], reviews } });
+        // Get variants
+        const [variants] = await pool.query(
+            'SELECT * FROM san_pham_bien_the WHERE san_pham_id = ? AND trang_thai = "active"',
+            [req.params.id]
+        );
+
+        // Group variants for frontend (by mau_sac)
+        let variants_grouped = [];
+        if (variants.length > 0) {
+            const groups = {};
+            variants.forEach(v => {
+                const color = v.mau_sac || 'Mặc định';
+                if (!groups[color]) {
+                    groups[color] = {
+                        mau_sac: color,
+                        ma_mau: v.ma_mau || '#cccccc',
+                        tong_ton: 0,
+                        kich_thuoc: []
+                    };
+                }
+                groups[color].tong_ton += v.so_luong_ton;
+                groups[color].kich_thuoc.push({
+                    id: v.id,
+                    ten: v.kich_thuoc || 'Mặc định',
+                    so_luong_ton: v.so_luong_ton,
+                    gia_them: v.gia_them
+                });
+            });
+            variants_grouped = Object.values(groups);
+        }
+
+        res.json({ success: true, data: { ...rows[0], reviews, variants, variants_grouped } });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Lỗi server' });
     }
@@ -305,4 +366,45 @@ const getProductsByShop = async (req, res) => {
     }
 };
 
-module.exports = { createProduct, updateProduct, deleteProduct, getMyProducts, getAllProducts, getProductById, getCategories, getProductsByShop };
+const getSearchSuggestions = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.json({ success: true, data: { categories: [], products: [], tags: [] } });
+        }
+
+        const searchTerm = `%${q}%`;
+
+        const [categories] = await pool.query(
+            'SELECT id, ten_danh_muc FROM danh_muc WHERE ten_danh_muc LIKE ? LIMIT 3',
+            [searchTerm]
+        );
+
+        const [products] = await pool.query(
+            'SELECT id, ten_san_pham, hinh_anh, gia_ban FROM san_pham WHERE ten_san_pham LIKE ? AND trang_thai = "active" LIMIT 5',
+            [searchTerm]
+        );
+
+        const tags = [];
+        if (products.length > 0) {
+            const firstWord = products[0].ten_san_pham.split(' ')[0];
+            if (firstWord && firstWord.length > 2) {
+                tags.push(firstWord);
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                categories,
+                products,
+                tags
+            }
+        });
+    } catch (error) {
+        console.error('Search suggest error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+module.exports = { createProduct, updateProduct, deleteProduct, getMyProducts, getAllProducts, getProductById, getCategories, getProductsByShop, getSearchSuggestions };

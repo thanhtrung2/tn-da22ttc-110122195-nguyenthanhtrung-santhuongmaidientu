@@ -30,7 +30,7 @@
                             </div>
                         </div>
                     </div>
-                    <a href="#" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
                     <div class="topbar-user" id="topbar-user">
                         <!-- Sẽ được load động -->
                     </div>
@@ -47,8 +47,8 @@
                 </a>
                 
                 <div class="shopee-search">
-                    <div class="search-box">
-                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
                         <button class="search-btn" onclick="searchProducts()">
                             <i class="fas fa-search"></i>
                         </button>
@@ -78,7 +78,7 @@
         <div id="orders-list"><div class="spinner" style="margin:3rem auto;"></div></div>
     </div>
 
-    <style>.filter-btn{background:var(--dark-800);color:var(--dark-400);border:1px solid var(--dark-700);}.filter-btn.active,.filter-btn:hover{background:var(--primary);color:white;border-color:var(--primary);}</style>
+    <style>.filter-btn{background:var(--dark-800);color:var(--dark-400);border:1px solid var(--dark-700);}.filter-btn.active,.filter-btn:hover{background:var(--primary);color:white;border-color:var(--primary);} .order-card-link{transition:transform 0.2s, box-shadow 0.2s, border-color 0.2s;} .order-card-link:hover{transform:translateY(-2px); border-color:var(--primary) !important; box-shadow:0 8px 20px rgba(99,102,241,0.2);}</style>
 
     <script src="/js/api.js"></script>
     <script>
@@ -100,7 +100,7 @@
         }
 
         el.innerHTML = r.data.map(o => `
-        <div class="glass-card" style="padding:1.5rem;margin-bottom:1rem;cursor:pointer;" onclick="location.href='/pages/order-detail.html?id=${o.id}'">
+        <a href="/pages/order-detail.html?id=${o.id}" class="glass-card order-card-link" style="display:block;padding:1.5rem;margin-bottom:1rem;cursor:pointer;text-decoration:none;color:inherit;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
                 <div>
                     <span style="font-size:0.8rem;color:var(--dark-400);">Mã đơn: #${o.id}</span>
@@ -120,7 +120,10 @@
                     </div>
                 </div>
             </div>
-        </div>`).join('');
+            <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;padding-top:0.75rem;border-top:1px dashed var(--dark-700);">
+                <span style="font-size:0.8rem;color:var(--primary-light);"><i class="fas fa-chevron-right"></i> Xem chi tiết</span>
+            </div>
+        </a>`).join('');
     }
 
     filterOrders('');
