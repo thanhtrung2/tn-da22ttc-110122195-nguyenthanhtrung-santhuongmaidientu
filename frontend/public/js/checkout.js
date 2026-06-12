@@ -42,6 +42,9 @@ async function loadAddresses() {
             
             if (container && select) {
                 container.style.display = 'block';
+                // Clear existing options except the first one
+                select.innerHTML = '<option value="">-- Nhập địa chỉ mới --</option>';
+                
                 savedUserAddresses.forEach((addr, index) => {
                     const option = document.createElement('option');
                     option.value = index;
@@ -52,7 +55,7 @@ async function loadAddresses() {
                 const defaultIndex = savedUserAddresses.findIndex(a => a.la_mac_dinh);
                 const selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
                 select.value = selectedIndex;
-                fillAddressData(savedUserAddresses[selectedIndex]);
+                fillSavedAddress();
             }
         }
     } catch (e) {
@@ -62,6 +65,8 @@ async function loadAddresses() {
 
 function fillSavedAddress() {
     const select = document.getElementById('saved-addresses');
+    const saveAddressCheckbox = document.getElementById('save-address');
+    
     if (!select.value) {
         document.getElementById('ten').value = '';
         document.getElementById('sdt').value = '';
@@ -71,11 +76,21 @@ function fillSavedAddress() {
         document.getElementById('quan').value = '';
         loadPhuongXa();
         document.getElementById('phuong').value = '';
+        
+        if (saveAddressCheckbox) {
+            saveAddressCheckbox.checked = true;
+            saveAddressCheckbox.parentElement.style.display = 'flex';
+        }
         return;
     }
     
     const addr = savedUserAddresses[parseInt(select.value)];
     if (addr) fillAddressData(addr);
+    
+    if (saveAddressCheckbox) {
+        saveAddressCheckbox.checked = false;
+        saveAddressCheckbox.parentElement.style.display = 'none';
+    }
 }
 
 function fillAddressData(address) {

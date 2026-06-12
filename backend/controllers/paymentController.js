@@ -183,13 +183,13 @@ const payosReturn = async (req, res) => {
                     );
                 }
             }
-            res.redirect(`${process.env.CLIENT_URL}/pages/payment-success.html`);
+            res.redirect((process.env.CLIENT_URL || '') + '/pages/payment-success.html');
         } else {
-            res.redirect(`${process.env.CLIENT_URL}/pages/orders.html`);
+            res.redirect((process.env.CLIENT_URL || '') + '/pages/orders.html');
         }
     } catch (error) {
         console.error('PayOS return error:', error);
-        res.redirect(`${process.env.CLIENT_URL}/pages/orders.html`);
+        res.redirect((process.env.CLIENT_URL || '') + '/pages/orders.html');
     }
 };
 
@@ -198,10 +198,10 @@ const payosCancel = async (req, res) => {
         const { orderCode } = req.query;
         // The webhook handles failure or we can just ignore DB updates since it's cancelled
         // Redirect to orders page with failure message
-        res.redirect(`${process.env.CLIENT_URL}/pages/orders.html?payment=cancelled`);
+        res.redirect((process.env.CLIENT_URL || '') + '/pages/orders.html?payment=cancelled');
     } catch (error) {
         console.error('PayOS cancel error:', error);
-        res.redirect(`${process.env.CLIENT_URL}/pages/orders.html?payment=error`);
+        res.redirect((process.env.CLIENT_URL || '') + '/pages/orders.html?payment=error');
     }
 };
 

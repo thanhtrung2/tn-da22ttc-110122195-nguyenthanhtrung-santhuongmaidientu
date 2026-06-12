@@ -38,26 +38,50 @@ const createAddress = async (req, res) => {
             finalIsDefault = 1;
         }
 
-        // Nếu thiết lập làm mặc định, đặt tất cả địa chỉ cũ thành không mặc định
-        if (finalIsDefault === 1) {
-            await connection.query(
-                'UPDATE dia_chi_nguoi_dung SET la_mac_dinh = FALSE WHERE nguoi_dung_id = ?',
-                [req.user.id]
-            );
-        }
-
-        const [result] = await connection.query(
-            'INSERT INTO dia_chi_nguoi_dung (nguoi_dung_id, ho_ten, so_dien_thoai, dia_chi, la_mac_dinh) VALUES (?, ?, ?, ?, ?)',
-            [req.user.id, ho_ten, so_dien_thoai, dia_chi, finalIsDefault]
+        // Kiểm tra địa chỉ trùng lặp
+        const [duplicateCheck] = await connection.query(
+            'SELECT id, la_mac_dinh FROM dia_chi_nguoi_dung WHERE nguoi_dung_id = ? AND ho_ten = ? AND so_dien_thoai = ? AND dia_chi = ?',
+            [req.user.id, ho_ten, so_dien_thoai, dia_chi]
         );
+
+        let addressId = null;
+
+        if (duplicateCheck.length > 0) {
+            addressId = duplicateCheck[0].id;
+            // Nếu muốn đặt làm mặc định nhưng chưa phải mặc định
+            if (finalIsDefault === 1 && !duplicateCheck[0].la_mac_dinh) {
+                await connection.query(
+                    'UPDATE dia_chi_nguoi_dung SET la_mac_dinh = FALSE WHERE nguoi_dung_id = ?',
+                    [req.user.id]
+                );
+                await connection.query(
+                    'UPDATE dia_chi_nguoi_dung SET la_mac_dinh = TRUE WHERE id = ?',
+                    [addressId]
+                );
+            }
+        } else {
+            // Nếu thiết lập làm mặc định, đặt tất cả địa chỉ cũ thành không mặc định
+            if (finalIsDefault === 1) {
+                await connection.query(
+                    'UPDATE dia_chi_nguoi_dung SET la_mac_dinh = FALSE WHERE nguoi_dung_id = ?',
+                    [req.user.id]
+                );
+            }
+
+            const [result] = await connection.query(
+                'INSERT INTO dia_chi_nguoi_dung (nguoi_dung_id, ho_ten, so_dien_thoai, dia_chi, la_mac_dinh) VALUES (?, ?, ?, ?, ?)',
+                [req.user.id, ho_ten, so_dien_thoai, dia_chi, finalIsDefault]
+            );
+            addressId = result.insertId;
+        }
 
         await connection.commit();
 
         res.status(201).json({
             success: true,
-            message: 'Thêm địa chỉ thành công',
+            message: duplicateCheck.length > 0 ? 'Địa chỉ đã tồn tại' : 'Thêm địa chỉ thành công',
             data: {
-                id: result.insertId,
+                id: addressId,
                 nguoi_dung_id: req.user.id,
                 ho_ten,
                 so_dien_thoai,
