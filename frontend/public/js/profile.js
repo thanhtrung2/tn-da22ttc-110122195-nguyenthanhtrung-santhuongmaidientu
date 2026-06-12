@@ -245,16 +245,21 @@ function displayNotifications(notifications) {
     notifications.forEach(notif => {
         const isRead = notif.trang_thai === 'read';
         html += `
-            <div class="notification-item ${isRead ? 'read' : 'unread'}" onclick="markNotificationAsRead(${notif.id})">
-                <div class="notification-icon">
-                    <i class="fas fa-${getNotificationIcon(notif.loai)}"></i>
-                </div>
-                <div class="notification-content">
-                    <h5>${notif.tieu_de}</h5>
-                    <p>${notif.noi_dung}</p>
-                    <small>${formatDate(notif.ngay_tao)}</small>
+            <div class="notification-item ${isRead ? 'read' : 'unread'}" style="cursor: pointer; position: relative; display: flex; align-items: flex-start; gap: 1rem; padding-right: 3rem;">
+                <div onclick="handleNotificationClick(${notif.id}, '${notif.url_lien_ket || ''}')" style="display: flex; align-items: flex-start; gap: 1rem; flex: 1;">
+                    <div class="notification-icon">
+                        <i class="fas fa-${getNotificationIcon(notif.loai)}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <h5>${notif.tieu_de}</h5>
+                        <p>${notif.noi_dung}</p>
+                        <small>${formatDate(notif.ngay_tao)}</small>
+                    </div>
                 </div>
                 ${!isRead ? '<div class="notification-dot"></div>' : ''}
+                <button onclick="removeNotification(event, ${notif.id})" title="X\u00f3a th\u00f4ng b\u00e1o" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:4px 6px;border-radius:6px;transition:all 0.2s;" onmouseover="this.style.color='#ef4444';this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.color='#94a3b8';this.style.background='transparent'">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
     });
@@ -279,11 +284,19 @@ async function markNotificationAsRead(notificationId) {
         const result = await api.put(`/notifications/${notificationId}`, { da_doc: true });
         if (result.success) {
             await loadNotifications();
+            if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
         }
     } catch (error) {
         console.error('Mark notification error:', error);
     }
 }
+
+window.handleNotificationClick = async function(notificationId, url) {
+    await markNotificationAsRead(notificationId);
+    if (url && url !== 'undefined' && url !== 'null' && url.trim() !== '') {
+        window.location.href = url;
+    }
+};
 
 // Đánh dấu tất cả thông báo đã đọc
 async function markAllNotificationsAsRead() {
@@ -537,9 +550,14 @@ function updateSellerSection() {
                         <h4 style="color:var(--danger);margin-bottom:0.5rem;"><i class="fas fa-exclamation-circle"></i> Lý do từ chối:</h4>
                         <p style="margin:0;">${user.ly_do_tu_choi || 'Không có lý do cụ thể'}</p>
                     </div>
-                    <button onclick="openSellerRegistration()" class="btn btn-primary" style="margin-top:2rem;">
-                        <i class="fas fa-redo"></i> Đăng ký lại
-                    </button>
+                    <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem;">
+                        <button onclick="cancelSellerRegistration()" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">
+                            <i class="fas fa-trash"></i> Xóa & Làm lại
+                        </button>
+                        <button onclick="openSellerRegistration()" class="btn btn-primary">
+                            <i class="fas fa-redo"></i> Đăng ký lại
+                        </button>
+                    </div>
                 </div>
             `;
         } else if (user.trang_thai_xac_thuc === 'verified') {
@@ -581,7 +599,19 @@ function updateSellerSection() {
                 <div style="font-size:4rem;margin-bottom:1.5rem;">🚀</div>
                 <h2 style="margin-bottom:1rem;">Bắt đầu kinh doanh cùng Vipo</h2>
                 <p style="color:var(--dark-400);margin-bottom:2rem;max-width:500px;margin-inline:auto;">Tiếp cận hàng triệu khách hàng và quản lý gian hàng của bạn một cách chuyên nghiệp.</p>
-                <button onclick="openSellerRegistration()" class="btn btn-primary btn-lg">
+                
+                <div style="text-align:left; background: var(--dark-900); padding: 2rem; border-radius: 12px; margin: 0 auto 2.5rem auto; max-width: 600px; border: 1px solid var(--dark-700);">
+                    <h4 style="margin-bottom: 1rem; color: var(--primary-dark);"><i class="fas fa-book-open"></i> Trước khi đăng ký, bạn cần biết:</h4>
+                    <ul style="color: var(--text-secondary); line-height: 1.8; margin-left: 1.5rem; margin-bottom: 0;">
+                        <li>Bạn cần chuẩn bị sẵn hình ảnh <strong>CCCD/CMND (mặt trước, mặt sau)</strong> và <strong>ảnh chân dung</strong>.</li>
+                        <li>Nếu là hình thức công ty/doanh nghiệp, cần có <strong>Giấy phép kinh doanh</strong> hợp lệ.</li>
+                        <li>Thông tin cung cấp phải chính xác, trùng khớp với các giấy tờ tùy thân.</li>
+                        <li>Thời gian xét duyệt hồ sơ thường kéo dài từ <strong>1 đến 3 ngày làm việc</strong>.</li>
+                        <li>Vui lòng đọc kỹ và tuân thủ <a href="/pages/complaint-policy.html" target="_blank" style="color: var(--primary); text-decoration: underline; font-weight: 500;">Chính sách & Điều khoản Người bán</a> của Vipo.</li>
+                    </ul>
+                </div>
+                
+                <button onclick="openSellerRegistration()" class="btn btn-primary btn-lg" style="padding: 15px 40px; font-size: 1.1rem;">
                     <i class="fas fa-rocket"></i> Đăng ký ngay
                 </button>
             </div>
@@ -963,3 +993,41 @@ async function loadVouchers() {
 document.addEventListener('DOMContentLoaded', () => {
     initProfile();
 });
+
+
+window.cancelSellerRegistration = async function() {
+    if(!confirm("Bạn có chắc chắn muốn xóa hồ sơ bị từ chối và trở về trạng thái ban đầu?")) return;
+    try {
+        const result = await api.delete('/users/seller-registration');
+        if(result.success) {
+            showToast('Đã xóa hồ sơ đăng ký cũ. Bạn có thể đăng ký lại.', 'success');
+            const user = getUser();
+            user.vai_tro = 'customer';
+            user.trang_thai_xac_thuc = null;
+            localStorage.setItem('user', JSON.stringify(user));
+            currentUser = user;
+            updateSellerSection();
+        } else {
+            showToast(result.message || 'Lỗi khi xóa hồ sơ', 'error');
+        }
+    } catch(e) {
+        console.error(e);
+        showToast('Lỗi kết nối', 'error');
+    }
+};
+
+window.removeNotification = async function(event, notificationId) {
+    event.stopPropagation();
+    try {
+        const result = await api.delete(`/notifications/${notificationId}`);
+        if (result.success) {
+            await loadNotifications();
+            if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
+        } else {
+            showToast(result.message || 'Lỗi khi xóa thông báo', 'error');
+        }
+    } catch (error) {
+        console.error('Delete notification error:', error);
+        showToast('Lỗi kết nối', 'error');
+    }
+};

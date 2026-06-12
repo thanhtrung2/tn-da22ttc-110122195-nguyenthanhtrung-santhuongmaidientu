@@ -591,7 +591,19 @@
                         <h3 style="color: #1e293b; margin-bottom: 1.5rem;">Cài đặt vận chuyển</h3>
                         <div class="form-group">
                             <label>Địa chỉ kho hàng <span style="color: #ef4444;">*</span></label>
-                            <textarea class="form-control" id="dia_chi_kho" rows="2" placeholder="Nhập địa chỉ kho hàng..." required></textarea>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <select class="form-control" id="seller_province" onchange="loadSellerDistricts()" required>
+                                    <option value="">Chọn Tỉnh/Thành phố</option>
+                                </select>
+                                <select class="form-control" id="seller_district" onchange="loadSellerWards()" required>
+                                    <option value="">Chọn Quận/Huyện</option>
+                                </select>
+                                <select class="form-control" id="seller_ward" required>
+                                    <option value="">Chọn Phường/Xã</option>
+                                </select>
+                            </div>
+                            <textarea class="form-control" id="dia_chi_kho_chitiet" rows="2" placeholder="Nhập địa chỉ chi tiết (Số nhà, đường...)" required></textarea>
+                            <input type="hidden" id="dia_chi_kho" />
                             <div id="dia_chi_kho_message" class="validation-message"></div>
                         </div>
                         <div class="form-group">
@@ -608,23 +620,43 @@
                         </div>
                     </div>
 
-                    <!-- Step 3: Identity -->
+                                        <!-- Step 3: Identity -->
                     <div id="seller-step-3" class="step-content" style="display: none;">
                         <h3 style="color: #1e293b; margin-bottom: 1.5rem;">Thông tin định danh</h3>
-                        <div class="form-group">
-                            <label>CCCD/CMND mặt trước <span style="color: #ef4444;">*</span></label>
-                            <input type="file" class="form-control" id="cccd_mat_truoc" accept="image/*" required onchange="previewImage(this, 'preview-cccd-truoc')">
-                            <div id="preview-cccd-truoc" style="margin-top: 0.5rem;"></div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                            <!-- CCCD Mặt Trước -->
+                            <div class="modern-file-upload">
+                                <label style="display:block;margin-bottom:0.5rem;font-weight:500;">CCCD/CMND mặt trước <span style="color: #ef4444;">*</span></label>
+                                <div class="upload-area" onclick="document.getElementById('cccd_mat_truoc').click()" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: #f8fafc;">
+                                    <i class="fas fa-id-card upload-icon" style="font-size: 2.5rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+                                    <p style="margin:0;color:#475569;font-weight:500;">Nhấn để chọn ảnh mặt trước</p>
+                                </div>
+                                <input type="file" class="form-control" id="cccd_mat_truoc" accept="image/*" required onchange="previewImage(this, 'preview-cccd-truoc')" style="display: none;">
+                                <div id="preview-cccd-truoc" style="margin-top: 1rem;text-align:center;"></div>
+                            </div>
+                            
+                            <!-- CCCD Mặt Sau -->
+                            <div class="modern-file-upload">
+                                <label style="display:block;margin-bottom:0.5rem;font-weight:500;">CCCD/CMND mặt sau <span style="color: #ef4444;">*</span></label>
+                                <div class="upload-area" onclick="document.getElementById('cccd_mat_sau').click()" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: #f8fafc;">
+                                    <i class="fas fa-id-card upload-icon" style="font-size: 2.5rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+                                    <p style="margin:0;color:#475569;font-weight:500;">Nhấn để chọn ảnh mặt sau</p>
+                                </div>
+                                <input type="file" class="form-control" id="cccd_mat_sau" accept="image/*" required onchange="previewImage(this, 'preview-cccd-sau')" style="display: none;">
+                                <div id="preview-cccd-sau" style="margin-top: 1rem;text-align:center;"></div>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>CCCD/CMND mặt sau <span style="color: #ef4444;">*</span></label>
-                            <input type="file" class="form-control" id="cccd_mat_sau" accept="image/*" required onchange="previewImage(this, 'preview-cccd-sau')">
-                            <div id="preview-cccd-sau" style="margin-top: 0.5rem;"></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Ảnh chân dung <span style="color: #ef4444;">*</span></label>
-                            <input type="file" class="form-control" id="anh_guong_mat" accept="image/*" required onchange="previewImage(this, 'preview-guong-mat')">
-                            <div id="preview-guong-mat" style="margin-top: 0.5rem;"></div>
+
+                        <!-- Ảnh Chân Dung -->
+                        <div class="modern-file-upload" style="margin-bottom: 1.5rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">Ảnh chân dung <span style="color: #ef4444;">*</span></label>
+                            <div class="upload-area" onclick="document.getElementById('anh_guong_mat').click()" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: #f8fafc;">
+                                <i class="fas fa-user-circle upload-icon" style="font-size: 2.5rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+                                <p style="margin:0;color:#475569;font-weight:500;">Nhấn để chọn ảnh chân dung</p>
+                            </div>
+                            <input type="file" class="form-control" id="anh_guong_mat" accept="image/*" required onchange="previewImage(this, 'preview-guong-mat')" style="display: none;">
+                            <div id="preview-guong-mat" style="margin-top: 1rem;text-align:center;"></div>
                         </div>
                     </div>
 

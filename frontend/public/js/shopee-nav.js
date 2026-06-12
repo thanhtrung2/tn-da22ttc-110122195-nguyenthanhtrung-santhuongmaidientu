@@ -139,7 +139,7 @@ async function loadNavbarNotifications() {
             result.data.slice(0, 5).forEach(notif => {
                 const isRead = notif.trang_thai === 'read';
                 html += `
-                    <div class="notification-item ${isRead ? 'read' : 'unread'}" style="padding: 12px 15px; border-bottom: 1px solid var(--dark-700); cursor: pointer; display: flex; gap: 10px;" onclick="window.location.href='/pages/profile.html#notifications'">
+                    <div class="notification-item ${isRead ? 'read' : 'unread'}" style="padding: 12px 15px; border-bottom: 1px solid var(--dark-700); cursor: pointer; display: flex; gap: 10px;" onclick="handleNotificationClickGlobal(${notif.id}, '${notif.url_lien_ket || ''}')">
                         <div style="flex-shrink: 0; color: var(--primary); font-size: 1.2rem;">
                             <i class="fas fa-bell"></i>
                         </div>
@@ -307,3 +307,20 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchSuggestions();
 });
 
+
+window.handleNotificationClickGlobal = async function(notificationId, url) {
+    try {
+        await api.put(`/notifications/${notificationId}`, { da_doc: true });
+        if (typeof updateNotificationBadge === 'function') {
+            await updateNotificationBadge();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+    
+    if (url && url !== 'undefined' && url !== 'null' && url.trim() !== '') {
+        window.location.href = url;
+    } else {
+        window.location.href = '/pages/profile.html#notifications';
+    }
+};

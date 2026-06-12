@@ -5,14 +5,70 @@
 let currentSellerStep = 0;
 let sellerFormData = {}; // Lưu trữ dữ liệu từng bước
 let uploadedFiles = {}; // Lưu trữ file đã upload
+let locationDataSeller = [];
+
+// Load location data from API
+async function loadProvincesDataSeller() {
+    if (locationDataSeller.length > 0) return;
+    try {
+        const response = await fetch('https://provinces.open-api.vn/api/?depth=3');
+        locationDataSeller = await response.json();
+    } catch (e) {
+        console.error('Lỗi khi tải danh sách địa giới hành chính', e);
+    }
+}
+
+window.loadSellerDistricts = function() {
+    const provinceCode = document.getElementById('seller_province').value;
+    const districtSelect = document.getElementById('seller_district');
+    const wardSelect = document.getElementById('seller_ward');
+    if (!districtSelect || !wardSelect) return;
+    
+    districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
+    wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+    
+    if (provinceCode && locationDataSeller.length > 0) {
+        const province = locationDataSeller.find(p => p.code == provinceCode);
+        if (province && province.districts) {
+            districtSelect.innerHTML += province.districts.map(d => `<option value="${d.code}">${d.name}</option>`).join('');
+        }
+    }
+};
+
+window.loadSellerWards = function() {
+    const provinceCode = document.getElementById('seller_province').value;
+    const districtCode = document.getElementById('seller_district').value;
+    const wardSelect = document.getElementById('seller_ward');
+    if (!wardSelect) return;
+    
+    wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+    
+    if (provinceCode && districtCode && locationDataSeller.length > 0) {
+        const province = locationDataSeller.find(p => p.code == provinceCode);
+        if (province) {
+            const district = province.districts.find(d => d.code == districtCode);
+            if (district && district.wards) {
+                wardSelect.innerHTML += district.wards.map(w => `<option value="${w.code}">${w.name}</option>`).join('');
+            }
+        }
+    }
+};
 
 // Khởi tạo đăng ký seller
-function startSellerRegistration() {
+async function startSellerRegistration() {
     document.getElementById('welcome-screen').style.display = 'none';
     document.getElementById('seller-steps').style.display = 'block';
     currentSellerStep = 1;
     sellerFormData = {}; // Reset data
     uploadedFiles = {}; // Reset files
+    
+    // Load provinces
+    await loadProvincesDataSeller();
+    const provinceSelect = document.getElementById('seller_province');
+    if(provinceSelect) {
+        provinceSelect.innerHTML = '<option value="">Chọn Tỉnh/Thành phố</option>' + 
+            locationDataSeller.map(p => `<option value="${p.code}">${p.name}</option>`).join('');
+    }
     
     // Đảm bảo tất cả form inputs được enable
     enableAllFormInputs();
@@ -146,18 +202,30 @@ function validateStep1() {
 }
 
 function validateStep2() {
-    const diaChiKho = document.getElementById('dia_chi_kho').value.trim();
+    const province = document.getElementById('seller_province');
+    const district = document.getElementById('seller_district');
+    const ward = document.getElementById('seller_ward');
+    const detail = document.getElementById('dia_chi_kho_chitiet');
+    
+    const provName = province.options[province.selectedIndex]?.text || '';
+    const distName = district.options[district.selectedIndex]?.text || '';
+    const wardName = ward.options[ward.selectedIndex]?.text || '';
+    const detailText = detail.value.trim();
+    
     const vanChuyenCheckboxes = document.querySelectorAll('input[name="van_chuyen"]:checked');
     
-    if (!diaChiKho) {
-        showValidationMessage('dia_chi_kho_message', 'Vui lòng nhập địa chỉ kho hàng', 'error');
+    if (!province.value || !district.value || !ward.value || !detailText) {
+        showValidationMessage('dia_chi_kho_message', 'Vui lòng nhập đầy đủ địa chỉ kho hàng (Tỉnh/Thành, Quận/Huyện, Phường/Xã và Số nhà)', 'error');
         return false;
     }
     
-    if (diaChiKho.length < 10) {
-        showValidationMessage('dia_chi_kho_message', 'Địa chỉ kho hàng phải có ít nhất 10 ký tự', 'error');
+    if (detailText.length < 5) {
+        showValidationMessage('dia_chi_kho_message', 'Địa chỉ chi tiết phải có ít nhất 5 ký tự', 'error');
         return false;
     }
+    
+    const diaChiKho = `${detailText}, ${wardName}, ${distName}, ${provName}`;
+    document.getElementById('dia_chi_kho').value = diaChiKho;
     
     if (vanChuyenCheckboxes.length === 0) {
         showValidationMessage('van_chuyen_message', 'Vui lòng chọn ít nhất một phương thức vận chuyển', 'error');

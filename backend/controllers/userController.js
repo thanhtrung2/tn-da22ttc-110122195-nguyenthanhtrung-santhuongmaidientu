@@ -303,4 +303,28 @@ const upgradeToSeller = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile, changePassword, upgradeToSeller, uploadSellerVerification };
+const cancelSellerRegistration = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT vai_tro, trang_thai_xac_thuc FROM nguoi_dung WHERE id = ?', [req.user.id]);
+        if (rows.length === 0) return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+        
+        const user = rows[0];
+        if (user.vai_tro !== 'seller' || user.trang_thai_xac_thuc !== 'rejected') {
+            return res.status(400).json({ success: false, message: 'Chỉ có thể xóa hồ sơ khi đăng ký bị từ chối' });
+        }
+        
+        await pool.query('DELETE FROM shop WHERE nguoi_ban_id = ?', [req.user.id]);
+        
+        await pool.query(
+            'UPDATE nguoi_dung SET vai_tro = ?, trang_thai_xac_thuc = NULL, cccd_mat_truoc = NULL, cccd_mat_sau = NULL, giay_phep_kinh_doanh = NULL, anh_guong_mat = NULL, ly_do_tu_choi = NULL WHERE id = ?',
+            ['customer', req.user.id]
+        );
+        
+        res.json({ success: true, message: 'Đã xóa hồ sơ đăng ký cũ thành công' });
+    } catch (error) {
+        console.error('Cancel seller registration error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+module.exports = { getProfile, updateProfile, changePassword, upgradeToSeller, uploadSellerVerification, cancelSellerRegistration };
