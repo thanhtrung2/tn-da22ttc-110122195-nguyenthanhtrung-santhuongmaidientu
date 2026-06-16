@@ -140,7 +140,7 @@ const createOrder = async (req, res) => {
             // Calculate fees and VAT
             const thueVat = Math.round(tienHang * 0.08); // 8% VAT
             const phiAdmin = Math.round(tienHang * 0.15); // 15% Admin platform fee / commission
-            const tongTien = tienHang + phiVanChuyen;
+            const tongTien = tienHang + phiVanChuyen + thueVat;
 
             // Create order with new columns
             const [orderResult] = await connection.query(
@@ -268,8 +268,11 @@ const getMyOrders = async (req, res) => {
 const getOrderById = async (req, res) => {
     try {
         const [orders] = await pool.query(
-            `SELECT dh.*, gh.ten_gian_hang, gh.logo as shop_logo, gh.nguoi_ban_id
-            FROM don_hang dh JOIN gian_hang gh ON dh.gian_hang_id = gh.id
+            `SELECT dh.*, gh.ten_gian_hang, gh.logo as shop_logo, gh.nguoi_ban_id,
+            nd.ho_ten as ten_nguoi_mua, nd.email as email_nguoi_mua
+            FROM don_hang dh 
+            JOIN gian_hang gh ON dh.gian_hang_id = gh.id
+            JOIN nguoi_dung nd ON dh.nguoi_mua_id = nd.id
             WHERE dh.id = ? AND (dh.nguoi_mua_id = ? OR gh.nguoi_ban_id = ?)`,
             [req.params.id, req.user.id, req.user.id]
         );

@@ -4,196 +4,41 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doanh thu - Admin Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        /* ===== Stat Cards ===== */
-        .rev-summary { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:0.75rem; }
-        .rev-stat {
-            position:relative; padding:1.5rem; border-radius:16px; background:white;
-            border:1px solid #e2e8f0; overflow:hidden; cursor:pointer;
-            box-shadow:0 1px 3px rgba(0,0,0,0.04);
-            transition:transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-        }
-        .rev-stat:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.08); }
-        .rev-stat.active { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,0.18); }
-        .rev-stat .expand-hint {
-            position:absolute; bottom:8px; right:12px;
-            font-size:0.7rem; color:var(--text-muted); display:flex; align-items:center; gap:4px;
-            opacity:0.7; transition:opacity 0.2s;
-        }
-        .rev-stat:hover .expand-hint, .rev-stat.active .expand-hint { opacity:1; color:#6366f1; }
-        .rev-stat .expand-hint i { transition:transform 0.2s; }
-        .rev-stat.active .expand-hint i { transform:rotate(180deg); }
-
-        /* ===== Source breakdown panel (expand when click stat card) ===== */
-        .source-panel {
-            background:white; border:1px solid #e2e8f0; border-radius:16px;
-            margin-bottom:1.25rem; overflow:hidden;
-            max-height:0; opacity:0; transition:max-height 0.35s, opacity 0.25s, margin 0.25s, padding 0.25s;
-            padding:0 1.5rem;
-        }
-        .source-panel.open {
-            max-height:2000px; opacity:1; padding:1.5rem;
-        }
-        .source-panel-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem; }
-        .source-panel-header h3 { font-size:1rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; margin:0; }
-        .source-panel-header .total-badge {
-            background:linear-gradient(135deg,#6366f1,#8b5cf6); color:white;
-            padding:6px 14px; border-radius:20px; font-size:0.85rem; font-weight:700;
-        }
-        .source-row {
-            display:grid; grid-template-columns:36px 1fr 90px 130px 60px;
-            gap:12px; padding:10px 12px; align-items:center; border-radius:8px;
-            transition:background 0.15s;
-        }
-        .source-row:hover { background:#fafbfc; }
-        .source-row .rank {
-            width:28px; height:28px; border-radius:8px; background:#f1f5f9; color:var(--text-primary);
-            display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;
-        }
-        .source-row .rank.top { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:white; box-shadow:0 2px 6px rgba(99,102,241,0.3); }
-        .source-row .info .name { font-weight:600; color:var(--text-primary); font-size:0.9rem; }
-        .source-row .info .meta { color:var(--text-muted); font-size:0.75rem; margin-top:2px; }
-        .source-row .progress { height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden; }
-        .source-row .progress .fill { height:100%; border-radius:4px; transition:width 0.4s; }
-        .source-row .amt { font-variant-numeric:tabular-nums; font-weight:700; text-align:right; font-size:0.95rem; }
-        .source-row .pct { color:var(--text-muted); font-size:0.78rem; text-align:right; font-weight:600; }
-
-        .source-empty { text-align:center; padding:2rem; color:var(--text-muted); }
-        .rev-stat::before {
-            content:''; position:absolute; top:0; left:0; right:0; height:4px;
-            background:var(--accent-color, #6366f1);
-        }
-        .rev-stat.success::before { background:linear-gradient(90deg, #22c55e, #16a34a); }
-        .rev-stat.primary::before { background:linear-gradient(90deg, #6366f1, #8b5cf6); }
-        .rev-stat.warning::before { background:linear-gradient(90deg, #f59e0b, #f97316); }
-        .rev-stat.danger::before  { background:linear-gradient(90deg, #ef4444, #f43f5e); }
-        .rev-stat .icon-wrap {
-            position:absolute; top:1rem; right:1rem; width:42px; height:42px;
-            border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem;
-        }
-        .rev-stat.success .icon-wrap { background:rgba(34,197,94,0.12); color:#16a34a; }
-        .rev-stat.primary .icon-wrap { background:rgba(99,102,241,0.12); color:#6366f1; }
-        .rev-stat.warning .icon-wrap { background:rgba(245,158,11,0.12); color:#f59e0b; }
-        .rev-stat.danger  .icon-wrap { background:rgba(239,68,68,0.12);  color:#ef4444; }
-        .rev-stat .label { color:var(--text-muted); font-size:0.85rem; font-weight:500; margin-bottom:6px; padding-right:50px; }
-        .rev-stat .value { color:var(--text-primary); font-size:1.6rem; font-weight:800; line-height:1.2; }
-        .rev-stat .sub { color:var(--text-muted); font-size:0.8rem; margin-top:6px; }
-
-        /* ===== Chart cards ===== */
-        .chart-card { background:white; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem; margin-bottom:1.25rem; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
-        .chart-card h3 { font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:0.25rem; }
-        .chart-card .sub { color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem; }
-        .chart-grid { display:grid; grid-template-columns:1fr 380px; gap:1.25rem; margin-bottom:1.25rem; }
-        @media (max-width: 1100px) { .chart-grid { grid-template-columns:1fr; } }
-
-        /* ===== Chart toggle ===== */
-        .chart-toggle { display:flex; gap:6px; background:#f1f5f9; padding:4px; border-radius:8px; }
-        .chart-toggle button {
-            padding:6px 12px; border:none; background:transparent; border-radius:6px;
-            font-size:0.8rem; font-weight:600; color:var(--text-muted); cursor:pointer;
-            transition:all 0.2s;
-        }
-        .chart-toggle button.active { background:white; color:#6366f1; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
-
-        /* ===== Top shops list ===== */
-        .top-shop-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px dashed #e2e8f0; }
-        .top-shop-row:last-child { border-bottom:none; }
-        .shop-rank {
-            width:30px; height:30px; border-radius:50%;
-            background:#f1f5f9; color:var(--text-primary);
-            display:flex; align-items:center; justify-content:center;
-            font-weight:700; font-size:0.85rem; flex-shrink:0;
-        }
-        .shop-rank.gold   { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:white; box-shadow:0 2px 6px rgba(245,158,11,0.35); }
-        .shop-rank.silver { background:linear-gradient(135deg,#cbd5e1,#94a3b8); color:white; box-shadow:0 2px 6px rgba(148,163,184,0.35); }
-        .shop-rank.bronze { background:linear-gradient(135deg,#fb923c,#ea580c); color:white; box-shadow:0 2px 6px rgba(234,88,12,0.35); }
-
-        /* ===== Shop breakdown table ===== */
-        .shop-table { width:100%; border-collapse:collapse; font-size:0.875rem; }
-        .shop-table thead th {
-            background:#f8fafc; color:var(--text-muted);
-            font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
-            padding:12px 14px; text-align:left; border-bottom:2px solid #e2e8f0;
-            cursor:pointer; user-select:none;
-        }
-        .shop-table thead th:hover { background:#f1f5f9; color:var(--text-primary); }
-        .shop-table thead th.sort-asc::after { content:' ▲'; color:#6366f1; }
-        .shop-table thead th.sort-desc::after { content:' ▼'; color:#6366f1; }
-        .shop-table tbody td { padding:12px 14px; border-bottom:1px solid #f1f5f9; }
-        .shop-table tbody tr:hover { background:#fafbfc; }
-        .shop-table .shop-name { font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:10px; }
-        .shop-table .shop-avatar { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:white; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
-        .shop-table .num { font-variant-numeric:tabular-nums; }
-        .shop-table .num-green { color:#16a34a; font-weight:700; }
-        .shop-table .num-orange { color:#f59e0b; font-weight:600; }
-        .shop-table .num-purple { color:#6366f1; font-weight:600; }
-        .shop-table .bar-cell { position:relative; min-width:120px; }
-        .shop-table .bar {
-            position:absolute; left:0; top:50%; transform:translateY(-50%);
-            height:6px; background:linear-gradient(90deg, rgba(34,197,94,0.2), rgba(34,197,94,0.5));
-            border-radius:3px;
-        }
-
-        /* ===== Period accordion ===== */
-        .period-item { background:white; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:8px; overflow:hidden; transition:all 0.2s; }
-        .period-item:hover { border-color:#c7d2fe; }
-        .period-summary {
-            display:flex; justify-content:space-between; align-items:center;
-            padding:14px 16px; cursor:pointer; user-select:none;
-        }
-        .period-summary:hover { background:#fafbfc; }
-        .period-item[open] .period-summary { border-bottom:1px solid #e2e8f0; }
-        .period-item[open] .chevron { transform:rotate(90deg); }
-        .chevron { transition:transform 0.2s; color:var(--text-muted); font-size:0.8rem; }
-        .period-title { font-weight:700; color:var(--text-primary); }
-        .period-meta { font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
-        .period-value { text-align:right; }
-        .period-value .amt { font-weight:800; color:#16a34a; font-size:1.05rem; }
-        .period-value .breakdown { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
-
-        .period-detail { padding:1rem; background:#fafbfc; }
-        .period-shop-row { display:grid; grid-template-columns:1fr 110px 110px 110px 70px; gap:12px; padding:10px 12px; align-items:center; font-size:0.85rem; border-radius:8px; }
-        .period-shop-row:hover { background:white; }
-        .period-shop-row.header { background:white; font-weight:700; color:var(--text-muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; }
-        .period-shop-row .name { font-weight:600; color:var(--text-primary); }
-        .period-shop-row .pill {
-            display:inline-block; padding:2px 8px; border-radius:10px;
-            font-size:0.75rem; font-weight:600;
-        }
-        .period-shop-row .num { font-variant-numeric:tabular-nums; text-align:right; }
-        .period-shop-row .green { color:#16a34a; font-weight:700; }
-        .period-shop-row .orange { color:#f59e0b; font-weight:600; }
-        .period-shop-row .purple { color:#6366f1; font-weight:600; }
-
-        /* ===== Orders list ===== */
-        .orders-list { margin-top:1rem; }
-        .orders-list h4 { font-size:0.85rem; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px; font-weight:700; }
-        .order-card {
-            display:grid; grid-template-columns:60px 1fr 1fr 1fr 100px 110px;
-            gap:10px; padding:10px 12px; align-items:center; font-size:0.82rem;
-            background:white; border:1px solid #f1f5f9; border-radius:8px; margin-bottom:6px;
-        }
-        .order-card:hover { border-color:#e2e8f0; }
-        .order-card .id { font-weight:700; color:var(--text-primary); }
-        .order-card .lbl { color:var(--text-muted); font-size:0.7rem; }
-        .order-card .val { color:var(--text-primary); }
-        .order-card .price { font-weight:700; color:#16a34a; text-align:right; }
-        .order-card .date { color:var(--text-muted); font-size:0.78rem; text-align:right; }
-
-        .empty-state { text-align:center; padding:2.5rem; color:var(--text-muted); font-weight:500; }
-        .empty-state i { font-size:2.5rem; color:#cbd5e1; display:block; margin-bottom:8px; }
-
-        /* Quick range buttons - active state */
-        .rev-quick-btn.active {
-            background:linear-gradient(135deg, #6366f1, #8b5cf6) !important;
-            color:white !important; border-color:transparent !important;
-            box-shadow:0 2px 6px rgba(99,102,241,0.35);
-        }
+        .glass-card { background: white; border: 1px solid #f3f4f6; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .dark .glass-card { background: #1f2937; border-color: #374151; }
+        .kpi-icon { width: 48px; height: 48px; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .chart-container { position: relative; width: 100%; }
+        .dashboard-content { background-color: #f9fafb; min-height: 100vh; }
+        .dark .dashboard-content { background-color: #111827; }
+        .table-container { overflow-x: auto; }
+        table th { background-color: #f9fafb; color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; padding: 1rem; text-align: left; border-bottom: 1px solid #f3f4f6; }
+        .dark table th { background-color: rgba(55, 65, 81, 0.5); color: #9ca3af; border-color: #374151; }
+        table td { padding: 1rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+        .dark table td { border-color: #374151; }
+        .shop-rank { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; color: #fff; }
+        .rank-1 { background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: 0 2px 4px rgba(245,158,11,0.3); }
+        .rank-2 { background: linear-gradient(135deg, #94a3b8, #cbd5e1); box-shadow: 0 2px 4px rgba(148,163,184,0.3); }
+        .rank-3 { background: linear-gradient(135deg, #b45309, #d97706); box-shadow: 0 2px 4px rgba(180,83,9,0.3); }
+        .rank-other { background: #f3f4f6; color: #6b7280; }
+        .dark .rank-other { background: #374151; color: #d1d5db; }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
     <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
     <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
         <aside class="sidebar glass">
@@ -213,781 +58,408 @@
                 <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
             </nav>
         </aside>
-        <main class="dashboard-content">
-            <h1 style="margin-bottom:1.5rem;">📊 Báo cáo doanh thu toàn sàn</h1>
 
-            <div class="glass-card" style="padding:1rem;margin-bottom:1.25rem;display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
-                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="rev-quick">
-                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="today">Hôm nay</button>
-                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="week">Tuần này</button>
-                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="month">Tháng này</button>
-                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="year">Năm nay</button>
-                    <button type="button" class="btn btn-sm btn-outline rev-quick-btn" data-range="all">Tất cả</button>
+        <main class="dashboard-content w-full p-4 sm:p-6" style="min-height: calc(100vh - 90px);">
+            <div class="max-w-[1400px] mx-auto space-y-6">
+                
+                <!-- Header & Quick Filters -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Doanh Thu Toàn Sàn</h1>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Tổng quan hiệu suất kinh doanh của hệ thống</p>
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+                        <button class="rev-quick-btn px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors active bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" data-range="7">7 ngày</button>
+                        <button class="rev-quick-btn px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-range="30">30 ngày</button>
+                        <button class="rev-quick-btn px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-range="90">90 ngày</button>
+                        <button class="rev-quick-btn px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-range="365">12 tháng</button>
+                    </div>
                 </div>
-                <label style="font-weight:600;color:var(--text-primary);">Từ: <input type="date" id="rev-from" style="margin-left:4px;"></label>
-                <label style="font-weight:600;color:var(--text-primary);">Đến: <input type="date" id="rev-to" style="margin-left:4px;"></label>
-                <label style="font-weight:600;color:var(--text-primary);">Nhóm theo:
-                    <select id="rev-group" style="margin-left:4px;">
-                        <option value="day">Ngày</option>
-                        <option value="week">Tuần</option>
-                        <option value="month" selected>Tháng</option>
-                        <option value="year">Năm</option>
-                    </select>
-                </label>
-                <button class="btn btn-sm btn-primary" onclick="fetchRevenue()"><i class="fas fa-filter"></i> Xem báo cáo</button>
-                <button class="btn btn-sm btn-outline" onclick="exportCSV()"><i class="fas fa-file-download"></i> Xuất CSV</button>
-            </div>
 
-            <div id="revenue-content"><div class="spinner" style="margin:3rem auto;"></div></div>
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" id="kpi-container">
+                    <div class="glass-card p-6 flex justify-center"><div class="spinner"></div></div>
+                </div>
+
+                <!-- Main Line Chart (Full Width) -->
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Biểu đồ Doanh thu toàn sàn</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Diễn biến doanh thu theo thời gian</p>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="mainRevenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Middle Row: Top 5 Shops (Left) & Order Status (Right) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- Top 5 Shops -->
+                    <div class="glass-card p-6 flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Top 5 Gian Hàng</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Theo doanh thu cao nhất</p>
+                            </div>
+                            <a href="/pages/admin/shops.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Xem tất cả &rarr;</a>
+                        </div>
+                        <div class="flex-1 overflow-hidden" id="top-shops-container">
+                            <div class="flex justify-center py-8"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- Order Status Pie Chart -->
+                    <div class="glass-card p-6 flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Trạng Thái Đơn Hàng</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Tỷ lệ các trạng thái (Mock data)</p>
+                            </div>
+                        </div>
+                        <div class="flex-1 chart-container flex items-center justify-center" style="min-height: 250px;">
+                            <canvas id="orderStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Top 10 Products -->
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Top 10 Sản Phẩm Bán Chạy Nhất</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Sản phẩm có số lượng tiêu thụ cao nhất (Mock data)</p>
+                        </div>
+                        <a href="/pages/admin/products.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Quản lý sản phẩm &rarr;</a>
+                    </div>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
         </main>
     </div>
 
     <script src="/js/api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+        if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
 
-    function pad(n){ return n<10 ? '0'+n : ''+n; }
-    function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+        // Chart instances
+        let lineChart, pieChart, barChart;
 
-    function applyQuickRange(range) {
-        const today = new Date();
-        const groupSel = document.getElementById('rev-group');
-        let from, to = new Date(today);
-        if (range === 'today') {
-            from = new Date(today);
-            groupSel.value = 'day';
-        } else if (range === 'week') {
-            from = new Date(today);
-            const dow = (from.getDay()+6)%7;
-            from.setDate(from.getDate() - dow);
-            groupSel.value = 'day';
-        } else if (range === 'month') {
-            from = new Date(today.getFullYear(), today.getMonth(), 1);
-            groupSel.value = 'day';
-        } else if (range === 'year') {
-            from = new Date(today.getFullYear(), 0, 1);
-            groupSel.value = 'month';
-        } else if (range === 'all') {
-            from = new Date(2020, 0, 1);
-            groupSel.value = 'year';
+        // Utilities
+        function formatPrice(num) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
         }
-        document.getElementById('rev-from').value = toISO(from);
-        document.getElementById('rev-to').value = toISO(to);
-        document.querySelectorAll('.rev-quick-btn').forEach(b => {
-            b.classList.toggle('active', b.dataset.range === range);
-            b.classList.toggle('btn-primary', false);
-            b.classList.toggle('btn-outline', b.dataset.range !== range);
-        });
-        fetchRevenue();
-    }
-    document.querySelectorAll('.rev-quick-btn').forEach(btn => {
-        btn.addEventListener('click', () => applyQuickRange(btn.dataset.range));
-    });
+        function pad(n){ return n<10 ? '0'+n : ''+n; }
+        function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 
-    // ============ State ============
-    let revenueChart = null;
-    let doughnutChart = null;
-    let currentSeries = [];
-    let currentShopBreakdown = [];
-    let currentTopShops = [];
-    let currentTotals = null;
-    let currentGroup = 'month';
-    let chartType = 'bar';
-    let chartView = 'all'; // all | revenue | commission | vat
-    let activeSource = null; // null | revenue | commission | vat | shops
-    let breakdownSort = { col: 'doanh_thu', dir: 'desc' };
+        // Core Load Function
+        async function loadData(days) {
+            const today = new Date();
+            let from = new Date(today);
+            let group = 'day';
 
-    async function fetchRevenue() {
-        const container = document.getElementById('revenue-content');
-        try {
-            await _fetchRevenueInner(container);
-        } catch (err) {
-            console.error('fetchRevenue render error:', err);
-            container.innerHTML = `<div class="empty-state" style="color:var(--danger);">
-                <i class="fas fa-exclamation-triangle"></i> Lỗi hiển thị: ${err.message||err}
-                <div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">Mở Console (F12) để xem chi tiết.</div>
-            </div>`;
-        }
-    }
+            if (days === 7) {
+                from.setDate(today.getDate() - 7);
+            } else if (days === 30) {
+                from.setDate(today.getDate() - 30);
+            } else if (days === 90) {
+                from.setDate(today.getDate() - 90);
+                group = 'week';
+            } else if (days === 365) {
+                from.setFullYear(today.getFullYear() - 1);
+                group = 'month';
+            }
 
-    async function _fetchRevenueInner(container) {
-        const from = document.getElementById('rev-from').value;
-        const to = document.getElementById('rev-to').value;
-        const group = document.getElementById('rev-group').value;
-        const q = [];
-        if (from) q.push(`from=${from}`);
-        if (to) q.push(`to=${to}`);
-        if (group) q.push(`groupBy=${group}`);
-        const qs = q.length?`?${q.join('&')}`:'';
-
-        container.innerHTML = '<div class="spinner" style="margin:3rem auto;"></div>';
-
-        let r;
-        try {
-            r = await api.get(`/admin/revenue${qs}`);
-        } catch (err) {
-            console.error('fetchRevenue network error:', err);
-            container.innerHTML = `<div class="empty-state" style="color:var(--danger);">Lỗi kết nối: ${err.message||err}</div>`;
-            return;
-        }
-        console.log('[/admin/revenue]', r);
-
-        if(!r || !r.success) {
-            container.innerHTML = `<div class="empty-state" style="color:var(--danger);">
-                <i class="fas fa-exclamation-triangle"></i> ${r && r.message || 'Không tải được dữ liệu'}
-                <div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">Kiểm tra: backend đã restart? Mở Console (F12).</div>
-            </div>`;
-            return;
-        }
-
-        const series = (r.data && r.data.series) || [];
-        const totals = (r.data && r.data.totals) || { tong_doanh_thu:0, tong_thue_vat:0, tong_phi_admin:0, tong_so_don:0, tong_gian_hang:0, tong_nguoi_mua:0 };
-        const topShops = (r.data && r.data.topShops) || [];
-        const shopBreakdown = (r.data && r.data.shopBreakdown) || [];
-        currentSeries = series;
-        currentShopBreakdown = shopBreakdown;
-        currentTopShops = topShops;
-        currentTotals = totals;
-        currentGroup = group;
-        activeSource = null;
-
-        // Build the page sections
-        container.innerHTML = `
-            ${renderSummary(totals)}
-            <div id="source-panel" class="source-panel"></div>
-            <div class="chart-grid">
-                ${renderMainChartCard(group)}
-                ${renderDoughnutCard()}
-            </div>
-            ${renderShopBreakdownTable()}
-            ${renderPeriodAccordion(series, group)}
-        `;
-
-        // Attach handlers
-        attachChartToggle();
-        attachChartViewFilter();
-        attachStatCardClick();
-        attachSortHandlers();
-        attachPeriodToggle();
-        renderMainChart(series, group);
-        renderDoughnut(topShops);
-    }
-
-    // ===== Renderers =====
-    function renderSummary(totals) {
-        const hint = '<div class="expand-hint">Xem nguồn <i class="fas fa-chevron-down"></i></div>';
-        return `<div class="rev-summary">
-            <div class="rev-stat success" data-source="revenue">
-                <div class="icon-wrap"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="label">Tổng doanh thu</div>
-                <div class="value">${formatPrice(totals.tong_doanh_thu)}</div>
-                <div class="sub">${totals.tong_so_don} đơn hoàn thành</div>
-                ${hint}
-            </div>
-            <div class="rev-stat primary" data-source="commission">
-                <div class="icon-wrap"><i class="fas fa-percent"></i></div>
-                <div class="label">Hoa hồng sàn (Admin)</div>
-                <div class="value">${formatPrice(totals.tong_phi_admin)}</div>
-                <div class="sub">${pctOf(totals.tong_phi_admin, totals.tong_doanh_thu)}% tổng doanh thu</div>
-                ${hint}
-            </div>
-            <div class="rev-stat warning" data-source="vat">
-                <div class="icon-wrap"><i class="fas fa-receipt"></i></div>
-                <div class="label">VAT thu hộ</div>
-                <div class="value">${formatPrice(totals.tong_thue_vat)}</div>
-                <div class="sub">${pctOf(totals.tong_thue_vat, totals.tong_doanh_thu)}% tổng doanh thu</div>
-                ${hint}
-            </div>
-            <div class="rev-stat danger" data-source="shops">
-                <div class="icon-wrap"><i class="fas fa-store"></i></div>
-                <div class="label">Gian hàng & Khách</div>
-                <div class="value">${totals.tong_gian_hang} <small style="font-size:0.95rem;color:var(--text-muted);">gian hàng</small></div>
-                <div class="sub">${totals.tong_nguoi_mua} khách hàng đã mua</div>
-                ${hint}
-            </div>
-        </div>`;
-    }
-
-    // ===== Source panel (when click stat card) =====
-    const SOURCE_CONFIG = {
-        revenue:    { col:'doanh_thu', title:'Tổng doanh thu đến từ',     icon:'fas fa-money-bill-wave', color:'#22c55e' },
-        commission: { col:'phi_admin', title:'Hoa hồng sàn thu được từ',  icon:'fas fa-percent',         color:'#6366f1' },
-        vat:        { col:'thue_vat',  title:'VAT thu hộ đến từ',         icon:'fas fa-receipt',         color:'#f59e0b' },
-        shops:      { col:'so_don',    title:'Danh sách gian hàng (theo số đơn)', icon:'fas fa-store',   color:'#ef4444' }
-    };
-
-    function attachStatCardClick() {
-        document.querySelectorAll('.rev-stat[data-source]').forEach(card => {
-            card.addEventListener('click', () => {
-                const src = card.dataset.source;
-                if (activeSource === src) {
-                    // Click again to close
-                    closeSourcePanel();
+            const qs = `?from=${toISO(from)}&to=${toISO(today)}&groupBy=${group}`;
+            
+            try {
+                const res = await api.get(`/admin/revenue${qs}`);
+                if (res.success && res.data) {
+                    renderKPIs(res.data.totals);
+                    renderLineChart(res.data.series, group);
+                    renderTopShops(res.data.topShops);
                 } else {
-                    openSourcePanel(src);
+                    console.error("API Error", res);
                 }
-            });
-        });
-    }
+            } catch (err) {
+                console.error("Fetch Error", err);
+            }
 
-    function closeSourcePanel() {
-        const panel = document.getElementById('source-panel');
-        panel.classList.remove('open');
-        document.querySelectorAll('.rev-stat').forEach(c => c.classList.remove('active'));
-        activeSource = null;
-    }
-
-    function openSourcePanel(src) {
-        activeSource = src;
-        document.querySelectorAll('.rev-stat').forEach(c => {
-            c.classList.toggle('active', c.dataset.source === src);
-        });
-        const panel = document.getElementById('source-panel');
-        const cfg = SOURCE_CONFIG[src];
-        const rows = [...currentShopBreakdown]
-            .filter(s => parseFloat(s[cfg.col]||0) > 0 || src === 'shops')
-            .sort((a,b) => parseFloat(b[cfg.col]||0) - parseFloat(a[cfg.col]||0));
-
-        const totalForSrc = rows.reduce((a,b) => a + parseFloat(b[cfg.col]||0), 0) || 1;
-        const totalLabel = src === 'shops'
-            ? `${rows.length} gian hàng`
-            : formatPrice(rows.reduce((a,b)=>a+parseFloat(b[cfg.col]||0),0));
-
-        let html = `
-            <div class="source-panel-header">
-                <h3><i class="${cfg.icon}" style="color:${cfg.color};"></i> ${cfg.title} ${rows.length} gian hàng</h3>
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <span class="total-badge" style="background:${cfg.color};">${totalLabel}</span>
-                    <button class="btn btn-sm btn-outline" onclick="closeSourcePanel()" style="padding:4px 10px;"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
-        `;
-
-        if (rows.length === 0) {
-            html += '<div class="source-empty"><i class="fas fa-inbox" style="font-size:2rem;color:#cbd5e1;display:block;margin-bottom:8px;"></i>Không có dữ liệu trong khoảng thời gian này</div>';
-        } else {
-            html += rows.map((s, i) => {
-                const val = parseFloat(s[cfg.col]||0);
-                const pct = (val / totalForSrc * 100);
-                const rankCls = i < 3 ? 'top' : '';
-                const display = src === 'shops'
-                    ? `${s.so_don} đơn`
-                    : formatPrice(val);
-                const subInfo = src === 'shops'
-                    ? `${s.so_khach} khách · DT: ${formatPrice(s.doanh_thu)}`
-                    : `Doanh thu: ${formatPrice(s.doanh_thu)} · ${s.so_don} đơn`;
-
-                return `<div class="source-row">
-                    <div class="rank ${rankCls}">${i+1}</div>
-                    <div class="info">
-                        <div class="name">${s.ten_gian_hang}</div>
-                        <div class="meta">${subInfo}</div>
-                    </div>
-                    <div class="pct">${pct.toFixed(1)}%</div>
-                    <div class="progress"><div class="fill" style="width:${Math.min(100,pct)}%;background:${cfg.color};"></div></div>
-                    <div class="amt" style="color:${cfg.color};">${display}</div>
-                </div>`;
-            }).join('');
+            // Render Mock Charts (Since API doesn't have this data yet)
+            renderMockPieChart();
+            renderMockBarChart();
         }
 
-        panel.innerHTML = html;
-        panel.classList.add('open');
-        setTimeout(() => panel.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
-    }
-    window.closeSourcePanel = closeSourcePanel;
-
-    function pctOf(part, total) {
-        const p = parseFloat(part||0), t = parseFloat(total||0);
-        if (t === 0) return '0';
-        return (p/t*100).toFixed(1);
-    }
-
-    function renderMainChartCard(group) {
-        return `<div class="chart-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:0.75rem;">
-                <div>
-                    <h3><i class="fas fa-chart-line" style="color:#6366f1;"></i> Biểu đồ doanh thu theo ${groupLabel(group)}</h3>
-                    <div class="sub">Click các nút bên dưới để xem riêng từng loại</div>
+        // Render functions
+        function renderKPIs(totals) {
+            const tong_thu_san = (parseFloat(totals.tong_phi_admin)||0) + (parseFloat(totals.tong_thue_vat)||0);
+            const html = `
+                <div class="glass-card p-4 hover:shadow-md transition-shadow">
+                    <div class="kpi-icon bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 mb-3"><i class="fas fa-money-bill-wave"></i></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-1">Tổng doanh thu toàn sàn</p>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">${formatPrice(totals.tong_doanh_thu)}</h3>
                 </div>
-                <div class="chart-toggle" id="chart-toggle">
-                    <button data-type="bar" class="active"><i class="fas fa-chart-bar"></i> Cột</button>
-                    <button data-type="line"><i class="fas fa-chart-line"></i> Đường</button>
-                    <button data-type="stacked"><i class="fas fa-layer-group"></i> Chồng</button>
+
+                <div class="glass-card p-4 hover:shadow-md transition-shadow">
+                    <div class="kpi-icon bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 mb-3"><i class="fas fa-shopping-bag"></i></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-1">Tổng đơn hàng</p>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">${new Intl.NumberFormat('vi-VN').format(totals.tong_so_don)}</h3>
                 </div>
-            </div>
-            <div class="chart-toggle" id="chart-view-filter" style="margin-bottom:0.75rem;">
-                <button data-view="all" class="${chartView==='all'?'active':''}"><i class="fas fa-th"></i> Tất cả</button>
-                <button data-view="revenue" class="${chartView==='revenue'?'active':''}" style="${chartView==='revenue'?'color:#16a34a !important;':''}"><i class="fas fa-money-bill-wave"></i> Doanh thu gian hàng</button>
-                <button data-view="commission" class="${chartView==='commission'?'active':''}" style="${chartView==='commission'?'color:#6366f1 !important;':''}"><i class="fas fa-percent"></i> Hoa hồng admin</button>
-                <button data-view="vat" class="${chartView==='vat'?'active':''}" style="${chartView==='vat'?'color:#f59e0b !important;':''}"><i class="fas fa-receipt"></i> VAT</button>
-            </div>
-            <div style="position:relative;height:340px;"><canvas id="revenueChart"></canvas></div>
-        </div>`;
-    }
 
-    function attachChartViewFilter() {
-        document.querySelectorAll('#chart-view-filter button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('#chart-view-filter button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                chartView = btn.dataset.view;
-                renderMainChart(currentSeries, currentGroup);
-            });
-        });
-    }
-
-    function renderDoughnutCard() {
-        return `<div class="chart-card">
-            <h3><i class="fas fa-chart-pie" style="color:#f59e0b;"></i> Phân bổ doanh thu</h3>
-            <div class="sub">Top gian hàng đóng góp nhiều nhất</div>
-            <div style="position:relative;height:240px;margin-top:0.5rem;"><canvas id="doughnutChart"></canvas></div>
-            <div id="top-shop-list" style="margin-top:1rem;"></div>
-        </div>`;
-    }
-
-    function renderShopBreakdownTable() {
-        const rows = sortBreakdown(currentShopBreakdown, breakdownSort);
-        const maxRev = Math.max(1, ...rows.map(r => parseFloat(r.doanh_thu||0)));
-        const arrow = (col) => breakdownSort.col === col ? (breakdownSort.dir === 'asc' ? 'sort-asc' : 'sort-desc') : '';
-        return `<div class="chart-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
-                <div>
-                    <h3><i class="fas fa-table" style="color:#22c55e;"></i> Phân tích chi tiết theo gian hàng</h3>
-                    <div class="sub">Xem rõ VAT và hoa hồng đến từ gian hàng nào (click cột để sắp xếp)</div>
+                <div class="glass-card p-4 hover:shadow-md transition-shadow">
+                    <div class="kpi-icon bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 mb-3"><i class="fas fa-store"></i></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-1">Gian hàng hoạt động</p>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">${new Intl.NumberFormat('vi-VN').format(totals.tong_gian_hang)}</h3>
                 </div>
-                <div style="font-size:0.8rem;color:var(--text-muted);"><strong>${rows.length}</strong> gian hàng</div>
-            </div>
-            <div style="overflow-x:auto;">
-            <table class="shop-table">
-                <thead>
-                    <tr>
-                        <th data-sort="ten_gian_hang" class="${arrow('ten_gian_hang')}">Gian hàng</th>
-                        <th data-sort="so_don" class="${arrow('so_don')}">Đơn</th>
-                        <th data-sort="so_khach" class="${arrow('so_khach')}">Khách</th>
-                        <th data-sort="doanh_thu" class="${arrow('doanh_thu')}">Doanh thu</th>
-                        <th data-sort="phi_admin" class="${arrow('phi_admin')}">Hoa hồng sàn</th>
-                        <th data-sort="thue_vat" class="${arrow('thue_vat')}">VAT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                ${rows.length === 0
-                    ? '<tr><td colspan="6" class="empty-state"><i class="fas fa-inbox"></i> Không có dữ liệu</td></tr>'
-                    : rows.map((s, i) => {
-                        const pct = parseFloat(s.doanh_thu||0) / maxRev * 100;
-                        return `<tr>
-                            <td class="shop-name">
-                                <div class="shop-avatar">${getInitials(s.ten_gian_hang)}</div>
-                                <div>
-                                    <div>${s.ten_gian_hang}</div>
-                                    <div style="font-size:0.72rem;color:var(--text-muted);">ID #${s.id}</div>
-                                </div>
-                            </td>
-                            <td class="num">${s.so_don}</td>
-                            <td class="num">${s.so_khach}</td>
-                            <td class="bar-cell">
-                                <div class="bar" style="width:${pct}%;"></div>
-                                <div class="num num-green" style="position:relative;">${formatPrice(s.doanh_thu)}</div>
-                            </td>
-                            <td class="num num-purple">${formatPrice(s.phi_admin)}<div style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">${pctOf(s.phi_admin, s.doanh_thu)}%</div></td>
-                            <td class="num num-orange">${formatPrice(s.thue_vat)}<div style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">${pctOf(s.thue_vat, s.doanh_thu)}%</div></td>
-                        </tr>`;
-                    }).join('')}
-                </tbody>
-            </table>
-            </div>
-        </div>`;
-    }
 
-    function renderPeriodAccordion(series, group) {
-        let html = `<div class="chart-card">
-            <h3><i class="fas fa-list-ul" style="color:#8b5cf6;"></i> Chi tiết theo ${groupLabel(group)}</h3>
-            <div class="sub">Click vào từng kỳ để xem gian hàng nào đã đóng góp doanh thu/VAT/hoa hồng trong kỳ đó</div>
-            <div style="margin-top:1rem;">`;
-        if (series.length === 0) {
-            html += '<div class="empty-state"><i class="fas fa-inbox"></i> Không có dữ liệu trong khoảng thời gian này</div>';
-        } else {
-            series.forEach((rw, idx) => {
-                html += `<details class="period-item" data-idx="${idx}">
-                    <summary class="period-summary">
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <i class="fas fa-chevron-right chevron"></i>
-                            <div>
-                                <div class="period-title">${formatLabel(rw.thoi_gian, group)}</div>
-                                <div class="period-meta">${rw.so_don} đơn · ${rw.so_gian_hang} gian hàng tham gia</div>
-                            </div>
-                        </div>
-                        <div class="period-value">
-                            <div class="amt">${formatPrice(rw.doanh_thu)}</div>
-                            <div class="breakdown">
-                                <span style="color:#6366f1;font-weight:600;">${formatPrice(rw.phi_admin)}</span> hoa hồng ·
-                                <span style="color:#f59e0b;font-weight:600;">${formatPrice(rw.thue_vat)}</span> VAT
-                            </div>
-                        </div>
-                    </summary>
-                    <div class="period-detail"><div class="spinner" style="margin:1rem auto;"></div></div>
-                </details>`;
-            });
+                <div class="glass-card p-4 hover:shadow-md transition-shadow">
+                    <div class="kpi-icon bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 mb-3"><i class="fas fa-percent"></i></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-1">Hoa hồng sàn (15%)</p>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">${formatPrice(totals.tong_phi_admin)}</h3>
+                </div>
+
+                <div class="glass-card p-4 hover:shadow-md transition-shadow">
+                    <div class="kpi-icon bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 mb-3"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-1">VAT thu được (8%)</p>
+                    <h3 class="text-xl font-bold text-orange-600 dark:text-orange-400">${formatPrice(totals.tong_thue_vat)}</h3>
+                </div>
+
+                <div class="glass-card p-4 hover:shadow-md transition-shadow border-2 border-indigo-200 dark:border-indigo-700">
+                    <div class="kpi-icon bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 mb-3"><i class="fas fa-landmark"></i></div>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs font-medium mb-1">Tổng thu của sàn</p>
+                    <h3 class="text-xl font-bold text-indigo-600 dark:text-indigo-400">${formatPrice(tong_thu_san)}</h3>
+                    <p class="text-xs text-gray-400 mt-1">Hoa hồng + VAT</p>
+                </div>
+            `;
+            document.getElementById('kpi-container').innerHTML = html;
         }
-        html += '</div></div>';
-        return html;
-    }
 
-    // ===== Chart rendering =====
-    function makeGradient(ctx, color1, color2) {
-        const g = ctx.createLinearGradient(0, 0, 0, 300);
-        g.addColorStop(0, color1);
-        g.addColorStop(1, color2);
-        return g;
-    }
+        function renderLineChart(series, group) {
+            const ctx = document.getElementById('mainRevenueChart').getContext('2d');
+            if (lineChart) lineChart.destroy();
 
-    function renderMainChart(series, group) {
-        const canvas = document.getElementById('revenueChart');
-        if (!canvas || typeof Chart === 'undefined' || series.length === 0) return;
-        if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
+            const labels = series.map(s => s.thoi_gian || s.thang);
+            const dataRev = series.map(s => parseFloat(s.doanh_thu || 0));
 
-        const ctx = canvas.getContext('2d');
-        const labels = series.map(x => formatLabel(x.thoi_gian, group));
-        const dataRev = series.map(x => parseFloat(x.doanh_thu||0));
-        const dataVat = series.map(x => parseFloat(x.thue_vat||0));
-        const dataCom = series.map(x => parseFloat(x.phi_admin||0));
-
-        const isStacked = chartType === 'stacked';
-        const t = chartType === 'line' ? 'line' : 'bar';
-
-        const greenGrad = makeGradient(ctx, 'rgba(34,197,94,0.85)', 'rgba(34,197,94,0.25)');
-        const purpleGrad = makeGradient(ctx, 'rgba(99,102,241,0.85)', 'rgba(99,102,241,0.25)');
-        const orangeGrad = makeGradient(ctx, 'rgba(245,158,11,0.85)', 'rgba(245,158,11,0.25)');
-
-        const allDatasets = {
-            revenue:    { key:'revenue',    label:'Doanh thu gian hàng', data:dataRev, color:'#22c55e', grad:greenGrad,  fillFlat:'rgba(34,197,94,0.15)'  },
-            commission: { key:'commission', label:'Hoa hồng admin',      data:dataCom, color:'#6366f1', grad:purpleGrad, fillFlat:'rgba(99,102,241,0.15)' },
-            vat:        { key:'vat',        label:'VAT thu hộ',          data:dataVat, color:'#f59e0b', grad:orangeGrad, fillFlat:'rgba(245,158,11,0.15)' }
-        };
-
-        const wantedKeys = chartView === 'all' ? ['revenue','commission','vat'] : [chartView];
-        const datasets = wantedKeys.map(k => {
-            const d = allDatasets[k];
-            return {
-                label: d.label, data: d.data,
-                backgroundColor: t==='line' ? d.fillFlat : d.grad,
-                borderColor: d.color, borderWidth: 2, borderRadius: 8,
-                tension: 0.35, fill: true, pointRadius: 4, pointBackgroundColor: d.color
-            };
-        });
-
-        revenueChart = new Chart(ctx, {
-            type: t,
-            data: { labels, datasets },
-            options: {
-                responsive:true, maintainAspectRatio:false,
-                interaction: { mode:'index', intersect:false },
-                scales: {
-                    x: { stacked: isStacked, grid: { display:false }, ticks: { color:'#64748b', font:{ size:11 } } },
-                    y: {
-                        stacked: isStacked,
-                        grid: { color:'rgba(148,163,184,0.15)' },
-                        ticks: {
-                            color:'#64748b', font:{ size:11 },
-                            callback: v => new Intl.NumberFormat('vi-VN', { notation:'compact', style:'currency', currency:'VND' }).format(v)
+            lineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu toàn sàn',
+                        data: dataRev,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                            titleFont: { size: 13, family: 'Inter' },
+                            bodyFont: { size: 14, weight: 'bold', family: 'Inter' },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return formatPrice(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: '#6b7280', font: { family: 'Inter' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(107, 114, 128, 0.1)', borderDash: [5, 5], drawBorder: false },
+                            ticks: {
+                                color: '#6b7280',
+                                font: { family: 'Inter' },
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000) + 'M';
+                                    if (value >= 1000) return (value / 1000) + 'k';
+                                    return value;
+                                }
+                            },
+                            beginAtZero: true
                         }
                     }
+                }
+            });
+        }
+
+        function renderTopShops(shops) {
+            const container = document.getElementById('top-shops-container');
+            if (!shops || shops.length === 0) {
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">Không có dữ liệu</div>';
+                return;
+            }
+
+            const top5 = shops.slice(0, 5);
+            const maxRev = Math.max(...top5.map(s => parseFloat(s.doanh_thu || 0)));
+
+            let html = '<div class="space-y-4">';
+            top5.forEach((s, idx) => {
+                const rev = parseFloat(s.doanh_thu || 0);
+                const pct = (rev / maxRev) * 100;
+                let rankClass = 'rank-other';
+                if (idx === 0) rankClass = 'rank-1';
+                else if (idx === 1) rankClass = 'rank-2';
+                else if (idx === 2) rankClass = 'rank-3';
+
+                html += `
+                    <div class="flex items-center gap-4 group">
+                        <div class="shop-rank ${rankClass}">${idx + 1}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-end mb-1">
+                                <h4 class="text-sm font-bold text-gray-900 dark:text-white truncate" title="${s.ten_gian_hang}">${s.ten_gian_hang}</h4>
+                                <span class="text-sm font-bold text-gray-900 dark:text-white whitespace-nowrap">${formatPrice(rev)}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500 w-12 text-right">${s.so_don} đơn</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderMockPieChart() {
+            const ctx = document.getElementById('orderStatusChart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hoàn thành', 'Đang giao', 'Chờ xác nhận', 'Đã hủy/Hoàn'],
+                    datasets: [{
+                        data: [65, 20, 10, 5],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
                 },
-                plugins: {
-                    legend: { position:'bottom', labels: { boxWidth:14, padding:14, font:{ size:12, weight:'600' } } },
-                    tooltip: {
-                        backgroundColor:'rgba(15,23,42,0.95)', titleColor:'#fff', bodyColor:'#cbd5e1',
-                        padding:12, cornerRadius:8, borderColor:'rgba(99,102,241,0.3)', borderWidth:1,
-                        callbacks: {
-                            label: c => ` ${c.dataset.label}: ${formatPrice(c.parsed.y)}`,
-                            footer: items => {
-                                if (chartView !== 'all') return '';
-                                const sum = items.reduce((a,b) => a + b.parsed.y, 0);
-                                return ` Tổng: ${formatPrice(sum)}`;
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                color: '#6b7280',
+                                font: { family: 'Inter', size: 13 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.parsed}%`;
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
-    }
-
-    function renderDoughnut(topShops) {
-        const canvas = document.getElementById('doughnutChart');
-        const listEl = document.getElementById('top-shop-list');
-        if (!canvas || typeof Chart === 'undefined') return;
-        if (doughnutChart) { doughnutChart.destroy(); doughnutChart = null; }
-
-        if (!topShops || topShops.length === 0) {
-            if (listEl) listEl.innerHTML = '<div class="empty-state" style="padding:1rem;">Không có dữ liệu</div>';
-            return;
+            });
         }
 
-        const palette = ['#6366f1','#22c55e','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6'];
-        const ctx = canvas.getContext('2d');
-        doughnutChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: topShops.map(s => s.ten_gian_hang),
-                datasets: [{
-                    data: topShops.map(s => parseFloat(s.doanh_thu||0)),
-                    backgroundColor: topShops.map((_, i) => palette[i % palette.length]),
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                    hoverOffset: 8
-                }]
-            },
-            options: {
-                responsive:true, maintainAspectRatio:false, cutout:'65%',
-                plugins: {
-                    legend: { display:false },
-                    tooltip: {
-                        backgroundColor:'rgba(15,23,42,0.95)', titleColor:'#fff', bodyColor:'#cbd5e1',
-                        padding:12, cornerRadius:8,
-                        callbacks: { label: c => ` ${c.label}: ${formatPrice(c.parsed)}` }
+        function renderMockBarChart() {
+            const ctx = document.getElementById('topProductsChart').getContext('2d');
+            if (barChart) barChart.destroy();
+
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Áo thun Nam', 'Quần Jean', 'Giày Thể Thao', 'Tai Nghe', 'Ốp lưng', 'Túi Xách', 'Đồng Hồ', 'Sữa Tắm', 'Son Môi', 'Balo Laptop'],
+                    datasets: [{
+                        label: 'Số lượng đã bán',
+                        data: [1250, 980, 850, 720, 690, 540, 480, 420, 390, 310],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: { size: 13, family: 'Inter' },
+                            bodyFont: { size: 14, weight: 'bold', family: 'Inter' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: '#6b7280', font: { family: 'Inter', size: 11 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(107, 114, 128, 0.1)', borderDash: [5, 5], drawBorder: false },
+                            ticks: { color: '#6b7280', font: { family: 'Inter' } },
+                            beginAtZero: true
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        // Top shops list
-        const total = topShops.reduce((a,b) => a+parseFloat(b.doanh_thu||0), 0) || 1;
-        listEl.innerHTML = topShops.slice(0,5).map((s,i) => {
-            const pct = (parseFloat(s.doanh_thu||0)/total*100).toFixed(1);
-            const cls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-            return `<div class="top-shop-row">
-                <div class="shop-rank ${cls}">${i+1}</div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.ten_gian_hang}</div>
-                    <div style="color:var(--text-muted);font-size:0.75rem;">${s.so_don} đơn · ${pct}%</div>
-                </div>
-                <div style="width:10px;height:10px;border-radius:50%;background:${palette[i%palette.length]};"></div>
-                <div style="font-weight:700;color:#16a34a;font-size:0.85rem;text-align:right;">${formatPrice(s.doanh_thu)}</div>
-            </div>`;
-        }).join('');
-    }
+        // Filter Buttons Logic
+        document.querySelectorAll('.rev-quick-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Update active state
+                document.querySelectorAll('.rev-quick-btn').forEach(b => {
+                    b.classList.remove('active', 'bg-blue-50', 'text-blue-600', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+                    b.classList.add('hover:bg-gray-50', 'dark:hover:bg-gray-700');
+                });
+                
+                const target = e.currentTarget;
+                target.classList.add('active', 'bg-blue-50', 'text-blue-600', 'dark:bg-blue-900/30', 'dark:text-blue-400');
+                target.classList.remove('hover:bg-gray-50', 'dark:hover:bg-gray-700');
 
-    // ===== Handlers =====
-    function attachChartToggle() {
-        document.querySelectorAll('#chart-toggle button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('#chart-toggle button').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                chartType = btn.dataset.type;
-                renderMainChart(currentSeries, currentGroup);
+                // Fetch new data
+                const days = parseInt(target.dataset.range);
+                loadData(days);
             });
         });
-    }
 
-    function attachSortHandlers() {
-        document.querySelectorAll('.shop-table thead th[data-sort]').forEach(th => {
-            th.addEventListener('click', () => {
-                const col = th.dataset.sort;
-                if (breakdownSort.col === col) {
-                    breakdownSort.dir = breakdownSort.dir === 'asc' ? 'desc' : 'asc';
-                } else {
-                    breakdownSort.col = col;
-                    breakdownSort.dir = ['ten_gian_hang'].includes(col) ? 'asc' : 'desc';
-                }
-                // Re-render just the shop breakdown
-                const cards = document.querySelectorAll('.chart-card');
-                const tableCard = Array.from(cards).find(c => c.querySelector('.shop-table'));
-                if (tableCard) {
-                    tableCard.outerHTML = renderShopBreakdownTable();
-                    attachSortHandlers();
-                }
-            });
-        });
-    }
-
-    function sortBreakdown(rows, sort) {
-        const { col, dir } = sort;
-        const sorted = [...rows].sort((a, b) => {
-            const av = a[col], bv = b[col];
-            if (typeof av === 'string') {
-                return dir === 'asc' ? av.localeCompare(bv, 'vi') : bv.localeCompare(av, 'vi');
-            }
-            const an = parseFloat(av||0), bn = parseFloat(bv||0);
-            return dir === 'asc' ? an - bn : bn - an;
-        });
-        return sorted;
-    }
-
-    function attachPeriodToggle() {
-        document.querySelectorAll('details.period-item[data-idx]').forEach(det => {
-            det.addEventListener('toggle', async () => {
-                if (!det.open) return;
-                const idx = parseInt(det.dataset.idx);
-                const row = currentSeries[idx];
-                const detailEl = det.querySelector('.period-detail');
-                if (detailEl.dataset.loaded === '1') return;
-
-                const { gFrom, gTo } = computeGroupRange(row.thoi_gian, currentGroup);
-                try {
-                    const or = await api.get(`/admin/revenue-orders?from=${gFrom}&to=${gTo}`);
-                    if (!or.success) {
-                        detailEl.innerHTML = `<div class="empty-state" style="color:var(--danger);">${or.message||'Lỗi tải đơn'}</div>`;
-                        return;
-                    }
-                    const orders = or.data || [];
-                    const shopSummary = or.shopSummary || [];
-
-                    if (orders.length === 0) {
-                        detailEl.innerHTML = '<div class="empty-state">Không có đơn trong khoảng này</div>';
-                        return;
-                    }
-
-                    // Render shop summary table + orders list
-                    let html = `<div>
-                        <h4 style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;">
-                            <i class="fas fa-store"></i> ${shopSummary.length} gian hàng đóng góp trong kỳ này
-                        </h4>
-                        <div class="period-shop-row header">
-                            <div>Gian hàng</div>
-                            <div class="num">Doanh thu</div>
-                            <div class="num">Hoa hồng</div>
-                            <div class="num">VAT</div>
-                            <div class="num">Đơn</div>
-                        </div>`;
-                    shopSummary.forEach(s => {
-                        html += `<div class="period-shop-row">
-                            <div class="name">${s.ten_gian_hang} <small style="color:var(--text-muted);font-weight:500;">#${s.id}</small></div>
-                            <div class="num green">${formatPrice(s.doanh_thu)}</div>
-                            <div class="num purple">${formatPrice(s.phi_admin)}</div>
-                            <div class="num orange">${formatPrice(s.thue_vat)}</div>
-                            <div class="num">${s.so_don}</div>
-                        </div>`;
-                    });
-                    html += '</div>';
-
-                    // Orders list
-                    const totalOrderRevenue = orders.reduce((s,o) => s + parseFloat(o.tong_tien||0), 0);
-                    const totalOrderPhiAdmin = orders.reduce((s,o) => s + parseFloat(o.phi_admin||0), 0);
-                    const totalOrderVat = orders.reduce((s,o) => s + parseFloat(o.thue_vat||0), 0);
-                    html += `<div class="orders-list">
-                        <h4><i class="fas fa-receipt"></i> ${orders.length} đơn hàng chi tiết</h4>
-                        <div class="period-shop-row header">
-                            <div>#ID</div><div>Người mua</div><div>Gian hàng</div><div>Thanh toán</div><div class="num">Doanh thu</div><div class="num">HH sàn</div><div class="num">VAT</div><div class="num">Ngày</div>
-                        </div>
-                        ${orders.map(o => {
-                            const phiAdmin = parseFloat(o.phi_admin||0);
-                            const thueVat = parseFloat(o.thue_vat||0);
-                            return `<div class="order-card" style="grid-template-columns:55px 1fr 1fr 80px 90px 80px 80px 80px;">
-                            <div class="id">#${o.id}</div>
-                            <div class="val">${o.ten_nguoi_mua}</div>
-                            <div class="val">${o.ten_gian_hang}</div>
-                            <div class="val" style="font-size:0.72rem;">${paymentLabel(o.phuong_thuc_thanh_toan)}</div>
-                            <div class="price">${formatPrice(o.tong_tien)}</div>
-                            <div style="text-align:right;font-weight:600;color:#6366f1;font-size:0.8rem;">+${formatPrice(phiAdmin)}</div>
-                            <div style="text-align:right;font-weight:600;color:#f59e0b;font-size:0.8rem;">+${formatPrice(thueVat)}</div>
-                            <div class="date">${formatDate(o.ngay_tao)}</div>
-                        </div>`;
-                        }).join('')}
-                        <div style="display:grid;grid-template-columns:55px 1fr 1fr 80px 90px 80px 80px 80px;gap:10px;padding:10px;margin-top:4px;border-top:2px solid #e2e8f0;border-radius:8px;background:#f0fdf4;font-size:0.82rem;font-weight:700;">
-                            <span></span><span style="color:var(--text-primary);">Tổng</span><span></span><span></span>
-                            <span style="text-align:right;color:#16a34a;">${formatPrice(totalOrderRevenue)}</span>
-                            <span style="text-align:right;color:#6366f1;">${formatPrice(totalOrderPhiAdmin)}</span>
-                            <span style="text-align:right;color:#f59e0b;">${formatPrice(totalOrderVat)}</span>
-                            <span></span>
-                        </div>
-                    </div>`;
-
-                    detailEl.innerHTML = html;
-                    detailEl.dataset.loaded = '1';
-                } catch (err) {
-                    console.error(err);
-                    detailEl.innerHTML = '<div class="empty-state" style="color:var(--danger);">Lỗi server</div>';
-                }
-            });
-        });
-    }
-
-    // ===== Helpers =====
-    function paymentLabel(p) {
-        return { cod:'COD', bank_transfer:'Chuyển khoản', vnpay:'VNPay', payos:'PayOS' }[p] || p;
-    }
-
-    function getInitials(name) {
-        if (!name) return '?';
-        const parts = name.trim().split(/\s+/);
-        const last = parts[parts.length - 1] || '';
-        return (last[0] || '?').toUpperCase();
-    }
-
-    function groupLabel(g) {
-        return { day:'ngày', week:'tuần', month:'tháng', year:'năm' }[g] || g;
-    }
-
-    function formatLabel(s, group) {
-        if (!s) return '';
-        if (group === 'month') {
-            const [y, m] = s.split('-');
-            return `Tháng ${m}/${y}`;
-        }
-        if (group === 'year') return `Năm ${s}`;
-        if (group === 'week') {
-            const [y, w] = s.split('-W');
-            return `Tuần ${w}/${y}`;
-        }
-        const parts = s.split('-');
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-
-    function computeGroupRange(label, group) {
-        if (group === 'day') return { gFrom: label, gTo: label };
-        if (group === 'week') {
-            const [y, w] = label.split('-W');
-            const wkStart = new Date(parseInt(y), 0, 1 + (parseInt(w)-1)*7);
-            const gFrom = toISO(wkStart);
-            const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
-            return { gFrom, gTo: toISO(wkEnd) };
-        }
-        if (group === 'month') {
-            const [y, m] = label.split('-');
-            const gFrom = `${y}-${m}-01`;
-            const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate();
-            return { gFrom, gTo: `${y}-${m}-${pad(lastDay)}` };
-        }
-        if (group === 'year') {
-            return { gFrom: `${label}-01-01`, gTo: `${label}-12-31` };
-        }
-        return { gFrom: label, gTo: label };
-    }
-
-    function exportCSV() {
-        if (!currentSeries || currentSeries.length === 0) {
-            showToast('Không có dữ liệu để xuất', 'error');
-            return;
-        }
-        const header = ['Thời gian', 'Doanh thu (VND)', 'Hoa hồng (VND)', 'VAT (VND)', 'Số đơn', 'Số gian hàng'];
-        const rows = currentSeries.map(r => [
-            formatLabel(r.thoi_gian, currentGroup),
-            r.doanh_thu, r.phi_admin, r.thue_vat, r.so_don, r.so_gian_hang
-        ]);
-
-        // Cũng xuất luôn bảng phân tích gian hàng
-        const sectionShops = [
-            [],
-            ['--- Phân tích theo gian hàng ---'],
-            ['ID', 'Gian hàng', 'Đơn', 'Khách', 'Doanh thu (VND)', 'Hoa hồng (VND)', 'VAT (VND)']
-        ];
-        currentShopBreakdown.forEach(s => {
-            sectionShops.push([s.id, s.ten_gian_hang, s.so_don, s.so_khach, s.doanh_thu, s.phi_admin, s.thue_vat]);
-        });
-
-        const csv = [header, ...rows, ...sectionShops].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `doanh-thu-vipo-${toISO(new Date())}.csv`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast('Đã xuất file CSV');
-    }
-
-    // Default: this month
-    applyQuickRange('month');
+        // Initial Load (7 days)
+        loadData(7);
     </script>
 </body>
 </html>

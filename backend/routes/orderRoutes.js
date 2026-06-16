@@ -15,6 +15,7 @@ router.get('/', authenticate, getMyOrders);
 
 // Seller endpoints
 router.get('/shop-orders', authenticate, authorize('seller'), getShopOrders);
+router.get('/seller/:id', authenticate, authorize('seller'), getOrderById);
 router.get('/cancel-requests', authenticate, authorize('seller'), getCancelRequests);
 router.put('/:id/seller-cancel', authenticate, authorize('seller'), sellerCancelOrder);
 router.put('/:id/status', authenticate, authorize('seller'), updateOrderStatus);

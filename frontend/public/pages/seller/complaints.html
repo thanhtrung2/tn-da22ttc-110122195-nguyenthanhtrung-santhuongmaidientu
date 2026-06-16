@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khiếu nại - Vipo Seller</title>
+    <meta name="description" content="Quản lý khiếu nại gian hàng trên sàn Vipo">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { primary: { 500:'#6366f1', 600:'#4f46e5' } } } } }</script>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .glass-card { background: white; border: 1px solid #f3f4f6; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+        .dark .glass-card { background: #1f2937; border-color: #374151; }
+        .dashboard-content { background-color: #f9fafb; min-height: 100vh; }
+        .dark .dashboard-content { background-color: #111827; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+        .badge-cho { background:rgba(245,158,11,.15); color:#d97706; }
+        .badge-thuong { background:rgba(59,130,246,.15); color:#2563eb; }
+        .badge-xong { background:rgba(16,185,129,.15); color:#059669; }
+        .badge-tranh { background:rgba(239,68,68,.15); color:#dc2626; }
+        .badge-da_xu_ly { background:rgba(139,92,246,.15); color:#7c3aed; }
+        .badge-tu_choi { background:rgba(107,114,128,.15); color:#6b7280; }
+        /* Evidence gallery */
+        .gallery-img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; cursor: zoom-in; transition: transform 0.15s; }
+        .gallery-img:hover { transform: scale(1.08); }
+        /* Modal */
+        #detail-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 3000; align-items: center; justify-content: center; padding: 1rem; }
+        #detail-modal.show { display: flex; }
+        .modal-box { background: #fff; border-radius: 16px; width: 100%; max-width: 620px; max-height: 90vh; overflow-y: auto; }
+        .dark .modal-box { background: #1f2937; }
+        /* Lightbox */
+        #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999; align-items:center; justify-content:center; }
+        #lightbox.active { display:flex; }
+        #lightbox img { max-width:90vw; max-height:90vh; border-radius:10px; }
+        #lightbox-close { position:fixed; top:1rem; right:1.5rem; color:#fff; font-size:2.5rem; cursor:pointer; line-height:1; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+<nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+
+<div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+    <!-- Sidebar -->
+    <aside class="sidebar glass">
+        <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+            <div style="width:60px;height:60px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-store"></i></div>
+            <h4 style="font-size:0.95rem;" id="shop-name">Gian hàng</h4>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="/pages/seller/dashboard.html"><i class="fas fa-chart-line"></i> Tổng quan</a>
+            <a href="/pages/seller/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/seller/orders.html"><i class="fas fa-shopping-cart"></i> Đơn hàng</a>
+            <a href="/pages/seller/shop.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
+            <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+            <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
+            <a href="/pages/seller/chat.html"><i class="fas fa-comments"></i> Chat</a>
+            <a href="/pages/seller/complaints.html" class="active"><i class="fas fa-flag"></i> Khiếu nại <span id="pending-badge" style="display:none;background:#ef4444;color:#fff;font-size:0.65rem;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span></a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Về trang chủ</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="dashboard-content w-full p-4 sm:p-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="fas fa-flag text-red-500"></i> Quản lý Khiếu nại
+                    </h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Xem ảnh minh chứng, đề xuất giải pháp và chat với khách hàng</p>
+                </div>
+                <button onclick="loadComplaints(currentFilter)" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-sync-alt"></i> Làm mới
+                </button>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="glass-card p-3 flex flex-wrap gap-2">
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors active-filter" data-filter="" onclick="setFilter('')">Tất cả</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="cho_xu_ly" onclick="setFilter('cho_xu_ly')"><i class="fas fa-clock text-yellow-500 mr-1"></i>Chờ xử lý</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="dang_thuong_luong" onclick="setFilter('dang_thuong_luong')"><i class="fas fa-comments text-blue-500 mr-1"></i>Đang thỏa thuận</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="tranh_chap" onclick="setFilter('tranh_chap')"><i class="fas fa-gavel text-red-500 mr-1"></i>Tranh chấp</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="da_giai_quyet" onclick="setFilter('da_giai_quyet')"><i class="fas fa-check-circle text-green-500 mr-1"></i>Đã giải quyết</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors" data-filter="da_xu_ly" onclick="setFilter('da_xu_ly')"><i class="fas fa-shield-alt text-purple-500 mr-1"></i>Admin đã xử lý</button>
+            </div>
+
+            <!-- List -->
+            <div id="complaints-list"><div class="flex justify-center py-12"><div class="spinner"></div></div></div>
+        </div>
+    </main>
+</div>
+
+<!-- Detail Modal -->
+<div id="detail-modal">
+    <div class="modal-box">
+        <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="modal-title">Chi tiết khiếu nại</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="modal-content" class="p-5 space-y-4"></div>
+    </div>
+</div>
+
+<!-- Respond Modal -->
+<div id="respond-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:4000;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:480px;padding:2rem;" class="dark:bg-gray-800">
+        <h3 class="text-lg font-bold mb-4">💬 Đề xuất giải pháp</h3>
+        <p class="text-sm text-gray-500 mb-4">Chọn giải pháp phù hợp. Sau đó liên hệ khách qua Chat để thỏa thuận chi tiết.</p>
+        <div class="space-y-3 mb-4">
+            <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors respond-option" onclick="selectOption('bu_hang')">
+                <input type="radio" name="de_xuat" value="bu_hang" class="w-4 h-4 text-indigo-600">
+                <div><p class="font-semibold text-gray-900">📦 Gửi bù hàng</p><p class="text-xs text-gray-500">Gửi lại hàng mới/còn thiếu cho khách</p></div>
+            </label>
+            <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors respond-option" onclick="selectOption('doi_tra')">
+                <input type="radio" name="de_xuat" value="doi_tra" class="w-4 h-4 text-indigo-600">
+                <div><p class="font-semibold text-gray-900">🔄 Đổi / Trả hàng</p><p class="text-xs text-gray-500">Khách trả hàng cũ, nhận hàng mới</p></div>
+            </label>
+            <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-indigo-400 transition-colors respond-option" onclick="selectOption('hoan_tien')">
+                <input type="radio" name="de_xuat" value="hoan_tien" class="w-4 h-4 text-indigo-600">
+                <div><p class="font-semibold text-gray-900">💰 Hoàn tiền</p><p class="text-xs text-gray-500">Hoàn lại tiền cho khách</p></div>
+            </label>
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ghi chú thêm (không bắt buộc)</label>
+            <textarea id="respond-note" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-sm resize-none dark:bg-gray-700" rows="3" placeholder="Ví dụ: Vui lòng liên hệ shop qua chat để sắp xếp..."></textarea>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="submitRespond()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors"><i class="fas fa-paper-plane mr-2"></i>Gửi đề xuất</button>
+            <button onclick="closeRespondModal()" class="px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">Hủy</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+    <span id="lightbox-close" onclick="closeLightbox()">×</span>
+    <img id="lightbox-img" src="" alt="">
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+if(!isLoggedIn()||getUser().vai_tro!=='seller'||getUser().trang_thai_xac_thuc!=='verified') location.href='/pages/profile.html#seller';
+
+// Load shop name
+async function loadShopInfo() {
+    const r = await api.get('/admin/seller-dashboard');
+    if (r.success && r.data) document.getElementById('shop-name').textContent = getUser().ho_ten || 'Gian hàng';
+}
+loadShopInfo();
+
+let currentFilter = '';
+let currentComplaintId = null;
+let selectedDeXuat = null;
+
+const loaiLabels = {
+    san_pham_loi:'Sản phẩm lỗi', khong_dung_mo_ta:'Sai mô tả', hang_gia:'Hàng giả/nhái',
+    khong_nhan_duoc_hang:'Không nhận được', cham_giao:'Chậm giao', thanh_toan:'Thanh toán', khac:'Khác'
+};
+const ttInfo = {
+    cho_xu_ly:         { label:'Chờ xử lý',          cls:'badge-cho',      icon:'fa-clock' },
+    dang_thuong_luong: { label:'Đang thỏa thuận',     cls:'badge-thuong',   icon:'fa-comments' },
+    da_giai_quyet:     { label:'Đã giải quyết',       cls:'badge-xong',     icon:'fa-check-circle' },
+    tranh_chap:        { label:'Tranh chấp (Admin)',   cls:'badge-tranh',    icon:'fa-gavel' },
+    da_xu_ly:          { label:'Admin đã xử lý',      cls:'badge-da_xu_ly', icon:'fa-shield-alt' },
+    tu_choi:           { label:'Từ chối',              cls:'badge-tu_choi',  icon:'fa-ban' },
+};
+const deXuatLabels = { bu_hang:'📦 Gửi bù hàng', doi_tra:'🔄 Đổi/Trả hàng', hoan_tien:'💰 Hoàn tiền' };
+
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter','bg-indigo-50','text-indigo-600','dark:bg-indigo-900/30'));
+    const active = document.querySelector(`[data-filter="${f}"]`);
+    if(active) active.classList.add('active-filter','bg-indigo-50','text-indigo-600');
+    loadComplaints(f);
+}
+
+async function loadComplaints(filter = '') {
+    const el = document.getElementById('complaints-list');
+    el.innerHTML = '<div class="flex justify-center py-12"><div class="spinner"></div></div>';
+    const qs = filter ? `?trang_thai=${filter}` : '';
+    const r = await api.get(`/complaints/seller/list${qs}`);
+
+    // Update pending badge
+    if (!filter) {
+        const pending = (r.data || []).filter(c => c.trang_thai === 'cho_xu_ly').length;
+        const badge = document.getElementById('pending-badge');
+        if (pending > 0) { badge.textContent = pending; badge.style.display = 'inline'; }
+        else badge.style.display = 'none';
+    }
+
+    if (!r.success || r.data.length === 0) {
+        el.innerHTML = `<div class="glass-card p-10 text-center text-gray-400">
+            <i class="fas fa-flag text-4xl mb-3 block opacity-30"></i>
+            <p class="text-lg font-medium">Không có khiếu nại nào</p>
+        </div>`;
+        return;
+    }
+
+    el.innerHTML = r.data.map(c => renderCard(c)).join('');
+}
+
+function renderCard(c) {
+    const tt = ttInfo[c.trang_thai] || { label:c.trang_thai, cls:'badge-cho', icon:'fa-circle' };
+    const isNew = c.trang_thai === 'cho_xu_ly';
+    const isDispute = c.trang_thai === 'tranh_chap';
+    const anhs = c.anh_minh_chung || [];
+
+    const urgentClass = isDispute ? 'border-l-4 border-red-500' : (isNew ? 'border-l-4 border-yellow-400' : '');
+
+    return `<div class="glass-card p-5 mb-3 ${urgentClass}">
+        <div class="flex justify-between items-start flex-wrap gap-3 mb-3">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-900 dark:text-white">Khiếu nại #${c.id}</span>
+                    <span class="badge ${tt.cls}"><i class="fas ${tt.icon}"></i> ${tt.label}</span>
+                    ${isDispute ? '<span class="badge bg-red-100 text-red-600 animate-pulse"><i class="fas fa-exclamation-triangle"></i> Cần Admin xử lý</span>' : ''}
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Đơn #${c.don_hang_id} &bull; ${formatDate(c.ngay_tao)}</p>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+                <a href="/pages/chat.html?user=${c.khach_id}" class="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-comments"></i> Chat với khách
+                </a>
+                <button onclick="openDetail(${c.id})" class="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+                    <i class="fas fa-eye"></i> Xem & Xử lý
+                </button>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 text-sm">
+            <div><span class="text-gray-500">Khách hàng:</span> <span class="font-medium text-gray-900 dark:text-white">${c.ten_khach}</span></div>
+            <div><span class="text-gray-500">Loại:</span> <span class="font-medium">${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span></div>
+            <div><span class="text-gray-500">Giá trị đơn:</span> <span class="font-medium text-green-600">${formatPrice(c.tong_tien)}</span></div>
+        </div>
+
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">${c.mo_ta}</p>
+
+        ${anhs.length > 0 ? `<div class="flex gap-2 mt-3 flex-wrap">
+            ${anhs.map(src=>`<img src="${src}" class="gallery-img" onclick="openLightbox('${src}')" title="Ảnh minh chứng của khách">`).join('')}
+            ${anhs.length > 0 ? `<div class="flex items-center text-xs text-gray-400"><i class="fas fa-camera mr-1"></i>${anhs.length} ảnh minh chứng</div>` : ''}
+        </div>` : '<p class="text-xs text-gray-400 mt-2"><i class="fas fa-image mr-1"></i>Khách không đính kèm ảnh</p>'}
+
+        ${c.de_xuat_seller ? `<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm">
+            <span class="text-blue-600 font-medium">Đề xuất của bạn:</span> ${deXuatLabels[c.de_xuat_seller]||c.de_xuat_seller}
+            ${c.ghi_chu_seller ? ` — ${c.ghi_chu_seller}` : ''}
+        </div>` : ''}
+    </div>`;
+}
+
+// ---- Detail Modal ----
+async function openDetail(id) {
+    currentComplaintId = id;
+    document.getElementById('detail-modal').classList.add('show');
+    document.getElementById('modal-content').innerHTML = '<div class="flex justify-center py-8"><div class="spinner"></div></div>';
+
+    const r = await api.get(`/complaints/${id}`);
+    if (!r.success) {
+        document.getElementById('modal-content').innerHTML = '<p class="text-red-500">Không thể tải dữ liệu</p>';
+        return;
+    }
+    const c = r.data;
+    const tt = ttInfo[c.trang_thai] || { label:c.trang_thai, cls:'badge-cho', icon:'fa-circle' };
+    const anhs = c.anh_minh_chung || [];
+    const canRespond = ['cho_xu_ly','dang_thuong_luong'].includes(c.trang_thai);
+
+    document.getElementById('modal-title').innerHTML = `Khiếu nại #${c.id} <span class="badge ${tt.cls} text-xs ml-2"><i class="fas ${tt.icon}"></i> ${tt.label}</span>`;
+    document.getElementById('modal-content').innerHTML = `
+        <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"><p class="text-gray-500 text-xs mb-1">Khách hàng</p><p class="font-semibold">${c.ten_khach}</p><p class="text-gray-400 text-xs">${c.email_khach}</p></div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"><p class="text-gray-500 text-xs mb-1">Đơn hàng</p><p class="font-semibold">#${c.don_hang_id}</p><p class="text-green-600 font-bold">${formatPrice(c.tong_tien)}</p></div>
+        </div>
+        <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+            <p class="text-xs text-gray-500 mb-1">Loại khiếu nại: <span class="font-semibold text-gray-900 dark:text-white">${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span></p>
+            <p class="text-sm text-gray-700 dark:text-gray-300">${c.mo_ta}</p>
+        </div>
+        ${anhs.length > 0 ? `
+        <div>
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"><i class="fas fa-camera mr-1 text-indigo-500"></i>Ảnh minh chứng của khách (${anhs.length})</p>
+            <div class="flex flex-wrap gap-2">
+                ${anhs.map(src=>`<img src="${src}" class="gallery-img w-20 h-20" onclick="openLightbox('${src}')">`).join('')}
+            </div>
+        </div>` : '<p class="text-sm text-gray-400"><i class="fas fa-image mr-1"></i>Khách không đính kèm ảnh minh chứng</p>'}
+        ${c.de_xuat_seller ? `<div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm"><p class="font-semibold text-blue-700 dark:text-blue-300 mb-1">Đề xuất của bạn:</p><p>${deXuatLabels[c.de_xuat_seller]} ${c.ghi_chu_seller ? '— '+c.ghi_chu_seller : ''}</p></div>` : ''}
+        ${c.phan_hoi_admin ? `<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-sm border border-purple-200 dark:border-purple-700"><p class="font-semibold text-purple-700 dark:text-purple-300 mb-1"><i class="fas fa-shield-alt mr-1"></i>Quyết định Admin:</p><p>${c.phan_hoi_admin}</p>${c.quyet_dinh_admin==='cuong_che_hoan_tien'?'<p class="text-green-600 font-semibold mt-1">✅ Đã cưỡng chế hoàn tiền</p>':''}</div>` : ''}
+        <div class="flex flex-wrap gap-3 pt-2">
+            ${canRespond ? `<button onclick="closeModal();openRespondModal(${c.id})" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors"><i class="fas fa-paper-plane mr-2"></i>Đề xuất giải pháp</button>` : ''}
+            <a href="/pages/chat.html?user=${c.nguoi_gui_id}" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-medium transition-colors">
+                <i class="fas fa-comments"></i> Chat với khách
+            </a>
+        </div>
+    `;
+}
+function closeModal() { document.getElementById('detail-modal').classList.remove('show'); }
+
+// ---- Respond Modal ----
+function openRespondModal(id) {
+    currentComplaintId = id;
+    selectedDeXuat = null;
+    document.querySelectorAll('.respond-option').forEach(el => el.classList.remove('border-indigo-500','bg-indigo-50'));
+    document.querySelectorAll('input[name="de_xuat"]').forEach(r => r.checked = false);
+    document.getElementById('respond-note').value = '';
+    document.getElementById('respond-modal').style.display = 'flex';
+}
+function closeRespondModal() { document.getElementById('respond-modal').style.display = 'none'; }
+function selectOption(val) {
+    selectedDeXuat = val;
+    document.querySelectorAll('.respond-option').forEach(el => el.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900/20'));
+    event.currentTarget.classList.add('border-indigo-500','bg-indigo-50');
+    document.querySelector(`input[value="${val}"]`).checked = true;
+}
+
+async function submitRespond() {
+    if (!selectedDeXuat) { showToast('Vui lòng chọn giải pháp','warning'); return; }
+    const r = await api.put(`/complaints/${currentComplaintId}/seller-respond`, {
+        de_xuat: selectedDeXuat,
+        ghi_chu: document.getElementById('respond-note').value
+    });
+    if (r.success) {
+        showToast('Đã gửi đề xuất cho khách! Khách sẽ xác nhận hoặc yêu cầu Admin phân xử.');
+        closeRespondModal();
+        loadComplaints(currentFilter);
+    } else showToast(r.message, 'error');
+}
+
+// ---- Lightbox ----
+function openLightbox(src) { document.getElementById('lightbox-img').src=src; document.getElementById('lightbox').classList.add('active'); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape'){closeModal();closeRespondModal();closeLightbox();} });
+
+// ---- Filter active style ----
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('[data-filter=""]').classList.add('bg-indigo-50','text-indigo-600');
+});
+
+loadComplaints('');
+</script>
+</body>
+</html>

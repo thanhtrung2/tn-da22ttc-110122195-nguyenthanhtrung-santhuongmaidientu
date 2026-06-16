@@ -309,6 +309,7 @@ function displayCheckoutSummary() {
 
     // Calculate totals
     const shippingFee = 30000 * cartData.length;
+    const vatFee = Math.round(totalAmount * 0.08); // 8% VAT
     let discountAmount = 0;
 
     if (appliedVoucher) {
@@ -332,10 +333,11 @@ function displayCheckoutSummary() {
             discountAmount = Math.min(30000 * eligibleShopCount, appliedVoucher.gia_tri);
         }
         
-        if (discountAmount > (shopTotal + shippingFee) && appliedVoucher.loai !== 'mien_phi_van_chuyen') discountAmount = shopTotal + shippingFee;
+        // Cập nhật logic: Khuyến mãi không được lớn hơn tổng (Tiền hàng + Ship + VAT)
+        if (discountAmount > (shopTotal + shippingFee + vatFee) && appliedVoucher.loai !== 'mien_phi_van_chuyen') discountAmount = shopTotal + shippingFee + vatFee;
     }
 
-    const finalTotal = Math.max(0, totalAmount + shippingFee - discountAmount);
+    const finalTotal = Math.max(0, totalAmount + shippingFee + vatFee - discountAmount);
 
     html += `
         <div style="padding-top:1rem;margin-top:0.5rem;">
@@ -346,6 +348,10 @@ function displayCheckoutSummary() {
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
                 <span style="color:var(--dark-400);">Phí giao hàng</span>
                 <span>${formatPrice(shippingFee)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
+                <span style="color:var(--dark-400);">Thuế VAT (8%)</span>
+                <span>${formatPrice(vatFee)}</span>
             </div>
             ${discountAmount > 0 ? `
             <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">

@@ -2,115 +2,301 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khiếu nại - Admin</title>
+    <title>Khiếu nại - Admin Vipo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode:'class', theme:{ extend:{ colors:{ primary:{500:'#6366f1',600:'#4f46e5'} } } } }</script>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .glass-card { background:white; border:1px solid #f3f4f6; border-radius:0.75rem; box-shadow:0 1px 3px rgba(0,0,0,0.07); }
+        .dark .glass-card { background:#1f2937; border-color:#374151; }
+        .dashboard-content { background:#f9fafb; min-height:100vh; }
+        .dark .dashboard-content { background:#111827; }
+        .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:600; white-space:nowrap; }
+        .badge-cho { background:rgba(245,158,11,.15); color:#d97706; }
+        .badge-thuong { background:rgba(59,130,246,.15); color:#2563eb; }
+        .badge-xong { background:rgba(16,185,129,.15); color:#059669; }
+        .badge-tranh { background:rgba(239,68,68,.15); color:#dc2626; }
+        .badge-da_xu_ly { background:rgba(139,92,246,.15); color:#7c3aed; }
+        .badge-tu_choi { background:rgba(107,114,128,.15); color:#6b7280; }
+        .gallery-img { width:72px; height:72px; object-fit:cover; border-radius:8px; cursor:zoom-in; transition:transform 0.15s; border:2px solid transparent; }
+        .gallery-img:hover { transform:scale(1.08); border-color:#6366f1; }
+        #handle-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000; align-items:center; justify-content:center; padding:1rem; }
+        #handle-modal.show { display:flex; }
+        .modal-box { background:#fff; border-radius:16px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; }
+        .dark .modal-box { background:#1f2937; }
+        #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:9999; align-items:center; justify-content:center; flex-direction:column; }
+        #lightbox.active { display:flex; }
+        #lightbox img { max-width:90vw; max-height:85vh; border-radius:10px; }
+        #lightbox-close { position:fixed; top:1rem; right:1.5rem; color:#fff; font-size:2.5rem; cursor:pointer; }
+        .urgency-border { border-left:4px solid #ef4444; }
+        .stats-card { border-radius:12px; padding:1.25rem; }
+    </style>
 </head>
-<body>
-    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
-    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
-        <aside class="sidebar glass">
-            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
-                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
-                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
-            </div>
-            <nav class="sidebar-menu">
-                <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
-                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
-                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
-                <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
-                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
-                <a href="/pages/admin/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
-                <a href="/pages/admin/complaints.html" class="active"><i class="fas fa-flag"></i> Khiếu nại</a>
-                <a href="/pages/admin/moderation.html"><i class="fas fa-shield-alt"></i> Kiểm duyệt AI</a>
-                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
-            </nav>
-        </aside>
-        <main class="dashboard-content">
-            <h1 style="margin-bottom:1.5rem;">🚩 Quản lý khiếu nại</h1>
-            <div class="glass" style="padding:12px;margin-bottom:1.5rem;display:flex;gap:8px;">
-                <button class="btn btn-sm" style="background:var(--primary);color:white;" onclick="load('')">Tất cả</button>
-                <button class="btn btn-sm btn-outline" onclick="load('cho_xu_ly')">Chờ xử lý</button>
-                <button class="btn btn-sm btn-outline" onclick="load('dang_xu_ly')">Đang xử lý</button>
-                <button class="btn btn-sm btn-outline" onclick="load('da_xu_ly')">Đã xử lý</button>
-                <button class="btn btn-sm btn-outline" onclick="load('tu_choi')">Từ chối</button>
-            </div>
-            <div id="complaints-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+<nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
 
-            <!-- Handle Modal -->
-            <div id="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:2000;display:none;align-items:center;justify-content:center;">
-                <div class="glass" style="width:500px;padding:2rem;">
-                    <h3 style="margin-bottom:1rem;">Xử lý khiếu nại #<span id="m-id"></span></h3>
-                    <div class="form-group"><label>Trạng thái</label>
-                        <select class="form-control" id="m-status">
-                            <option value="dang_xu_ly">Đang xử lý</option>
-                            <option value="da_xu_ly">Đã xử lý</option>
-                            <option value="tu_choi">Từ chối</option>
-                        </select>
-                    </div>
-                    <div class="form-group"><label>Phản hồi</label><textarea class="form-control" id="m-reply" rows="3" placeholder="Nhập phản hồi..."></textarea></div>
-                    <div style="display:flex;gap:1rem;">
-                        <button class="btn btn-primary" onclick="handleComplaint()"><i class="fas fa-save"></i> Lưu</button>
-                        <button class="btn btn-outline" onclick="closeModal()">Hủy</button>
-                    </div>
-                </div>
+<div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+    <aside class="sidebar glass">
+        <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+            <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng</a>
+            <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm</a>
+            <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
+            <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+            <a href="/pages/admin/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+            <a href="/pages/admin/complaints.html" class="active"><i class="fas fa-flag"></i> Khiếu nại</a>
+            <a href="/pages/admin/moderation.html"><i class="fas fa-shield-alt"></i> Kiểm duyệt AI</a>
+            <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+        </nav>
+    </aside>
+
+    <main class="dashboard-content w-full p-4 sm:p-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+            <!-- Header -->
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    🚩 Quản lý Khiếu nại
+                </h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Xem xét ảnh minh chứng, chốt hồ sơ hoặc cưỡng chế hoàn tiền khi có tranh chấp</p>
             </div>
-        </main>
+
+            <!-- Stats KPI -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="stats-row">
+                <div class="stats-card glass-card text-center"><div class="text-2xl font-bold text-yellow-500" id="s-cho">—</div><div class="text-xs text-gray-500 mt-1">Chờ xử lý</div></div>
+                <div class="stats-card glass-card text-center"><div class="text-2xl font-bold text-blue-500" id="s-thuong">—</div><div class="text-xs text-gray-500 mt-1">Đang thỏa thuận</div></div>
+                <div class="stats-card glass-card text-center"><div class="text-2xl font-bold text-red-500" id="s-tranh">—</div><div class="text-xs text-gray-500 mt-1">Tranh chấp</div></div>
+                <div class="stats-card glass-card text-center"><div class="text-2xl font-bold text-purple-500" id="s-xuly">—</div><div class="text-xs text-gray-500 mt-1">Đã xử lý</div></div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="glass-card p-3 flex flex-wrap gap-2">
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-indigo-50 text-indigo-600" data-f="" onclick="setFilter('')">Tất cả</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50" data-f="cho_xu_ly" onclick="setFilter('cho_xu_ly')"><i class="fas fa-clock text-yellow-500 mr-1"></i>Chờ xử lý</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50" data-f="dang_thuong_luong" onclick="setFilter('dang_thuong_luong')"><i class="fas fa-comments text-blue-500 mr-1"></i>Đang thỏa thuận</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50" data-f="tranh_chap" onclick="setFilter('tranh_chap')"><i class="fas fa-gavel text-red-500 mr-1"></i>Tranh chấp</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50" data-f="da_giai_quyet" onclick="setFilter('da_giai_quyet')"><i class="fas fa-check-circle text-green-500 mr-1"></i>Đã giải quyết</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-50" data-f="da_xu_ly" onclick="setFilter('da_xu_ly')"><i class="fas fa-shield-alt text-purple-500 mr-1"></i>Admin đã xử lý</button>
+            </div>
+
+            <!-- List -->
+            <div id="complaints-list"><div class="flex justify-center py-12"><div class="spinner"></div></div></div>
+        </div>
+    </main>
+</div>
+
+<!-- Handle Modal -->
+<div id="handle-modal">
+    <div class="modal-box">
+        <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white" id="modal-title">Xử lý khiếu nại</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="modal-content" class="p-5 space-y-4"></div>
+        <div id="modal-actions" class="p-5 border-t border-gray-100 dark:border-gray-700 space-y-3"></div>
     </div>
-    <script src="/js/api.js"></script>
-    <script>
-    if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
+</div>
 
-    const loaiLabels = {san_pham_loi:'SP lỗi',khong_dung_mo_ta:'Sai mô tả',cham_giao:'Chậm giao',thanh_toan:'Thanh toán',khac:'Khác'};
-    const ttLabels = {cho_xu_ly:'Chờ xử lý',dang_xu_ly:'Đang xử lý',da_xu_ly:'Đã xử lý',tu_choi:'Từ chối'};
-    const ttClass = {cho_xu_ly:'status-pending',dang_xu_ly:'status-shipping',da_xu_ly:'status-completed',tu_choi:'status-cancelled'};
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+    <span id="lightbox-close">×</span>
+    <img id="lightbox-img" src="" alt="">
+</div>
 
-    async function load(status) {
-        const q = status ? `?trang_thai=${status}` : '';
-        const r = await api.get(`/complaints/all${q}`);
-        const el = document.getElementById('complaints-list');
-        if(!r.success||r.data.length===0) { el.innerHTML='<p style="text-align:center;color:var(--dark-400);padding:3rem;">Không có khiếu nại</p>'; return; }
+<script src="/js/api.js"></script>
+<script>
+if(!isLoggedIn()||getUser().vai_tro!=='admin') location.href='/pages/admin/login.html';
 
-        el.innerHTML = r.data.map(c => `
-        <div class="glass-card" style="padding:1.5rem;margin-bottom:1rem;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <div>
-                    <strong>#${c.id}</strong> - Đơn #${c.don_hang_id}
-                    <span style="margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,0.15);color:#fbbf24;font-size:0.7rem;">${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span>
+let currentFilter = '';
+let currentComplaintId = null;
+let allData = [];
+
+const loaiLabels = {
+    san_pham_loi:'Sản phẩm lỗi', khong_dung_mo_ta:'Sai mô tả', hang_gia:'Hàng giả/nhái',
+    khong_nhan_duoc_hang:'Không nhận được', cham_giao:'Chậm giao', thanh_toan:'Thanh toán', khac:'Khác'
+};
+const ttInfo = {
+    cho_xu_ly:         { label:'Chờ xử lý',         cls:'badge-cho',      icon:'fa-clock' },
+    dang_thuong_luong: { label:'Đang thỏa thuận',    cls:'badge-thuong',   icon:'fa-comments' },
+    da_giai_quyet:     { label:'Đã giải quyết',      cls:'badge-xong',     icon:'fa-check-circle' },
+    tranh_chap:        { label:'Tranh chấp',         cls:'badge-tranh',    icon:'fa-gavel' },
+    da_xu_ly:          { label:'Admin đã xử lý',     cls:'badge-da_xu_ly', icon:'fa-shield-alt' },
+    tu_choi:           { label:'Từ chối',             cls:'badge-tu_choi',  icon:'fa-ban' },
+};
+const deXuatLabels = { bu_hang:'📦 Gửi bù hàng', doi_tra:'🔄 Đổi/Trả hàng', hoan_tien:'💰 Hoàn tiền' };
+
+function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-indigo-50','text-indigo-600'));
+    document.querySelector(`[data-f="${f}"]`)?.classList.add('bg-indigo-50','text-indigo-600');
+    loadComplaints(f);
+}
+
+async function loadComplaints(filter = '') {
+    const el = document.getElementById('complaints-list');
+    el.innerHTML = '<div class="flex justify-center py-12"><div class="spinner"></div></div>';
+    const qs = filter ? `?trang_thai=${filter}` : '';
+    const r = await api.get(`/complaints/all${qs}`);
+
+    if (!r.success) { el.innerHTML = '<p class="text-center text-red-500">Lỗi tải dữ liệu</p>'; return; }
+
+    allData = r.data;
+
+    // Update stats on first load (all data)
+    if (!filter) {
+        const counts = {};
+        r.data.forEach(c => counts[c.trang_thai] = (counts[c.trang_thai]||0)+1);
+        document.getElementById('s-cho').textContent = counts['cho_xu_ly']||0;
+        document.getElementById('s-thuong').textContent = counts['dang_thuong_luong']||0;
+        document.getElementById('s-tranh').textContent = counts['tranh_chap']||0;
+        document.getElementById('s-xuly').textContent = (counts['da_xu_ly']||0) + (counts['da_giai_quyet']||0);
+    }
+
+    if (r.data.length === 0) {
+        el.innerHTML = `<div class="glass-card p-10 text-center text-gray-400">
+            <i class="fas fa-flag text-4xl mb-3 block opacity-30"></i>
+            <p class="text-lg font-medium">Không có khiếu nại nào</p>
+        </div>`;
+        return;
+    }
+
+    el.innerHTML = r.data.map(c => renderCard(c)).join('');
+}
+
+function renderCard(c) {
+    const tt = ttInfo[c.trang_thai] || {label:c.trang_thai,cls:'badge-cho',icon:'fa-circle'};
+    const isDispute = c.trang_thai === 'tranh_chap';
+    const anhs = c.anh_minh_chung || [];
+
+    return `<div class="glass-card p-5 mb-3 ${isDispute?'urgency-border':''}">
+        <div class="flex justify-between items-start flex-wrap gap-3 mb-3">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-900 dark:text-white">KN #${c.id}</span>
+                    <span class="badge ${tt.cls}"><i class="fas ${tt.icon}"></i> ${tt.label}</span>
+                    ${isDispute?'<span class="badge badge-tranh animate-pulse"><i class="fas fa-exclamation-triangle"></i> Cần Admin phân xử</span>':''}
                 </div>
-                <span class="status ${ttClass[c.trang_thai]}">${ttLabels[c.trang_thai]}</span>
+                <p class="text-sm text-gray-500 mt-1">Đơn #${c.don_hang_id} &bull; ${formatDate(c.ngay_tao)}</p>
             </div>
-            <div style="font-size:0.85rem;margin-bottom:8px;">
-                <strong>Người gửi:</strong> ${c.ten_nguoi_gui} (${c.email}) | <strong>Tổng tiền:</strong> ${formatPrice(c.tong_tien)}
+            <button onclick="openModal(${c.id})" class="flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-colors">
+                <i class="fas fa-gavel"></i> Xem & Xử lý
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-3">
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 text-xs">Khách hàng</p><p class="font-medium truncate">${c.ten_nguoi_gui}</p><p class="text-gray-400 text-xs truncate">${c.email}</p></div>
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 text-xs">Người bán</p><p class="font-medium truncate">${c.ten_gian_hang}</p><p class="text-gray-400 text-xs truncate">${c.ten_nguoi_ban||''}</p></div>
+            <div class="p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg"><p class="text-gray-500 text-xs">Giá trị đơn</p><p class="font-bold text-green-600">${formatPrice(c.tong_tien)}</p><p class="text-gray-400 text-xs">${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</p></div>
+        </div>
+
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">${c.mo_ta}</p>
+
+        ${anhs.length>0 ? `<div class="flex gap-2 flex-wrap items-center">
+            ${anhs.map(src=>`<img src="${src}" class="gallery-img" onclick="openLightbox('${src}')">`).join('')}
+            <span class="text-xs text-gray-400"><i class="fas fa-camera mr-1"></i>${anhs.length} ảnh minh chứng</span>
+        </div>` : '<p class="text-xs text-gray-400"><i class="fas fa-image mr-1"></i>Không có ảnh minh chứng</p>'}
+
+        ${c.de_xuat_seller ? `<div class="mt-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs"><span class="font-semibold text-blue-600">Seller đề xuất:</span> ${deXuatLabels[c.de_xuat_seller]||c.de_xuat_seller} ${c.ghi_chu_seller?'— '+c.ghi_chu_seller:''}</div>` : ''}
+        ${c.phan_hoi_admin ? `<div class="mt-2 p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-xs"><span class="font-semibold text-purple-600"><i class="fas fa-shield-alt mr-1"></i>Admin:</span> ${c.phan_hoi_admin}</div>` : ''}
+    </div>`;
+}
+
+// ---- Modal xử lý ----
+async function openModal(id) {
+    currentComplaintId = id;
+    document.getElementById('handle-modal').classList.add('show');
+    document.getElementById('modal-content').innerHTML = '<div class="flex justify-center py-8"><div class="spinner"></div></div>';
+    document.getElementById('modal-actions').innerHTML = '';
+
+    const r = await api.get(`/complaints/${id}`);
+    if(!r.success) { document.getElementById('modal-content').innerHTML='<p class="text-red-500">Lỗi tải dữ liệu</p>'; return; }
+    const c = r.data;
+    const tt = ttInfo[c.trang_thai]||{label:c.trang_thai,cls:'badge-cho',icon:'fa-circle'};
+    const anhs = c.anh_minh_chung||[];
+    const canHandle = !['da_xu_ly','da_giai_quyet','tu_choi'].includes(c.trang_thai);
+
+    document.getElementById('modal-title').innerHTML = `Khiếu nại #${c.id} <span class="badge ${tt.cls} ml-2 text-xs"><i class="fas ${tt.icon}"></i> ${tt.label}</span>`;
+
+    document.getElementById('modal-content').innerHTML = `
+        <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"><p class="text-gray-500 text-xs mb-1">👤 Khách hàng</p><p class="font-semibold">${c.ten_khach}</p><p class="text-gray-400 text-xs">${c.email_khach}</p></div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"><p class="text-gray-500 text-xs mb-1">🏪 Người bán</p><p class="font-semibold">${c.ten_gian_hang}</p><p class="text-gray-400 text-xs">${c.ten_nguoi_ban||''}</p></div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"><p class="text-gray-500 text-xs mb-1">📦 Đơn hàng</p><p class="font-semibold">#${c.don_hang_id}</p><p class="text-xs text-gray-400">${c.ma_giao_dich||''}</p></div>
+            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"><p class="text-gray-500 text-xs mb-1">💰 Giá trị</p><p class="font-bold text-green-600 text-base">${formatPrice(c.tong_tien)}</p></div>
+        </div>
+
+        <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-800">
+            <p class="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Loại: ${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300">${c.mo_ta}</p>
+        </div>
+
+        ${anhs.length>0 ? `<div>
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"><i class="fas fa-camera mr-1 text-indigo-500"></i>Ảnh minh chứng của khách (${anhs.length})</p>
+            <div class="flex flex-wrap gap-2">${anhs.map(src=>`<img src="${src}" class="gallery-img w-24 h-24" onclick="openLightbox('${src}')">`).join('')}</div>
+        </div>` : '<div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl text-sm text-gray-400"><i class="fas fa-image mr-1"></i>Khách không đính kèm ảnh</div>'}
+
+        ${c.de_xuat_seller ? `<div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+            <p class="text-xs font-semibold text-blue-600 mb-1">💬 Đề xuất của người bán:</p>
+            <p class="font-semibold">${deXuatLabels[c.de_xuat_seller]||c.de_xuat_seller}</p>
+            ${c.ghi_chu_seller?`<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${c.ghi_chu_seller}</p>`:''}
+            <p class="text-xs text-gray-500 mt-1">Khách ${c.ket_qua_thuong_luong==='khong_dong_y'?'<span class="text-red-500 font-medium">KHÔNG đồng ý</span>':c.ket_qua_thuong_luong==='dong_y'?'<span class="text-green-500 font-medium">Đồng ý</span>':'chưa phản hồi'}</p>
+        </div>` : '<div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl text-sm text-gray-400"><i class="fas fa-comments mr-1"></i>Người bán chưa đề xuất giải pháp</div>'}
+
+        ${c.phan_hoi_admin ? `<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-200 dark:border-purple-700">
+            <p class="text-xs font-semibold text-purple-600 mb-1"><i class="fas fa-shield-alt mr-1"></i>Quyết định Admin:</p>
+            <p class="text-sm">${c.phan_hoi_admin}</p>
+            ${c.quyet_dinh_admin==='cuong_che_hoan_tien'?'<p class="text-green-600 font-semibold text-sm mt-1">✅ Đã cưỡng chế hoàn tiền</p>':'<p class="text-blue-600 text-sm mt-1">📋 Chốt hồ sơ</p>'}
+        </div>` : ''}
+    `;
+
+    if (canHandle) {
+        document.getElementById('modal-actions').innerHTML = `
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📝 Phản hồi / Ghi chú quyết định:</p>
+            <textarea id="admin-note" class="w-full border border-gray-200 dark:border-gray-600 rounded-xl p-3 text-sm resize-none dark:bg-gray-700" rows="3" placeholder="Nhập ghi chú hoặc lý do quyết định..."></textarea>
+            <div class="flex flex-wrap gap-3 mt-3">
+                <button onclick="handleComplaint('chot_ho_so')" class="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium text-sm transition-colors">
+                    <i class="fas fa-check-circle mr-2"></i>Chốt hồ sơ (Hai bên đã đồng ý)
+                </button>
+                <button onclick="handleComplaint('cuong_che_hoan_tien')" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium text-sm transition-colors">
+                    <i class="fas fa-gavel mr-2"></i>Cưỡng chế hoàn tiền
+                </button>
             </div>
-            <p style="font-size:0.85rem;color:var(--dark-300);padding:10px;background:var(--dark-900);border-radius:8px;margin-bottom:8px;">${c.mo_ta}</p>
-            ${c.phan_hoi_admin ? `<div style="font-size:0.85rem;padding:10px;background:rgba(99,102,241,0.1);border-radius:8px;"><strong style="color:var(--primary-light);">Phản hồi:</strong> ${c.phan_hoi_admin}</div>` : ''}
-            <div style="display:flex;justify-content:space-between;margin-top:8px;">
-                <span style="font-size:0.75rem;color:var(--dark-500);">${formatDate(c.ngay_tao)}</span>
-                <button class="btn btn-sm btn-primary" onclick="openModal(${c.id})"><i class="fas fa-edit"></i> Xử lý</button>
-            </div>
-        </div>`).join('');
+            <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>"Cưỡng chế hoàn tiền" sẽ đánh dấu đơn hàng là đã hoàn tiền và thông báo cho cả hai bên.</p>
+        `;
+    } else {
+        document.getElementById('modal-actions').innerHTML = `<p class="text-sm text-gray-500 text-center"><i class="fas fa-check-circle text-green-500 mr-1"></i>Khiếu nại này đã được xử lý.</p>`;
     }
+}
 
-    let currentComplaintId = null;
-    function openModal(id) {
-        currentComplaintId = id;
-        document.getElementById('m-id').textContent = id;
-        document.getElementById('modal').style.display = 'flex';
-    }
-    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function closeModal() { document.getElementById('handle-modal').classList.remove('show'); }
 
-    async function handleComplaint() {
-        const r = await api.put(`/complaints/${currentComplaintId}`, {
-            trang_thai: document.getElementById('m-status').value,
-            phan_hoi_admin: document.getElementById('m-reply').value
-        });
-        if(r.success) { showToast('Cập nhật thành công!'); closeModal(); load(''); }
-        else showToast(r.message,'error');
-    }
+async function handleComplaint(quyet_dinh) {
+    const note = document.getElementById('admin-note')?.value || '';
+    const label = quyet_dinh === 'chot_ho_so' ? 'Chốt hồ sơ' : 'Cưỡng chế hoàn tiền';
+    if (!confirm(`Xác nhận: ${label}?`)) return;
 
-    load('');
-    </script>
+    const r = await api.put(`/complaints/${currentComplaintId}/admin-handle`, {
+        quyet_dinh,
+        phan_hoi_admin: note
+    });
+    if (r.success) {
+        showToast('Xử lý thành công! Đã thông báo cho khách và người bán.');
+        closeModal();
+        loadComplaints(currentFilter);
+    } else showToast(r.message, 'error');
+}
+
+// ---- Lightbox ----
+function openLightbox(src) { document.getElementById('lightbox-img').src=src; document.getElementById('lightbox').classList.add('active'); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+document.getElementById('lightbox-close').onclick = closeLightbox;
+document.addEventListener('keydown', e => { if(e.key==='Escape'){closeModal();closeLightbox();} });
+
+loadComplaints('');
+</script>
 </body>
 </html>

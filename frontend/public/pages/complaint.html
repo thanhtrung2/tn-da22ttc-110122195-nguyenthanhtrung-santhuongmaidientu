@@ -3,137 +3,335 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Khiếu nại - Vipo</title>
+    <meta name="description" content="Gửi và theo dõi khiếu nại đơn hàng trên sàn thương mại điện tử Vipo">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--dark-600);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--dark-900);
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.06);
+        }
+        .upload-zone i { font-size: 2rem; color: var(--dark-400); margin-bottom: 0.5rem; display: block; }
+        .preview-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem; }
+        .preview-item { position: relative; width: 90px; height: 90px; border-radius: 8px; overflow: hidden; }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-item .remove-btn {
+            position: absolute; top: 3px; right: 3px;
+            background: rgba(0,0,0,0.7); color: #fff;
+            border: none; border-radius: 50%; width: 22px; height: 22px;
+            cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center;
+        }
+        /* Status badges */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+        .badge-cho { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .badge-thuong { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .badge-xong { background: rgba(16,185,129,0.15); color: #10b981; }
+        .badge-tranh { background: rgba(239,68,68,0.15); color: #ef4444; }
+        .badge-da_xu_ly { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .badge-tu_choi { background: rgba(107,114,128,0.15); color: #9ca3af; }
+        /* Complaint card */
+        .complaint-card { background: var(--dark-800); border: 1px solid var(--dark-700); border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; transition: border-color 0.2s; }
+        .complaint-card:hover { border-color: var(--dark-500); }
+        .complaint-card.urgent { border-left: 3px solid #ef4444; }
+        /* Evidence images */
+        .evidence-thumbs img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: opacity 0.2s; }
+        .evidence-thumbs img:hover { opacity: 0.8; }
+        /* Negotiation box */
+        .negotiation-box { background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(99,102,241,0.08)); border: 1px solid rgba(99,102,241,0.25); border-radius: 12px; padding: 1.1rem; margin-top: 0.8rem; }
+        /* Lightbox */
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; align-items: center; justify-content: center; }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 10px; }
+        .lightbox-close { position: fixed; top: 1rem; right: 1rem; color: #fff; font-size: 2rem; cursor: pointer; }
+    </style>
 </head>
 <body>
-    <nav class="shopee-navbar">
-        <!-- Top Bar -->
-        <div class="shopee-topbar">
-            <div class="navbar-container">
-                <div class="topbar-left">
-                </div>
-                <div class="topbar-right">
-                    <div class="topbar-notifications">
-                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
-                            <i class="fas fa-bell"></i> Thông Báo
-                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
-                        </a>
-                        <div class="notifications-dropdown" id="notifications-dropdown">
-                            <div class="notifications-header">
-                                <h4>Thông báo</h4>
-                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
-                            </div>
-                            <div class="notifications-list" id="navbar-notifications-list">
-                                <!-- Notifications will be loaded here -->
-                            </div>
-                        </div>
-                    </div>
-                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
-                    <div class="topbar-user" id="topbar-user">
-                        <!-- Sẽ được load động -->
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Main Navbar -->
-        <div class="shopee-main-nav">
-            <div class="navbar-container">
-                <a href="/" class="shopee-logo">
-                    <i class="fas fa-shopping-bag"></i>
-                    <span>Vipo</span>
+<nav class="shopee-navbar">
+    <div class="shopee-topbar"><div class="navbar-container">
+        <div class="topbar-left"></div>
+        <div class="topbar-right">
+            <div class="topbar-notifications">
+                <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                    <i class="fas fa-bell"></i> Thông Báo
+                    <span class="notification-badge" id="notification-count" style="display:none;">0</span>
                 </a>
-                
-                <div class="shopee-search">
-                    <div class="search-box" style="position:relative;">
-                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
-                        <button class="search-btn" onclick="searchProducts()">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="shopee-actions">
-                    <a href="/pages/cart.html" class="cart-btn">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="cart-badge" id="cart-count">0</span>
-                    </a>
+                <div class="notifications-dropdown" id="notifications-dropdown">
+                    <div class="notifications-header"><h4>Thông báo</h4><a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a></div>
+                    <div class="notifications-list" id="navbar-notifications-list"></div>
                 </div>
             </div>
+            <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+            <div class="topbar-user" id="topbar-user"></div>
         </div>
-    </nav>
-    <div class="page-container">
-        <div class="page-header">
-            <h1><i class="fas fa-flag"></i> Khiếu nại</h1>
-            <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem;">
-                Trước khi gửi khiếu nại, vui lòng đọc <a href="/pages/complaint-policy.html" style="color:var(--primary);font-weight:600;"><i class="fas fa-balance-scale"></i> Chính sách khiếu nại</a> để hiểu rõ quyền lợi và quy trình xử lý.
-            </p>
+    </div></div>
+    <div class="shopee-main-nav"><div class="navbar-container">
+        <a href="/" class="shopee-logo"><i class="fas fa-shopping-bag"></i><span>Vipo</span></a>
+        <div class="shopee-search"><div class="search-box" style="position:relative;">
+            <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
+            <button class="search-btn" onclick="searchProducts()"><i class="fas fa-search"></i></button>
+        </div></div>
+        <div class="shopee-actions">
+            <a href="/pages/cart.html" class="cart-btn"><i class="fas fa-shopping-cart"></i><span class="cart-badge" id="cart-count">0</span></a>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
-            <div class="glass-card" style="padding:2rem;">
-                <h3 style="margin-bottom:1.5rem;">Gửi khiếu nại mới</h3>
-                <form onsubmit="submitComplaint(event)">
-                    <div class="form-group"><label>Mã đơn hàng</label><input class="form-control" id="order_id" type="number" placeholder="Nhập mã đơn hàng..." required></div>
-                    <div class="form-group"><label>Loại khiếu nại</label>
-                        <select class="form-control" id="loai" required>
-                            <option value="">-- Chọn loại --</option>
-                            <option value="san_pham_loi">Sản phẩm lỗi</option>
-                            <option value="khong_dung_mo_ta">Không đúng mô tả</option>
-                            <option value="cham_giao">Chậm giao hàng</option>
-                            <option value="thanh_toan">Vấn đề thanh toán</option>
-                            <option value="khac">Khác</option>
-                        </select>
+    </div></div>
+</nav>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1><i class="fas fa-flag"></i> Khiếu nại & Tranh chấp</h1>
+        <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem;">
+            Sau khi gửi khiếu nại, người bán sẽ liên hệ chat và đề xuất giải pháp. Nếu không thỏa thuận được, Admin sẽ can thiệp.
+            <a href="/pages/complaint-policy.html" style="color:var(--primary);font-weight:600;margin-left:6px;"><i class="fas fa-balance-scale"></i> Chính sách khiếu nại</a>
+        </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:2rem;">
+        <!-- Form gửi khiếu nại -->
+        <div class="glass-card" style="padding:2rem;">
+            <h3 style="margin-bottom:1.5rem;display:flex;align-items:center;gap:8px;"><i class="fas fa-paper-plane" style="color:var(--primary);"></i> Gửi khiếu nại mới</h3>
+            <form id="complaint-form" onsubmit="submitComplaint(event)" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Mã đơn hàng <span style="color:#ef4444">*</span></label>
+                    <input class="form-control" id="order_id" type="number" placeholder="Nhập mã đơn hàng..." required>
+                </div>
+                <div class="form-group">
+                    <label>Loại khiếu nại <span style="color:#ef4444">*</span></label>
+                    <select class="form-control" id="loai" required>
+                        <option value="">-- Chọn loại --</option>
+                        <option value="san_pham_loi">Sản phẩm lỗi / hư hỏng</option>
+                        <option value="khong_dung_mo_ta">Không đúng mô tả</option>
+                        <option value="hang_gia">Hàng giả / nhái</option>
+                        <option value="khong_nhan_duoc_hang">Không nhận được hàng</option>
+                        <option value="cham_giao">Chậm giao hàng</option>
+                        <option value="thanh_toan">Vấn đề thanh toán</option>
+                        <option value="khac">Khác</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Mô tả chi tiết <span style="color:#ef4444">*</span></label>
+                    <textarea class="form-control" id="mota" rows="4" required placeholder="Mô tả rõ vấn đề bạn gặp phải..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Ảnh minh chứng (tối đa 5 ảnh, 5MB/ảnh)</label>
+                    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                        <i class="fas fa-camera"></i>
+                        <p style="color:var(--dark-400);font-size:0.85rem;margin:0;">Kéo thả hoặc bấm để chọn ảnh minh chứng</p>
+                        <p style="color:var(--dark-500);font-size:0.75rem;margin:4px 0 0;">JPG, PNG, WEBP &bull; Tối đa 5 ảnh</p>
                     </div>
-                    <div class="form-group"><label>Mô tả chi tiết</label><textarea class="form-control" id="mota" rows="4" required placeholder="Mô tả vấn đề bạn gặp phải..."></textarea></div>
-                    <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i> Gửi khiếu nại</button>
-                </form>
+                    <input type="file" id="file-input" multiple accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+                    <div class="preview-grid" id="preview-grid"></div>
+                </div>
+                <button type="submit" class="btn btn-danger" id="submit-btn" style="width:100%;"><i class="fas fa-paper-plane"></i> Gửi khiếu nại</button>
+            </form>
+        </div>
+
+        <!-- Danh sách khiếu nại -->
+        <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <h3>Lịch sử khiếu nại</h3>
+                <button class="btn btn-sm btn-outline" onclick="loadComplaints()"><i class="fas fa-sync-alt"></i></button>
             </div>
-            <div>
-                <h3 style="margin-bottom:1rem;">Lịch sử khiếu nại</h3>
-                <div id="complaints-list"><div class="spinner" style="margin:2rem auto;"></div></div>
-            </div>
+            <div id="complaints-list"><div class="spinner" style="margin:2rem auto;"></div></div>
         </div>
     </div>
-    <script src="/js/api.js"></script>
-    <script>
-    if(!isLoggedIn()) location.href='/pages/login.html';
-    const p = new URLSearchParams(location.search);
-    if(p.get('order_id')) document.getElementById('order_id').value = p.get('order_id');
+</div>
 
-    const loaiLabels = {san_pham_loi:'Sản phẩm lỗi',khong_dung_mo_ta:'Không đúng mô tả',cham_giao:'Chậm giao',thanh_toan:'Thanh toán',khac:'Khác'};
-    const ttLabels = {cho_xu_ly:'Chờ xử lý',dang_xu_ly:'Đang xử lý',da_xu_ly:'Đã xử lý',tu_choi:'Từ chối'};
-    const ttClass = {cho_xu_ly:'status-pending',dang_xu_ly:'status-shipping',da_xu_ly:'status-completed',tu_choi:'status-cancelled'};
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close"><i class="fas fa-times"></i></span>
+    <img id="lightbox-img" src="" alt="Ảnh minh chứng">
+</div>
 
-    async function loadComplaints() {
-        const r = await api.get('/complaints');
-        const el = document.getElementById('complaints-list');
-        if(!r.success || r.data.length===0) { el.innerHTML='<p style="color:var(--dark-400);text-align:center;">Chưa có khiếu nại</p>'; return; }
-        el.innerHTML = r.data.map(c => `
-        <div class="glass-card" style="padding:1.2rem;margin-bottom:1rem;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                <span style="font-size:0.8rem;color:var(--dark-400);">Đơn #${c.don_hang_id} - ${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span>
-                <span class="status ${ttClass[c.trang_thai]}">${ttLabels[c.trang_thai]}</span>
-            </div>
-            <p style="font-size:0.85rem;color:var(--dark-300);margin-bottom:6px;">${c.mo_ta}</p>
-            ${c.phan_hoi_admin ? `<div style="padding:8px 12px;background:var(--dark-900);border-radius:8px;font-size:0.8rem;"><strong style="color:var(--primary-light);">Admin:</strong> ${c.phan_hoi_admin}</div>` : ''}
-            <div style="font-size:0.7rem;color:var(--dark-500);margin-top:6px;">${formatDate(c.ngay_tao)}</div>
-        </div>`).join('');
-    }
+<script src="/js/api.js"></script>
+<script>
+if(!isLoggedIn()) location.href='/pages/login.html';
+const p = new URLSearchParams(location.search);
+if(p.get('order_id')) document.getElementById('order_id').value = p.get('order_id');
 
-    async function submitComplaint(e) {
-        e.preventDefault();
-        const r = await api.post('/complaints', {
-            don_hang_id: document.getElementById('order_id').value,
-            loai_khieu_nai: document.getElementById('loai').value,
-            mo_ta: document.getElementById('mota').value
+let selectedFiles = [];
+
+// ---- Upload logic ----
+function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('dragover'); }
+function handleDragLeave(e) { document.getElementById('upload-zone').classList.remove('dragover'); }
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('upload-zone').classList.remove('dragover');
+    addFiles(Array.from(e.dataTransfer.files));
+}
+function handleFileSelect(e) { addFiles(Array.from(e.target.files)); }
+
+function addFiles(files) {
+    files.forEach(f => {
+        if (!f.type.startsWith('image/')) return;
+        if (selectedFiles.length >= 5) { showToast('Chỉ được tải tối đa 5 ảnh','warning'); return; }
+        if (f.size > 5*1024*1024) { showToast('Ảnh phải nhỏ hơn 5MB','warning'); return; }
+        selectedFiles.push(f);
+    });
+    renderPreviews();
+}
+
+function renderPreviews() {
+    const grid = document.getElementById('preview-grid');
+    grid.innerHTML = selectedFiles.map((f,i) => {
+        const url = URL.createObjectURL(f);
+        return `<div class="preview-item">
+            <img src="${url}" alt="">
+            <button class="remove-btn" onclick="removeFile(${i})"><i class="fas fa-times"></i></button>
+        </div>`;
+    }).join('');
+}
+
+function removeFile(idx) { selectedFiles.splice(idx, 1); renderPreviews(); }
+
+// ---- Submit ----
+async function submitComplaint(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+
+    const formData = new FormData();
+    formData.append('don_hang_id', document.getElementById('order_id').value);
+    formData.append('loai_khieu_nai', document.getElementById('loai').value);
+    formData.append('mo_ta', document.getElementById('mota').value);
+    selectedFiles.forEach(f => formData.append('anh_minh_chung', f));
+
+    try {
+        const token = localStorage.getItem('token');
+        const resp = await fetch('/api/complaints', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
         });
-        if(r.success) { showToast('Gửi khiếu nại thành công!'); e.target.reset(); loadComplaints(); }
-        else showToast(r.message,'error');
+        const r = await resp.json();
+        if (r.success) {
+            showToast('Gửi khiếu nại thành công! Người bán sẽ liên hệ bạn sớm.');
+            document.getElementById('complaint-form').reset();
+            selectedFiles = [];
+            renderPreviews();
+            loadComplaints();
+        } else showToast(r.message, 'error');
+    } catch(err) { showToast('Lỗi kết nối server','error'); }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Gửi khiếu nại';
+}
+
+// ---- Load & Render complaints ----
+const loaiLabels = {
+    san_pham_loi:'Sản phẩm lỗi', khong_dung_mo_ta:'Sai mô tả', hang_gia:'Hàng giả',
+    khong_nhan_duoc_hang:'Không nhận được', cham_giao:'Chậm giao', thanh_toan:'Thanh toán', khac:'Khác'
+};
+const ttInfo = {
+    cho_xu_ly:        { label:'Chờ xử lý',         cls:'badge-cho',      icon:'fa-clock' },
+    dang_thuong_luong:{ label:'Đang thỏa thuận',    cls:'badge-thuong',   icon:'fa-comments' },
+    da_giai_quyet:    { label:'Đã giải quyết',      cls:'badge-xong',     icon:'fa-check-circle' },
+    tranh_chap:       { label:'Tranh chấp - Admin', cls:'badge-tranh',    icon:'fa-gavel' },
+    da_xu_ly:         { label:'Admin đã xử lý',     cls:'badge-da_xu_ly', icon:'fa-shield-alt' },
+    tu_choi:          { label:'Từ chối',             cls:'badge-tu_choi',  icon:'fa-ban' },
+};
+const deXuatLabels = { bu_hang:'📦 Gửi bù hàng', doi_tra:'🔄 Đổi/Trả hàng', hoan_tien:'💰 Hoàn tiền' };
+
+async function loadComplaints() {
+    const el = document.getElementById('complaints-list');
+    el.innerHTML = '<div class="spinner" style="margin:2rem auto;"></div>';
+    const r = await api.get('/complaints');
+    if (!r.success || r.data.length === 0) {
+        el.innerHTML = '<p style="color:var(--dark-400);text-align:center;padding:2rem;">Chưa có khiếu nại nào</p>';
+        return;
     }
-    loadComplaints();
-    </script>
+    el.innerHTML = r.data.map(c => renderComplaintCard(c)).join('');
+}
+
+function renderComplaintCard(c) {
+    const tt = ttInfo[c.trang_thai] || { label:c.trang_thai, cls:'badge-cho', icon:'fa-circle' };
+    const isUrgent = c.trang_thai === 'tranh_chap';
+    const anhHtml = (c.anh_minh_chung||[]).length > 0
+        ? `<div class="evidence-thumbs" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+            ${c.anh_minh_chung.map(src=>`<img src="${src}" onclick="openLightbox('${src}')" title="Xem ảnh">`).join('')}
+           </div>` : '';
+
+    // Negotiation box nếu đang thỏa thuận
+    let negotiationHtml = '';
+    if (c.trang_thai === 'dang_thuong_luong' && c.de_xuat_seller) {
+        negotiationHtml = `
+        <div class="negotiation-box">
+            <p style="font-size:0.8rem;font-weight:600;color:var(--primary-light);margin-bottom:6px;"><i class="fas fa-store"></i> Người bán đề xuất:</p>
+            <p style="font-size:0.9rem;font-weight:700;margin-bottom:4px;">${deXuatLabels[c.de_xuat_seller]||c.de_xuat_seller}</p>
+            ${c.ghi_chu_seller ? `<p style="font-size:0.8rem;color:var(--dark-300);margin-bottom:10px;">Ghi chú: ${c.ghi_chu_seller}</p>` : ''}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" style="background:#10b981;color:#fff;" onclick="confirmResolution(${c.id}, true)">
+                    <i class="fas fa-check"></i> Đồng ý, giải quyết ngay
+                </button>
+                <button class="btn btn-sm btn-outline" style="border-color:#ef4444;color:#ef4444;" onclick="confirmResolution(${c.id}, false)">
+                    <i class="fas fa-gavel"></i> Không đồng ý, nhờ Admin phân xử
+                </button>
+            </div>
+        </div>`;
+    }
+
+    // Admin phản hồi
+    let adminHtml = '';
+    if (c.phan_hoi_admin) {
+        adminHtml = `<div style="padding:8px 12px;background:rgba(139,92,246,0.1);border-radius:8px;font-size:0.8rem;margin-top:8px;">
+            <strong style="color:#a78bfa;"><i class="fas fa-shield-alt"></i> Admin:</strong> ${c.phan_hoi_admin}
+            ${c.quyet_dinh_admin === 'cuong_che_hoan_tien' ? '<span style="margin-left:6px;color:#10b981;font-weight:600;">(Đã hoàn tiền)</span>' : ''}
+        </div>`;
+    }
+
+    return `<div class="complaint-card${isUrgent?' urgent':''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+            <div>
+                <span style="font-size:0.75rem;color:var(--dark-400);">Đơn #${c.don_hang_id}</span>
+                <span style="margin:0 6px;color:var(--dark-600);">·</span>
+                <span style="font-size:0.75rem;color:var(--dark-300);">${loaiLabels[c.loai_khieu_nai]||c.loai_khieu_nai}</span>
+                <span style="margin:0 6px;color:var(--dark-600);">·</span>
+                <span style="font-size:0.75rem;color:var(--dark-400);">${c.ten_gian_hang||''}</span>
+            </div>
+            <span class="badge ${tt.cls}"><i class="fas ${tt.icon}"></i> ${tt.label}</span>
+        </div>
+        <p style="font-size:0.85rem;color:var(--dark-300);margin-bottom:6px;">${c.mo_ta}</p>
+        ${anhHtml}
+        ${negotiationHtml}
+        ${adminHtml}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px;">
+            <span style="font-size:0.7rem;color:var(--dark-500);">${formatDate(c.ngay_tao)}</span>
+            <a href="/pages/chat.html?shop_id=${c.gian_hang_id||''}" class="btn btn-sm btn-outline" style="font-size:0.75rem;">
+                <i class="fas fa-comments"></i> Chat với người bán
+            </a>
+        </div>
+    </div>`;
+}
+
+// ---- Xác nhận thỏa thuận ----
+async function confirmResolution(id, dongY) {
+    const msg = dongY ? 'Bạn đồng ý với đề xuất của người bán?' : 'Bạn muốn nhờ Admin phân xử? Admin sẽ xem xét ảnh minh chứng để đưa ra quyết định cuối cùng.';
+    if (!confirm(msg)) return;
+    const r = await api.put(`/complaints/${id}/customer-confirm`, { dong_y: dongY });
+    if (r.success) { showToast(r.message); loadComplaints(); }
+    else showToast(r.message, 'error');
+}
+
+// ---- Lightbox ----
+function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLightbox(); });
+
+loadComplaints();
+</script>
 <script src="/js/shopee-nav.js"></script>
 </body>
 </html>

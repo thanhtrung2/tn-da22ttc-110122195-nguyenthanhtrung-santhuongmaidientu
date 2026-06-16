@@ -57,8 +57,8 @@
                 <a href="/pages/seller/reviews.html"><i class="fas fa-star"></i> Đánh giá</a>
                 <a href="/pages/seller/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
                 <a href="/pages/seller/promotions.html"><i class="fas fa-tags"></i> Khuyến mãi</a>
-                <a href="/pages/chat.html"><i class="fas fa-comments"></i> Chat</a>
-                <a href="/pages/complaint.html"><i class="fas fa-flag"></i> Khiếu nại</a>
+                <a href="/pages/seller/chat.html"><i class="fas fa-comments"></i> Chat</a>
+                <a href="/pages/seller/complaints.html"><i class="fas fa-flag"></i> Khiếu nại</a>
                 <a href="/"><i class="fas fa-arrow-left"></i> Về trang chủ</a>
             </nav>
         </aside>
@@ -148,7 +148,7 @@
                 ${o.trang_thai==='da_xac_nhan'?`<button class="btn btn-sm btn-warning" onclick="updateStatus(${o.id},'dang_giao')" title="Chuyển giao"><i class="fas fa-truck"></i></button>`:''}
                 ${o.trang_thai==='dang_giao'?`<button class="btn btn-sm btn-success" onclick="updateStatus(${o.id},'hoan_thanh')" title="Hoàn thành"><i class="fas fa-flag-checkered"></i></button>`:''}
                 ${['cho_xac_nhan','da_xac_nhan'].includes(o.trang_thai)?`<button class="btn btn-sm btn-danger" onclick="openSellerCancelModal(${o.id})" title="Hủy đơn"><i class="fas fa-ban"></i></button>`:''}
-                <a href="/pages/order-detail.html?id=${o.id}" class="btn btn-sm btn-outline" title="Xem"><i class="fas fa-eye"></i></a>
+                <a href="/pages/seller/order-detail.html?id=${o.id}" class="btn btn-sm btn-outline" title="Xem"><i class="fas fa-eye"></i></a>
             </td>
         </tr>`).join('')}</tbody></table></div>`;
     }
@@ -216,7 +216,7 @@
                         </div>
                     </div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <a href="/pages/order-detail.html?id=${yc.don_hang_id}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Xem đơn</a>
+                        <a href="/pages/seller/order-detail.html?id=${yc.don_hang_id}" class="btn btn-sm btn-outline"><i class="fas fa-eye"></i> Xem đơn</a>
                         ${isPending ? `
                             <button class="btn btn-sm btn-success" onclick="approveYC(${yc.id})"><i class="fas fa-check"></i> Chấp nhận</button>
                             <button class="btn btn-sm btn-danger" onclick="openRejectModal(${yc.id})"><i class="fas fa-xmark"></i> Từ chối</button>

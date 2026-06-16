@@ -1,16 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
-
-let model = null;
-
-try {
-    if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key') {
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    }
-} catch (e) {
-    console.log('⚠️ Gemini AI chưa được cấu hình');
-}
 
 const SYSTEM_CONTEXT = `Bạn là trợ lý ảo của sàn thương mại điện tử KLTN2026 Shop. 
 Bạn giúp người dùng:
@@ -47,15 +35,50 @@ const FAQ_RESPONSES = {
 };
 
 const getChatbotResponse = async (message) => {
-    // Try Gemini AI first
-    if (model) {
+    const apiKey = process.env.GROQ_API_KEY;
+    
+    // Try Groq AI first
+    if (apiKey && apiKey !== 'your_groq_api_key') {
         try {
-            const result = await model.generateContent(`${SYSTEM_CONTEXT}\n\nCâu hỏi của khách hàng: ${message}`);
-            const response = result.response.text();
-            return response;
+            // Sử dụng global fetch hoặc fallback sang node-fetch
+            const fetchFn = typeof fetch !== 'undefined' ? fetch : require('node-fetch');
+            const response = await fetchFn('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: SYSTEM_CONTEXT
+                        },
+                        {
+                            role: 'user',
+                            content: message
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1024
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.choices && data.choices[0] && data.choices[0].message) {
+                    return data.choices[0].message.content;
+                }
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Groq API response error:', errorData);
+            }
         } catch (error) {
-            console.error('Gemini error:', error.message);
+            console.error('Groq AI error:', error.message);
         }
+    } else {
+        console.log('⚠️ Groq AI chưa được cấu hình key hoặc key mặc định');
     }
 
     // Fallback: keyword matching
