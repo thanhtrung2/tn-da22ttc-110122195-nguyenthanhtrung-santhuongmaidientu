@@ -381,7 +381,14 @@ const getSearchSuggestions = async (req, res) => {
         );
 
         const [products] = await pool.query(
-            'SELECT id, ten_san_pham, hinh_anh, gia_ban FROM san_pham WHERE ten_san_pham LIKE ? AND trang_thai = "active" LIMIT 5',
+            `SELECT sp.id, sp.ten_san_pham, sp.hinh_anh, sp.gia, sp.gia_khuyen_mai, gh.ten_gian_hang 
+             FROM san_pham sp
+             JOIN gian_hang gh ON sp.gian_hang_id = gh.id
+             WHERE sp.ten_san_pham LIKE ? 
+               AND sp.trang_thai = 'active' 
+               AND sp.trang_thai_duyet = 'approved' 
+               AND gh.trang_thai = 'active' 
+             LIMIT 5`,
             [searchTerm]
         );
 

@@ -3,9 +3,124 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hỗ Trợ - Vipo</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link class="hidden" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .faq-container {
+            margin-top: 1rem;
+        }
+        .faq-item {
+            border: 1px solid var(--dark-700);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+        .faq-item:hover {
+            border-color: var(--primary-light);
+            background: var(--white);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.08);
+            transform: translateY(-2px);
+        }
+        .faq-item summary {
+            padding: 1.1rem 1.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            list-style: none;
+            user-select: none;
+        }
+        .faq-item summary::-webkit-details-marker {
+            display: none;
+        }
+        .faq-item summary:focus {
+            outline: none;
+        }
+        .faq-item[open] {
+            border-color: var(--primary);
+            background: var(--white);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+        }
+        .faq-item[open] summary {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            color: var(--primary-dark);
+        }
+        .faq-icon {
+            transition: transform 0.3s ease;
+            color: var(--dark-400);
+            font-size: 0.9rem;
+        }
+        .faq-item[open] .faq-icon {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+        .faq-content {
+            padding: 1.25rem;
+            color: var(--dark-400);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+        .faq-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-right: 0.75rem;
+        }
+        .faq-item[open] .faq-number {
+            background: var(--gradient-primary);
+            color: var(--white);
+        }
+        .faq-content p {
+            margin-bottom: 0.75rem;
+        }
+        .faq-content p:last-child {
+            margin-bottom: 0;
+        }
+        .faq-content ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .faq-content li {
+            margin-bottom: 0.25rem;
+        }
+        .faq-note {
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 4px solid var(--primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .faq-tip {
+            background: rgba(6, 182, 212, 0.05);
+            border-left: 4px solid var(--accent);
+            padding: 0.75rem 1rem;
+            border-radius: 0 8px 8px 0;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+        }
+        .faq-link {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: underline;
+        }
+        .faq-link:hover {
+            color: var(--accent);
+        }
+    </style>
 </head>
 <body>
     <nav class="shopee-navbar">
@@ -84,11 +199,109 @@
 
                 <div class="glass-card" style="padding:1.5rem;">
                     <h3>Câu hỏi thường gặp (FAQ)</h3>
-                    <div style="margin-top:0.75rem;">
-                        <details style="margin-bottom:0.5rem;"><summary><strong>1. Thời gian giao hàng mất bao lâu?</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Thời gian giao hàng thường từ 2-7 ngày tùy địa điểm và phương thức vận chuyển.</div></details>
-                        <details style="margin-bottom:0.5rem;"><summary><strong>2. Làm sao để yêu cầu hoàn tiền?</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Mở mục đơn hàng, chọn yêu cầu trả hàng/hoàn tiền và làm theo hướng dẫn. Bạn cũng có thể gửi thông tin tại form ở trên.</div></details>
-                        <details style="margin-bottom:0.5rem;"><summary><strong>3. Tôi muốn khiếu nại về sản phẩm</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Vui lòng xem <a href="/pages/complaint-policy.html">Chính sách khiếu nại</a> để hiểu quy trình, sau đó truy cập trang <a href="/pages/complaint.html">Gửi khiếu nại</a> để gửi thông tin chi tiết và bằng chứng.</div></details>
-                        <details style="margin-bottom:0.5rem;"><summary><strong>4. Liên hệ với người bán như thế nào?</strong></summary><div style="padding-top:8px;color:var(--dark-400)">Vào trang gian hàng của sản phẩm và nhấn "Liên hệ" hoặc sử dụng chat trong trang sản phẩm.</div></details>
+                    <div class="faq-container">
+                        <details class="faq-item">
+                            <summary>
+                                <span>
+                                    <span class="faq-number">1</span>
+                                    Thời gian giao hàng mất bao lâu?
+                                </span>
+                                <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                            </summary>
+                            <div class="faq-content">
+                                <p>Thời gian giao hàng tại <strong>Vipo Shop</strong> được thiết lập tối ưu để đưa sản phẩm tới tay bạn một cách nhanh chóng nhất. Chi tiết thời gian cụ thể như sau:</p>
+                                <ul>
+                                    <li><strong>Khu vực Nội thành (Hà Nội & TP. Hồ Chí Minh):</strong> Chỉ từ <strong>1 - 2 ngày làm việc</strong> sau khi đơn hàng được người bán xác nhận và bàn giao thành công cho đơn vị vận chuyển.</li>
+                                    <li><strong>Các tỉnh thành trung tâm khác:</strong> Từ <strong>2 - 4 ngày làm việc</strong> tùy thuộc vào khoảng cách địa lý cụ thể.</li>
+                                    <li><strong>Các khu vực vùng sâu, vùng xa, biên giới hải đảo:</strong> Thời gian giao hàng có thể dao động từ <strong>4 - 7 ngày làm việc</strong>.</li>
+                                </ul>
+                                <div class="faq-note">
+                                    <i class="fas fa-info-circle text-indigo-600"></i> <strong>Lưu ý:</strong>
+                                    Người bán có nghĩa vụ chuẩn bị hàng và giao cho hãng vận chuyển trong vòng <strong>24h</strong> từ khi phát sinh đơn hàng. Bạn có thể theo dõi hành trình chi tiết của đơn hàng thời gian thực tại phần <a class="faq-link" href="/pages/profile.html#orders">Đơn mua</a> trên trang cá nhân của bạn.
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="faq-item">
+                            <summary>
+                                <span>
+                                    <span class="faq-number">2</span>
+                                    Làm sao để yêu cầu hoàn tiền?
+                                </span>
+                                <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                            </summary>
+                            <div class="faq-content">
+                                <p>Vipo bảo vệ người mua tối đa với <strong>Chính sách Trả hàng & Hoàn tiền trong vòng 7 ngày</strong> kể từ khi đơn hàng được ghi nhận là giao thành công.</p>
+                                <p><strong>Các bước gửi yêu cầu trả hàng / hoàn tiền:</strong></p>
+                                <ul>
+                                    <li><strong>Bước 1:</strong> Truy cập vào trang cá nhân của bạn, mở mục <a class="faq-link" href="/pages/profile.html#orders">Đơn mua</a>.</li>
+                                    <li><strong>Bước 2:</strong> Chọn đơn hàng gặp vấn đề và nhấn nút <strong>"Yêu cầu Trả hàng / Hoàn tiền"</strong>.</li>
+                                    <li><strong>Bước 3:</strong> Chọn lý do phù hợp (sản phẩm lỗi, giao sai hàng, hàng không giống mô tả...) và đính kèm <strong>hình ảnh hoặc video bằng chứng rõ ràng</strong>.</li>
+                                    <li><strong>Bước 4:</strong> Người bán hoặc hệ thống Vipo sẽ kiểm tra và phản hồi duyệt yêu cầu trong vòng <strong>24 - 48 giờ</strong>.</li>
+                                </ul>
+                                <p><strong>Hình thức nhận tiền hoàn trả sau khi được duyệt:</strong></p>
+                                <ul>
+                                    <li><strong>Thanh toán COD:</strong> Hoàn trả bằng chuyển khoản ngân hàng trực tiếp vào tài khoản bạn cung cấp trong vòng 2 - 3 ngày làm việc.</li>
+                                    <li><strong>Thanh toán Online (VNPay hoặc PayOS):</strong>
+                                        <ul>
+                                            <li><strong>PayOS:</strong> Tiền hoàn trả ngay lập tức được gửi ngược về tài khoản ngân hàng nguồn của bạn.</li>
+                                            <li><strong>VNPay:</strong> Tiền hoàn trả sẽ quay lại tài khoản ví điện tử hoặc tài khoản ngân hàng nguồn trong vòng 1 - 3 ngày làm việc tùy vào ngân hàng liên kết.</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <div class="faq-note">
+                                    <i class="fas fa-envelope text-indigo-600"></i> Mọi thắc mắc phát sinh hoặc trục trặc trong quá trình thanh toán, xin vui lòng điền form yêu cầu bên cạnh hoặc liên hệ qua email chính thức: <a class="faq-link" href="mailto:support@vipo.example">support@vipo.example</a>.
+                                </div>
+                            </div>
+                        </details>
+
+                        <details class="faq-item">
+                            <summary>
+                                <span>
+                                    <span class="faq-number">3</span>
+                                    Tôi muốn khiếu nại về sản phẩm
+                                </span>
+                                <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                            </summary>
+                            <div class="faq-content">
+                                <p>Trong trường hợp sản phẩm nhận được là hàng nhái, bị vỡ hỏng nặng do lỗi vận chuyển hoặc người bán từ chối giải quyết thỏa đáng, bạn có thể nộp đơn khiếu nại để Vipo đứng ra phân xử.</p>
+                                <p><strong>Quy trình gửi khiếu nại và hòa giải tranh chấp:</strong></p>
+                                <ul>
+                                    <li><strong>Đọc quy định:</strong> Xem chi tiết điều khoản tại trang <a class="faq-link" href="/pages/complaint-policy.html">Chính sách khiếu nại</a>.</li>
+                                    <li><strong>Nộp hồ sơ:</strong> Truy cập trang <a class="faq-link" href="/pages/complaint.html">Gửi khiếu nại</a> để điền thông tin chi tiết (Mã đơn hàng, Tên shop, nội dung khiếu nại).</li>
+                                    <li><strong>Cung cấp minh chứng bắt buộc:</strong>
+                                        <ul>
+                                            <li>Ảnh chụp đầy đủ nhãn vận đơn dán trên thùng hàng.</li>
+                                            <li>Video unboxing quay cận từ lúc kiện hàng còn nguyên niêm phong đến khi khui hộp và chỉ ra lỗi sản phẩm.</li>
+                                            <li>Ảnh chụp cận cảnh các chi tiết sản phẩm bị hỏng hóc hoặc sai lệch thông tin so với mô tả.</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>Thời gian giải quyết:</strong> Đội ngũ đối soát tranh chấp Vipo sẽ làm việc với cả hai bên và phản hồi phán quyết cuối cùng trong vòng <strong>3 - 5 ngày làm việc</strong>.</li>
+                                </ul>
+                            </div>
+                        </details>
+
+                        <details class="faq-item">
+                            <summary>
+                                <span>
+                                    <span class="faq-number">4</span>
+                                    Liên hệ với người bán như thế nào?
+                                </span>
+                                <span class="faq-icon"><i class="fas fa-chevron-down"></i></span>
+                            </summary>
+                            <div class="faq-content">
+                                <p>Để được tư vấn chi tiết hơn về kích cỡ, chất liệu hoặc thỏa thuận hỗ trợ giao hàng gấp, bạn có thể liên hệ trực tiếp với Người bán bằng các cách sau:</p>
+                                <ul>
+                                    <li><strong>Cách 1: Trò chuyện trên trang sản phẩm:</strong> Tại trang chi tiết của sản phẩm bạn muốn mua, nhấp vào nút <strong>"Chat ngay"</strong> ở khung thông tin của Shop.</li>
+                                    <li><strong>Cách 2: Truy cập trang cá nhân của Shop:</strong> Bấm vào tên Shop để vào trang chủ của gian hàng, sau đó chọn nút <strong>"Nhắn tin"</strong> ở góc trên bên phải.</li>
+                                    <li><strong>Cách 3: Từ chi tiết Đơn hàng:</strong> Trong mục quản lý đơn mua, bấm vào đơn hàng cần trao đổi và chọn nút <strong>"Liên hệ người bán"</strong> để chat nhanh liên quan tới đơn hàng đó.</li>
+                                </ul>
+                                <div class="faq-tip">
+                                    <i class="fas fa-lightbulb text-cyan-500"></i> <strong>Mẹo nhỏ:</strong>
+                                    Hãy luôn nhắn tin trao đổi thông qua ứng dụng chat nội bộ của Vipo. Đây là căn cứ pháp lý duy nhất được ghi nhận làm bằng chứng hợp lệ để giải quyết các trường hợp phát sinh tranh chấp hoặc khiếu nại về sau.
+                                </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </div>

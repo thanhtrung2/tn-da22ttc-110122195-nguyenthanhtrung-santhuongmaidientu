@@ -1153,15 +1153,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const style = document.createElement('style');
         style.id = 'vipo-global-chatbot-styles';
         style.textContent = `
-            #vipo-global-chatbot { position: fixed; bottom: 160px; right: 20px; z-index: 998; }
+            #vipo-global-chatbot { position: fixed; bottom: 160px; right: 20px; z-index: 998; user-select: none; }
             #vipo-global-chatbot .gcb-btn {
-                width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
+                width: 52px; height: 52px; border-radius: 50%; border: none; cursor: grab;
                 background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white;
                 font-size: 1.4rem; box-shadow: 0 6px 20px rgba(99,102,241,0.4);
                 display: flex; align-items: center; justify-content: center;
                 transition: transform 0.2s; position: relative;
             }
             #vipo-global-chatbot .gcb-btn:hover { transform: scale(1.08); }
+            #vipo-global-chatbot .gcb-btn:active { cursor: grabbing; }
             #vipo-global-chatbot .gcb-btn .gcb-badge {
                 position: absolute; top: -4px; right: -4px;
                 background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700;
@@ -1169,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 align-items: center; justify-content: center; border: 2px solid white;
             }
             #vipo-global-chatbot .gcb-panel {
-                position: fixed; bottom: 222px; right: 20px; width: 360px; max-width: calc(100vw - 24px);
+                position: absolute; bottom: 62px; right: 0; width: 360px; max-width: calc(100vw - 24px);
                 height: 480px; max-height: calc(100vh - 240px);
                 background: rgba(15, 23, 42, 0.97); border: 1px solid rgba(255,255,255,0.1);
                 border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.45);
@@ -1181,7 +1182,9 @@ document.addEventListener('DOMContentLoaded', () => {
             #vipo-global-chatbot .gcb-header {
                 padding: 12px 16px; background: linear-gradient(135deg,#6366f1,#8b5cf6);
                 display: flex; align-items: center; justify-content: space-between; color: white;
+                cursor: grab;
             }
+            #vipo-global-chatbot .gcb-header:active { cursor: grabbing; }
             #vipo-global-chatbot .gcb-header-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; }
             #vipo-global-chatbot .gcb-header-actions { display: flex; gap: 8px; }
             #vipo-global-chatbot .gcb-header-actions button {
@@ -1219,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             #vipo-global-chatbot .gcb-suggestions button:hover { background: rgba(99,102,241,0.25); }
             @media (max-width: 480px) {
-                #vipo-global-chatbot .gcb-panel { right: 12px; left: 12px; width: auto; bottom: 222px; }
+                #vipo-global-chatbot .gcb-panel { right: 12px; left: 12px; width: auto; bottom: 62px; }
             }
         `;
         document.head.appendChild(style);
@@ -1274,7 +1277,131 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        document.getElementById('gcbToggle').addEventListener('click', window.toggleGlobalChatbot);
+        // Drag-and-drop implementation
+        const widgetContainer = document.getElementById('vipo-global-chatbot');
+        const dragHandle = document.getElementById('gcbToggle');
+        const headerHandle = panel.querySelector('.gcb-header');
+        
+        let isDragging = false;
+        let hasDragged = false;
+        let startX, startY;
+        let initialX, initialY;
+
+        const startDrag = (e) => {
+            // Only drag on left click or touch
+            if (e.type === 'mousedown' && e.button !== 0) return;
+            
+            // Check if we clicked on close or expand buttons inside header
+            if (e.target.closest('.gcb-header-actions') || e.target.closest('button:not(.gcb-btn)')) {
+                return;
+            }
+            
+            isDragging = true;
+            hasDragged = false;
+            
+            const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+            
+            const rect = widgetContainer.getBoundingClientRect();
+            
+            // Fix positioning to top/left so it drags smoothly
+            widgetContainer.style.bottom = 'auto';
+            widgetContainer.style.right = 'auto';
+            widgetContainer.style.left = rect.left + 'px';
+            widgetContainer.style.top = rect.top + 'px';
+            
+            initialX = rect.left;
+            initialY = rect.top;
+            startX = clientX;
+            startY = clientY;
+            
+            dragHandle.style.cursor = 'grabbing';
+            headerHandle.style.cursor = 'grabbing';
+            
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('touchend', stopDrag);
+            
+            if (e.type === 'mousedown') {
+                e.preventDefault();
+            }
+        };
+
+        const drag = (e) => {
+            if (!isDragging) return;
+            
+            const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+            
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+            
+            if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                hasDragged = true;
+            }
+            
+            let newX = initialX + dx;
+            let newY = initialY + dy;
+            
+            // Boundary constraints (keep widget within the window viewport)
+            const rect = widgetContainer.getBoundingClientRect();
+            const minX = 10;
+            const minY = 10;
+            const maxX = window.innerWidth - rect.width - 10;
+            const maxY = window.innerHeight - rect.height - 10;
+            
+            newX = Math.max(minX, Math.min(newX, maxX));
+            newY = Math.max(minY, Math.min(newY, maxY));
+            
+            widgetContainer.style.left = newX + 'px';
+            widgetContainer.style.top = newY + 'px';
+            
+            // Dynamically align chat panel to left or right based on screen half
+            if (newX < window.innerWidth / 2) {
+                panel.style.left = '0';
+                panel.style.right = 'auto';
+            } else {
+                panel.style.right = '0';
+                panel.style.left = 'auto';
+            }
+            
+            if (e.cancelable) {
+                e.preventDefault();
+            }
+        };
+
+        const stopDrag = () => {
+            isDragging = false;
+            
+            dragHandle.style.cursor = 'grab';
+            headerHandle.style.cursor = 'grab';
+            
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('touchend', stopDrag);
+            
+            // Clean up global drag properties after a short delay
+            setTimeout(() => {
+                hasDragged = false;
+            }, 50);
+        };
+
+        dragHandle.addEventListener('mousedown', startDrag);
+        dragHandle.addEventListener('touchstart', startDrag, { passive: true });
+        headerHandle.addEventListener('mousedown', startDrag);
+        headerHandle.addEventListener('touchstart', startDrag, { passive: true });
+
+        // Check if dragged when clicking the toggle button
+        dragHandle.addEventListener('click', (e) => {
+            if (hasDragged) {
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
+            window.toggleGlobalChatbot();
+        });
 
         inputEl.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') window.gcbSend();
