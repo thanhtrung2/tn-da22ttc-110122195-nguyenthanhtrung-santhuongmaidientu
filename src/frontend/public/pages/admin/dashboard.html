@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .alert-badge {
+            display:inline-flex; align-items:center; justify-content:center;
+            background:#ef4444; color:white; border-radius:10px;
+            padding:1px 7px; font-size:0.7rem; font-weight:700;
+            margin-left:auto; min-width:20px;
+        }
+        .action-card {
+            display:flex; align-items:center; gap:1rem; padding:1rem;
+            border-bottom:1px solid var(--dark-700); cursor:pointer;
+            transition:background 0.2s; border-radius:8px;
+            text-decoration:none; color:inherit;
+        }
+        .action-card:hover { background:rgba(255,255,255,0.04); }
+        .action-card .icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+    </style>
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html" class="active"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng <span class="alert-badge" id="badge-sellers" style="display:none;">0</span></a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm <span class="alert-badge" id="badge-products" style="display:none;">0</span></a>
+                <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+                <a href="/pages/admin/vouchers.html"><i class="fas fa-ticket-alt"></i> Khuyến mãi toàn sàn</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại <span class="alert-badge" id="badge-complaints" style="display:none;">0</span></a>
+                <a href="/pages/admin/moderation.html"><i class="fas fa-shield-alt"></i> Kiểm duyệt AI</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+                <h1 style="margin:0;">🎯 Admin Dashboard</h1>
+                <div class="glass-card" style="padding:6px 8px;display:flex;gap:6px;flex-wrap:wrap;" id="time-range">
+                    <button type="button" class="btn btn-sm tr-btn" data-range="all">Tất cả</button>
+                    <button type="button" class="btn btn-sm tr-btn" data-range="day">Hôm nay</button>
+                    <button type="button" class="btn btn-sm tr-btn" data-range="week">7 ngày</button>
+                    <button type="button" class="btn btn-sm tr-btn" data-range="month">Tháng này</button>
+                    <button type="button" class="btn btn-sm tr-btn" data-range="6months">6 tháng</button>
+                    <button type="button" class="btn btn-sm tr-btn" data-range="year">Năm nay</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="stats"></div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;">
+                <!-- Cần xử lý -->
+                <div class="glass-card" style="padding:1.5rem;">
+                    <h3 style="font-size:1rem;margin-bottom:1rem;"><i class="fas fa-bell" style="color:var(--warning);"></i> Cần xử lý ngay</h3>
+                    <div id="action-list"></div>
+                </div>
+                <!-- Đơn hàng gần đây -->
+                <div class="glass-card" style="padding:1.5rem;">
+                    <h3 style="font-size:1rem;margin-bottom:1rem;">Đơn hàng gần đây</h3>
+                    <div id="recent-orders"></div>
+                </div>
+            </div>
+
+            <!-- Doanh thu -->
+            <div class="glass-card" style="padding:1.5rem;margin-top:1.5rem;">
+                <h3 style="font-size:1rem;margin-bottom:1rem;">📊 Doanh thu <span id="rev-range-label">tất cả</span></h3>
+                <div id="revenue-chart"></div>
+            </div>
+
+            <!-- Chi tiết doanh thu theo gian hàng -->
+            <div class="glass-card" style="padding:1.5rem;margin-top:1.5rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                    <h3 style="font-size:1rem;margin:0;"><i class="fas fa-list-alt" style="color:var(--success);"></i> Chi tiết doanh thu theo gian hàng (Top 10)</h3>
+                    <button class="btn btn-sm btn-outline" onclick="exportShopsRevenue()"><i class="fas fa-file-csv"></i> Xuất Excel/CSV</button>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="table" style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--dark-700); text-align:left;">
+                                <th style="padding:10px;">ID Gian hàng</th>
+                                <th style="padding:10px;">Tên gian hàng</th>
+                                <th style="padding:10px;">Số đơn hoàn thành</th>
+                                <th style="padding:10px;">Tổng doanh thu</th>
+                                <th style="padding:10px;text-align:center;">Chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shops-revenue-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    if(!isLoggedIn() || getUser().vai_tro !== 'admin') location.href = '/pages/admin/login.html';
+
+    let currentShopsRevenue = [];
+    let currentTimeRange = 'all';
+
+    function setActiveRange(range) {
+        currentTimeRange = range;
+        document.querySelectorAll('.tr-btn').forEach(b => {
+            const active = b.dataset.range === range;
+            b.classList.toggle('btn-primary', active);
+            b.classList.toggle('btn-outline', !active);
+        });
+    }
+
+    document.querySelectorAll('.tr-btn').forEach(btn => {
+        btn.addEventListener('click', () => { setActiveRange(btn.dataset.range); load(); });
+    });
+
+    function exportShopsRevenue() {
+        if (!currentShopsRevenue || currentShopsRevenue.length === 0) {
+            showToast('Không có dữ liệu để xuất', 'error');
+            return;
+        }
+        
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        csvContent += "ID Gian Hang,Ten Gian Hang,So Don Hoan Thanh,Tong Doanh Thu (VND)\n";
+        
+        currentShopsRevenue.forEach(shop => {
+            const row = [
+                shop.id,
+                `"${(shop.ten_gian_hang || '').replace(/"/g, '""')}"`,
+                shop.so_don,
+                shop.doanh_thu
+            ].join(",");
+            csvContent += row + "\n";
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `doanh_thu_gian_hang_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    async function load() {
+        document.getElementById('stats').innerHTML = '<div class="spinner" style="margin:2rem auto;grid-column:1/-1;"></div>';
+        const [r, rPendingSellers, rPendingProducts] = await Promise.all([
+            api.get(`/admin/dashboard?timeRange=${currentTimeRange}`),
+            api.get('/admin/pending-sellers'),
+            api.get('/admin/pending-products')
+        ]);
+
+        if(!r.success) {
+            document.getElementById('stats').innerHTML = `<p style="grid-column:1/-1;color:var(--danger);text-align:center;padding:1rem;">${r.message||'Không tải được dữ liệu'}</p>`;
+            return;
+        }
+
+        // Cập nhật label khoảng thời gian
+        const rangeLabels = { all:'tất cả', day:'hôm nay', week:'7 ngày qua', month:'tháng này', '6months':'6 tháng qua', year:'năm nay' };
+        document.getElementById('rev-range-label').textContent = rangeLabels[currentTimeRange] || currentTimeRange;
+        const d = r.data;
+
+        const pendingSellersCount = rPendingSellers.success ? rPendingSellers.data.length : 0;
+        const pendingProductsCount = rPendingProducts.success ? rPendingProducts.data.length : 0;
+
+        // Update sidebar badges
+        const badgeSellers = document.getElementById('badge-sellers');
+        const badgeProducts = document.getElementById('badge-products');
+        const badgeComplaints = document.getElementById('badge-complaints');
+
+        if (pendingSellersCount > 0) { badgeSellers.textContent = pendingSellersCount; badgeSellers.style.display = 'inline-flex'; }
+        if (pendingProductsCount > 0) { badgeProducts.textContent = pendingProductsCount; badgeProducts.style.display = 'inline-flex'; }
+        if (d.pendingComplaints > 0) { badgeComplaints.textContent = d.pendingComplaints; badgeComplaints.style.display = 'inline-flex'; }
+
+        // Stats
+        const userStats = {};
+        (d.users||[]).forEach(u => userStats[u.vai_tro] = u.total);
+        const totalOrders = (d.orders||[]).reduce((a,b)=>a+b.total,0);
+
+        document.getElementById('stats').innerHTML = `
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(16,185,129,0.15);color:var(--success);"><i class="fas fa-dollar-sign"></i></div>
+                <div class="stat-info"><h3>${formatPrice(d.revenue)}</h3><p>Tổng doanh thu</p></div></div>
+            <div class="stat-card glass-card" style="background:rgba(99,102,241,0.05); border:1px solid rgba(99,102,241,0.2);"><div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light);"><i class="fas fa-piggy-bank"></i></div>
+                <div class="stat-info"><h3>${formatPrice(d.adminCommission)}</h3><p>Phí Admin (Hoa hồng)</p></div></div>
+            <div class="stat-card glass-card" style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2);"><div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fas fa-percentage"></i></div>
+                <div class="stat-info"><h3>${formatPrice(d.vatCollected)}</h3><p>Thuế VAT đã thu</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(99,102,241,0.15);color:var(--primary-light);"><i class="fas fa-users"></i></div>
+                <div class="stat-info"><h3>${(userStats.customer||0)+(userStats.seller||0)}</h3><p>Người dùng</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(245,158,11,0.15);color:var(--warning);"><i class="fas fa-store"></i></div>
+                <div class="stat-info"><h3>${d.shops}</h3><p>Gian hàng</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(139,92,246,0.15);color:var(--secondary);"><i class="fas fa-box"></i></div>
+                <div class="stat-info"><h3>${d.products}</h3><p>Sản phẩm</p></div></div>
+            <div class="stat-card glass-card"><div class="stat-icon" style="background:rgba(6,182,212,0.15);color:var(--accent);"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info"><h3>${totalOrders}</h3><p>Đơn hàng</p></div></div>
+            <div class="stat-card glass-card" onclick="location.href='/pages/admin/complaints.html'" style="cursor:pointer;"><div class="stat-icon" style="background:rgba(239,68,68,0.15);color:var(--danger);"><i class="fas fa-flag"></i></div>
+                <div class="stat-info"><h3>${d.pendingComplaints}</h3><p>Khiếu nại chờ</p></div></div>`;
+
+        // Action list
+        const actions = [];
+        if (pendingSellersCount > 0) actions.push({ icon:'fa-user-clock', color:'rgba(245,158,11,0.2)', iconColor:'#fbbf24', title:`${pendingSellersCount} người bán chờ xác thực`, sub:'Duyệt tài khoản để cho phép đăng sản phẩm', href:'/pages/admin/users.html' });
+        if (pendingProductsCount > 0) actions.push({ icon:'fa-box', color:'rgba(99,102,241,0.2)', iconColor:'var(--primary-light)', title:`${pendingProductsCount} sản phẩm chờ duyệt`, sub:'Xem xét và phê duyệt sản phẩm từ người bán', href:'/pages/admin/products.html' });
+        if (d.pendingComplaints > 0) actions.push({ icon:'fa-flag', color:'rgba(239,68,68,0.2)', iconColor:'#f87171', title:`${d.pendingComplaints} khiếu nại chờ xử lý`, sub:'Giải quyết khiếu nại từ người dùng', href:'/pages/admin/complaints.html' });
+
+        document.getElementById('action-list').innerHTML = actions.length > 0
+            ? actions.map(a => `<a class="action-card" href="${a.href}">
+                <div class="icon" style="background:${a.color};color:${a.iconColor};"><i class="fas ${a.icon}"></i></div>
+                <div><div style="font-weight:600;font-size:0.9rem;">${a.title}</div><div style="font-size:0.8rem;color:var(--dark-400);">${a.sub}</div></div>
+                <i class="fas fa-chevron-right" style="margin-left:auto;color:var(--dark-500);"></i>
+            </a>`).join('')
+            : `<div style="text-align:center;padding:2rem;color:var(--dark-400);">
+                <i class="fas fa-check-circle" style="font-size:2rem;color:var(--success);opacity:0.5;display:block;margin-bottom:8px;"></i>
+                Không có việc cần xử lý!
+            </div>`;
+
+        // Recent orders
+        document.getElementById('recent-orders').innerHTML = (d.recentOrders||[]).slice(0,8).map(o => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--dark-700);font-size:0.8rem;">
+                <span>#${o.id} <span style="color:var(--dark-300);">${o.ho_ten}</span></span>
+                <span class="status ${getStatusClass(o.trang_thai)}" style="font-size:0.7rem;">${getStatusLabel(o.trang_thai)}</span>
+                <span style="font-weight:600;color:var(--danger);">${formatPrice(o.tong_tien)}</span>
+            </div>`).join('') || '<p style="color:var(--dark-500);text-align:center;padding:1rem;">Chưa có đơn hàng</p>';
+
+        // Revenue chart
+        document.getElementById('revenue-chart').innerHTML = (d.monthlyRevenue||[]).map(m => {
+            const max = Math.max(...(d.monthlyRevenue||[]).map(x=>x.doanh_thu), 1);
+            const pct = max > 0 ? (m.doanh_thu/max*100) : 0;
+            return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <span style="width:60px;font-size:0.75rem;color:var(--dark-300);">${m.thang}</span>
+                <div style="flex:1;height:24px;background:var(--dark-700);border-radius:6px;overflow:hidden;">
+                    <div style="height:100%;width:${pct}%;background:var(--gradient-primary);border-radius:6px;transition:width 1s;"></div>
+                </div>
+                <span style="font-size:0.75rem;width:110px;text-align:right;color:var(--success);">${formatPrice(m.doanh_thu)}</span>
+                <span style="font-size:0.7rem;color:var(--dark-500);">${m.so_don} đơn</span>
+            </div>`;
+        }).join('') || '<p style="color:var(--dark-500);text-align:center;padding:1rem;">Chưa có doanh thu</p>';
+
+        // Shops revenue table
+        currentShopsRevenue = d.shopsRevenue || [];
+        document.getElementById('shops-revenue-table').innerHTML = (d.shopsRevenue||[]).map(s => `
+            <tr style="border-bottom:1px solid var(--dark-700);">
+                <td style="padding:10px;">#${s.id}</td>
+                <td style="padding:10px;"><strong>${s.ten_gian_hang}</strong></td>
+                <td style="padding:10px;">${s.so_don}</td>
+                <td style="padding:10px;color:var(--danger);font-weight:600;">${formatPrice(s.doanh_thu)}</td>
+                <td style="padding:10px;text-align:center;">
+                    <button class="btn btn-sm btn-outline" onclick="viewShopRevenue(${s.id}, '${(s.ten_gian_hang||'').replace(/'/g,"\\'")}')"><i class="fas fa-chart-line"></i> Xem</button>
+                </td>
+            </tr>
+        `).join('') || '<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">Chưa có dữ liệu doanh thu gian hàng</td></tr>';
+    }
+
+    setActiveRange('all');
+    load();
+
+    // Inline revenue modal (same UX as shops.html) ---------------
+    let dashShopRevChart = null;
+    function pad2_d(n){ return n<10?'0'+n:''+n; }
+    function isoDate_d(d){ return d.getFullYear()+'-'+pad2_d(d.getMonth()+1)+'-'+pad2_d(d.getDate()); }
+    function viewShopRevenue(id, name) {
+        const modal = document.createElement('div');
+        modal.style = 'position:fixed;inset:0;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;z-index:10000;padding:1rem;';
+        const today = new Date();
+        const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth()-1);
+        modal.innerHTML = `<div style="background:#ffffff;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;padding:1.5rem;border-radius:16px;position:relative;border:1px solid #e2e8f0;box-shadow:0 20px 60px rgba(0,0,0,0.18);">
+            <button class="mc-close" style="position:absolute;right:12px;top:12px;background:none;border:none;font-size:1.4rem;color:var(--text-secondary);cursor:pointer;">&times;</button>
+            <h3 style="margin-bottom:1rem;color:var(--text-primary);"><i class="fas fa-chart-line" style="color:var(--success);"></i> Doanh thu - ${name}</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:1rem;padding:12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;" id="drs-quick">
+                    <button type="button" class="btn btn-sm btn-outline drs-q" data-range="today">Hôm nay</button>
+                    <button type="button" class="btn btn-sm btn-outline drs-q" data-range="week">Tuần này</button>
+                    <button type="button" class="btn btn-sm btn-outline drs-q" data-range="month">Tháng này</button>
+                    <button type="button" class="btn btn-sm btn-outline drs-q" data-range="year">Năm nay</button>
+                </div>
+                <label style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">Từ <input type="date" id="drs-from" style="margin-left:4px;"></label>
+                <label style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">Đến <input type="date" id="drs-to" style="margin-left:4px;"></label>
+                <label style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">Nhóm
+                    <select id="drs-group" style="margin-left:4px;">
+                        <option value="day">Ngày</option>
+                        <option value="week">Tuần</option>
+                        <option value="month" selected>Tháng</option>
+                        <option value="year">Năm</option>
+                    </select>
+                </label>
+                <button class="btn btn-sm btn-primary" id="drs-go"><i class="fas fa-filter"></i> Xem</button>
+            </div>
+            <div id="drs-content"><div class="spinner" style="margin:2rem auto;"></div></div>
+        </div>`;
+        modal.querySelector('.mc-close').onclick = () => { if (dashShopRevChart) { dashShopRevChart.destroy(); dashShopRevChart=null; } modal.remove(); };
+        document.body.appendChild(modal);
+
+        document.getElementById('drs-from').value = isoDate_d(monthAgo);
+        document.getElementById('drs-to').value = isoDate_d(today);
+
+        async function load() {
+            const from = document.getElementById('drs-from').value;
+            const to = document.getElementById('drs-to').value;
+            const group = document.getElementById('drs-group').value;
+            const q = [];
+            if (from) q.push('from='+from); if (to) q.push('to='+to); if (group) q.push('groupBy='+group);
+            const container = document.getElementById('drs-content');
+            container.innerHTML = '<div class="spinner" style="margin:2rem auto;"></div>';
+            const r = await api.get(`/admin/shops/${id}/revenue${q.length?'?'+q.join('&'):''}`);
+            if (!r.success) { container.innerHTML = `<p style="color:var(--danger);text-align:center;padding:1rem;">${r.message||'Lỗi'}</p>`; return; }
+            const rows = r.data || [];
+            const total = rows.reduce((a,b)=>a+parseFloat(b.doanh_thu||0),0);
+            const totalOrders = rows.reduce((a,b)=>a+parseInt(b.so_don||0),0);
+            let html = `<div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+                <div style="flex:1;min-width:180px;padding:12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;">
+                    <div style="font-size:0.8rem;color:#047857;font-weight:600;">Tổng doanh thu</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#065f46;">${formatPrice(total)}</div>
+                </div>
+                <div style="flex:1;min-width:180px;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;">
+                    <div style="font-size:0.8rem;color:#1d4ed8;font-weight:600;">Tổng đơn</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#1e3a8a;">${totalOrders}</div>
+                </div>
+            </div>
+            <div style="padding:1rem;background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:1rem;"><canvas id="drs-chart" style="max-height:240px;"></canvas></div>
+            <div><h4 style="margin-bottom:8px;color:var(--text-primary);">Chi tiết</h4>`;
+            if (rows.length===0) html += '<p style="color:var(--text-muted);text-align:center;padding:1rem;font-weight:500;">Không có dữ liệu</p>';
+            else rows.forEach((rw, idx) => {
+                html += `<details data-idx="${idx}" style="margin-bottom:6px;border:1px solid #e2e8f0;border-radius:8px;">
+                    <summary style="cursor:pointer;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-radius:8px;">
+                        <span style="font-weight:700;color:var(--text-primary);">${rw.thoi_gian||rw.thang}</span>
+                        <span style="font-weight:700;color:var(--success);">${formatPrice(rw.doanh_thu||0)} <small style="color:var(--text-muted);font-weight:500;margin-left:6px;">(${rw.so_don} đơn)</small></span>
+                    </summary>
+                    <div class="drs-orders" style="padding:12px;background:#ffffff;border-top:1px solid #e2e8f0;">Đang tải...</div>
+                </details>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+
+            if (dashShopRevChart) { dashShopRevChart.destroy(); dashShopRevChart=null; }
+            if (rows.length>0) {
+                const ctx = document.getElementById('drs-chart').getContext('2d');
+                dashShopRevChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: rows.map(x=>x.thoi_gian||x.thang), datasets:[{ label:'Doanh thu (VND)', data: rows.map(x=>parseFloat(x.doanh_thu||0)), backgroundColor:'rgba(16,185,129,0.7)' }] },
+                    options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ ticks:{ callback: v => new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(v) } } } }
+                });
+            }
+
+            container.querySelectorAll('details').forEach(det => {
+                det.addEventListener('toggle', async () => {
+                    if (!det.open) return;
+                    const oEl = det.querySelector('.drs-orders');
+                    if (oEl.dataset.loaded==='1') return;
+                    const row = rows[parseInt(det.dataset.idx)];
+                    let gFrom, gTo;
+                    if (group==='day') { gFrom = row.thoi_gian; gTo = row.thoi_gian; }
+                    else if (group==='week') { const [y,w]=row.thoi_gian.split('-W'); const ws=new Date(parseInt(y),0,1+(parseInt(w)-1)*7); gFrom=isoDate_d(ws); const we=new Date(ws); we.setDate(ws.getDate()+6); gTo=isoDate_d(we); }
+                    else if (group==='month') { gFrom = row.thoi_gian+'-01'; const [y,m]=row.thoi_gian.split('-').map(Number); gTo=isoDate_d(new Date(y,m,0)); }
+                    else if (group==='year') { gFrom = row.thoi_gian+'-01-01'; gTo = row.thoi_gian+'-12-31'; }
+                    try {
+                        const or = await api.get(`/admin/shops/${id}/orders?from=${gFrom}&to=${gTo}`);
+                        if (!or.success) { oEl.innerHTML = `<div style="color:var(--danger);">${or.message||'Lỗi'}</div>`; return; }
+                        if (!or.data || or.data.length===0) { oEl.innerHTML = '<div style="color:var(--text-muted);font-weight:500;">Không có đơn</div>'; return; }
+                        oEl.innerHTML = or.data.map(o => `
+                            <div style="padding:10px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                                <div>
+                                    <div><strong style="color:var(--text-primary);">#${o.id}</strong> <span style="color:var(--text-secondary);">${o.ten_nguoi_mua||''}</span></div>
+                                    <div style="font-size:0.8rem;color:var(--text-muted);">${formatDate(o.ngay_tao)} ${o.sdt_nguoi_mua?'· '+o.sdt_nguoi_mua:''}</div>
+                                </div>
+                                <div style="font-weight:700;color:var(--danger);">${formatPrice(o.tong_tien)}</div>
+                            </div>`).join('');
+                        oEl.dataset.loaded='1';
+                    } catch(e) { console.error(e); oEl.innerHTML = '<div style="color:var(--danger);">Lỗi server</div>'; }
+                });
+            });
+        }
+
+        modal.querySelectorAll('.drs-q').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const range = btn.dataset.range;
+                const now = new Date();
+                let f, t = new Date(now);
+                const gs = document.getElementById('drs-group');
+                if (range==='today') { f = new Date(now); gs.value='day'; }
+                else if (range==='week') { f = new Date(now); const dow=(f.getDay()+6)%7; f.setDate(f.getDate()-dow); gs.value='day'; }
+                else if (range==='month') { f = new Date(now.getFullYear(), now.getMonth(), 1); gs.value='day'; }
+                else if (range==='year') { f = new Date(now.getFullYear(), 0, 1); gs.value='month'; }
+                document.getElementById('drs-from').value = isoDate_d(f);
+                document.getElementById('drs-to').value = isoDate_d(t);
+                modal.querySelectorAll('.drs-q').forEach(b => { b.classList.toggle('btn-primary', b===btn); b.classList.toggle('btn-outline', b!==btn); });
+                load();
+            });
+        });
+        document.getElementById('drs-go').addEventListener('click', load);
+        load();
+    }
+    </script>
+</body>
+</html>

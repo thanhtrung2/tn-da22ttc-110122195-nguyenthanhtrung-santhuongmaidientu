@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết đơn hàng - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .cancel-modal-backdrop {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px); z-index: 2000;
+            display: none; align-items: center; justify-content: center; padding: 1rem;
+        }
+        .cancel-modal-backdrop.show { display: flex; }
+        .cancel-modal {
+            width: 100%; max-width: 480px; border-radius: 16px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255,255,255,0.1); padding: 1.75rem; color: #f1f5f9;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .cancel-modal h3 { font-size: 1.15rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+        .cancel-modal .modal-body { font-size: 0.88rem; color: var(--dark-300); margin-bottom: 1rem; }
+        .cancel-modal textarea {
+            width: 100%; min-height: 90px; resize: vertical; padding: 10px 12px;
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1);
+            color: #f1f5f9; border-radius: 10px; font-family: inherit; font-size: 0.9rem;
+        }
+        .cancel-modal textarea:focus { outline: none; border-color: var(--primary); }
+        .cancel-modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; }
+        .reason-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem; max-height: 200px; overflow-y: auto; padding-right: 4px; }
+        .reason-item {
+            display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px;
+            background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.2s ease; line-height: 1.4;
+        }
+        .reason-item:hover { border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08); }
+        .reason-item input { margin-top: 2px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+        .reason-item.checked { border-color: var(--primary); background: rgba(99, 102, 241, 0.12); color: #c7d2fe; }
+        .reason-divider { font-size: 0.75rem; color: var(--dark-400); margin: 0.5rem 0 0.35rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .reason-error { color: #fca5a5; font-size: 0.78rem; margin-top: 6px; display: none; }
+        .pending-request-card {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+        }
+        .rejected-request-card {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="shopee-navbar">
+        <!-- Top Bar -->
+        <div class="shopee-topbar">
+            <div class="navbar-container">
+                <div class="topbar-left">
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-notifications">
+                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i> Thông Báo
+                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                        </a>
+                        <div class="notifications-dropdown" id="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4>Thông báo</h4>
+                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
+                            </div>
+                            <div class="notifications-list" id="navbar-notifications-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <div class="topbar-user" id="topbar-user">
+                        <!-- Sẽ được load động -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Navbar -->
+        <div class="shopee-main-nav">
+            <div class="navbar-container">
+                <a href="/" class="shopee-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Vipo</span>
+                </a>
+
+                <div class="shopee-search">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
+                        <button class="search-btn" onclick="searchProducts()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="shopee-actions">
+                    <a href="/pages/cart.html" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <div class="breadcrumb"><a href="/">Trang chủ</a> / <a href="/pages/orders.html">Đơn hàng</a> / <span>Chi tiết</span></div>
+            <h1 id="order-title">Chi tiết đơn hàng</h1>
+        </div>
+        <div id="order-content"><div class="spinner" style="margin:3rem auto;"></div></div>
+    </div>
+
+    <!-- Modal hỏi lý do hủy -->
+    <div class="cancel-modal-backdrop" id="cancelModal" onclick="if(event.target===this) closeCancelModal()">
+        <div class="cancel-modal">
+            <h3 id="cancelModalTitle"><i class="fas fa-times-circle" style="color:var(--danger)"></i> Hủy đơn hàng</h3>
+            <div class="modal-body" id="cancelModalBody">Vui lòng cho chúng tôi biết lý do bạn muốn hủy đơn hàng này. Có thể chọn nhiều lý do, lý do sẽ được gửi tới người bán.</div>
+
+            <div class="reason-divider">Chọn lý do</div>
+            <div class="reason-list" id="reasonList">
+                <!-- Reasons sẽ render theo loại -->
+            </div>
+
+            <div class="reason-divider">Hoặc nhập lý do khác</div>
+            <textarea id="cancelReason" placeholder="Mô tả thêm về lý do hủy..."></textarea>
+            <div id="cancelModalError" class="reason-error"></div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeCancelModal()">Đóng</button>
+                <button class="btn btn-danger" id="cancelConfirmBtn" onclick="confirmCancel()"><i class="fas fa-paper-plane"></i> Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    if(!isLoggedIn()) location.href='/pages/login.html';
+    const oid = new URLSearchParams(location.search).get('id');
+
+    // Check payment result
+    const payResult = new URLSearchParams(location.search).get('payment');
+    if(payResult === 'success') showToast('Thanh toán thành công!');
+    else if(payResult === 'failed') showToast('Thanh toán thất bại','error');
+
+    let pendingCancelOrder = null; // 'cancel' | 'request'
+
+    // Danh sách lý do hủy định sẵn (theo 2 cấp quy trình)
+    const CANCEL_REASONS = {
+        cancel: [
+            { value: 'doi_y_khong_muon_nua', label: 'Đổi ý, không muốn mua nữa' },
+            { value: 'dat_nham_san_pham', label: 'Đặt nhầm sản phẩm / sai số lượng' },
+            { value: 'tim_thay_gia_re_hon', label: 'Tìm thấy giá rẻ hơn ở nơi khác' },
+            { value: 'thoi_gian_giao_qua_lau', label: 'Thời gian giao hàng quá lâu' },
+            { value: 'thay_doi_phuong_thuc_thanh_toan', label: 'Muốn thay đổi phương thức thanh toán' },
+            { value: 'thay_doi_dia_chi', label: 'Cần thay đổi địa chỉ giao hàng' },
+            { value: 'khac', label: 'Lý do khác (vui lòng ghi rõ bên dưới)' }
+        ],
+        request: [
+            { value: 'nguoi_ban_xac_nhan_qua_lau', label: 'Người bán xác nhận quá lâu / không phản hồi' },
+            { value: 'thong_tin_san_pham_khong_dung', label: 'Thông tin sản phẩm không đúng thực tế' },
+            { value: 'gia_thay_doi', label: 'Giá sản phẩm thay đổi sau khi đặt' },
+            { value: 'khong_con_nhu_cau', label: 'Không còn nhu cầu sử dụng' },
+            { value: 'tim_thay_gia_re_hon', label: 'Tìm thấy giá rẻ hơn ở nơi khác' },
+            { value: 'thay_doi_dia_chi', label: 'Cần thay đổi địa chỉ giao hàng' },
+            { value: 'van_chuyen_cham', label: 'Lo ngại thời gian vận chuyển' },
+            { value: 'khac', label: 'Lý do khác (vui lòng ghi rõ bên dưới)' }
+        ]
+    };
+
+    const REASON_LABELS = {};
+    [...CANCEL_REASONS.cancel, ...CANCEL_REASONS.request].forEach(r => { REASON_LABELS[r.value] = r.label; });
+
+    function renderReasonList(action) {
+        const list = document.getElementById('reasonList');
+        const reasons = CANCEL_REASONS[action] || CANCEL_REASONS.cancel;
+        list.innerHTML = reasons.map(r => `
+            <label class="reason-item" data-value="${r.value}">
+                <input type="checkbox" value="${r.value}">
+                <span>${r.label}</span>
+            </label>
+        `).join('');
+        list.querySelectorAll('.reason-item').forEach(item => {
+            const cb = item.querySelector('input');
+            cb.addEventListener('change', () => {
+                item.classList.toggle('checked', cb.checked);
+            });
+            item.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    cb.checked = !cb.checked;
+                    cb.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+    }
+
+    async function load() {
+        if(!oid) { location.href='/pages/orders.html'; return; }
+        const r = await api.get(`/orders/${oid}`);
+        if(!r.success || !r.data) {
+            showToast(r.message || 'Không thể tải đơn hàng, đang quay lại danh sách...', 'error');
+            setTimeout(() => { location.href='/pages/orders.html'; }, 1200);
+            return;
+        }
+        const o = r.data;
+        if (!o.id) {
+            showToast('Đơn hàng không tồn tại hoặc đã bị xóa', 'error');
+            setTimeout(() => { location.href='/pages/orders.html'; }, 1200);
+            return;
+        }
+        document.getElementById('order-title').textContent = `Đơn hàng #${o.id}`;
+
+        const steps = ['cho_xac_nhan','da_xac_nhan','dang_giao','hoan_thanh'];
+        const stepLabels = ['Chờ xác nhận','Đã xác nhận','Đang giao','Hoàn thành'];
+        const stepIcons = ['fas fa-clock','fas fa-check','fas fa-truck','fas fa-flag-checkered'];
+        const currentIdx = o.trang_thai === 'da_huy' ? -1 : steps.indexOf(o.trang_thai);
+
+        // Trạng thái yêu cầu hủy (nếu có)
+        const yc = o.yeu_cau_huy;
+        const hasPending = yc && yc.trang_thai === 'cho_duyet';
+        const hasRejected = yc && yc.trang_thai === 'tu_choi';
+
+        const cancelCardHtml = (yc && (yc.trang_thai === 'cho_duyet' || yc.trang_thai === 'tu_choi')) ? `
+            <div class="${yc.trang_thai === 'cho_duyet' ? 'pending-request-card' : 'rejected-request-card'}" style="margin-bottom:1.5rem;">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:6px;">
+                    <i class="fas ${yc.trang_thai === 'cho_duyet' ? 'fa-hourglass-half' : 'fa-circle-xmark'}"></i>
+                    ${yc.trang_thai === 'cho_duyet' ? 'Yêu cầu hủy đang chờ người bán duyệt' : 'Yêu cầu hủy đã bị từ chối'}
+                </div>
+                <div style="font-size:0.85rem;line-height:1.6;">
+                    <div><strong>Lý do của bạn:</strong> ${yc.ly_do}</div>
+                    ${yc.phan_hoi ? `<div style="margin-top:4px;"><strong>Phản hồi người bán:</strong> ${yc.phan_hoi}</div>` : ''}
+                    <div style="margin-top:4px;opacity:0.8;">Gửi lúc: ${formatDate(yc.ngay_tao)}${yc.ngay_xu_ly ? ` • Xử lý: ${formatDate(yc.ngay_xu_ly)}` : ''}</div>
+                </div>
+            </div>
+        ` : '';
+
+        document.getElementById('order-content').innerHTML = `
+        ${o.trang_thai !== 'da_huy' ? `
+        <div class="glass-card" style="padding:2rem;margin-bottom:1.5rem;">
+            <div class="order-timeline">
+                ${steps.map((s,i) => `
+                <div class="timeline-step ${i<currentIdx?'completed':''} ${i===currentIdx?'active':''}">
+                    <div class="step-icon"><i class="${stepIcons[i]}"></i></div>
+                    <div class="step-label">${stepLabels[i]}</div>
+                </div>`).join('')}
+            </div>
+        </div>` : '<div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;text-align:center;"><span class="status status-cancelled" style="font-size:1rem;padding:8px 20px;">Đã hủy</span></div>'}
+
+        ${cancelCardHtml}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+            <div class="glass-card" style="padding:1.5rem;">
+                <h3 style="font-size:1rem;margin-bottom:1rem;"><i class="fas fa-map-marker-alt" style="color:var(--danger)"></i> Thông tin giao hàng</h3>
+                <p style="font-size:0.85rem;color:var(--dark-300);line-height:1.8;">
+                    <strong>Địa chỉ:</strong> ${o.dia_chi_giao}<br>
+                    <strong>SĐT:</strong> ${o.so_dien_thoai}<br>
+                    ${o.ghi_chu ? `<strong>Ghi chú:</strong> ${o.ghi_chu}` : ''}
+                </p>
+            </div>
+            <div class="glass-card" style="padding:1.5rem;">
+                <h3 style="font-size:1rem;margin-bottom:1rem;"><i class="fas fa-info-circle" style="color:var(--primary-light)"></i> Thông tin đơn</h3>
+                <p style="font-size:0.85rem;color:var(--dark-300);line-height:1.8;">
+                    <strong>Gian hàng:</strong> ${o.ten_gian_hang}<br>
+                    <strong>Thanh toán:</strong> ${o.phuong_thuc_thanh_toan.toUpperCase()}<br>
+                    <strong>Trạng thái TT:</strong> <span style="color:${o.trang_thai_thanh_toan==='paid'?'var(--success)':'var(--warning)'}">${o.trang_thai_thanh_toan==='paid'?'Đã thanh toán':'Chưa thanh toán'}</span><br>
+                    <strong>Ngày tạo:</strong> ${formatDate(o.ngay_tao)}<br>
+                    ${o.ly_do_huy ? `<strong>Lý do hủy:</strong> <span style="color:var(--danger)">${o.ly_do_huy}</span><br>` : ''}
+                </p>
+            </div>
+        </div>
+
+        <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+            <h3 style="font-size:1rem;margin-bottom:1rem;">Sản phẩm</h3>
+            ${o.items.map(item => `
+            <div style="display:flex;gap:1rem;align-items:center;padding:10px 0;border-bottom:1px solid var(--dark-700);">
+                <img src="${getProductImage(item.hinh_anh)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
+                <div style="flex:1;">
+                    <div style="font-weight:500;font-size:0.9rem;">${item.ten_san_pham}</div>
+                    ${item.ten_bien_the ? `<div style="display:inline-block;margin-top:3px;padding:2px 8px;background:var(--dark-800);border:1px solid var(--dark-700);border-radius:10px;font-size:0.72rem;color:var(--primary-light);font-weight:600;"><i class="fas fa-tag"></i> ${item.ten_bien_the}</div>` : ''}
+                    <div style="font-size:0.8rem;color:var(--dark-400);">x${item.so_luong}</div>
+                </div>
+                <div style="font-weight:700;color:var(--danger);">${formatPrice(item.gia * item.so_luong)}</div>
+            </div>`).join('')}
+            <div style="display:flex;justify-content:flex-end;padding-top:1rem;border-top:1px solid var(--dark-700);margin-top:1rem;">
+                <div style="width:300px;text-align:right;display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--dark-300);">
+                        <span>Tạm tính (Tiền hàng):</span>
+                        <span>${formatPrice(o.tien_hang !== null && o.tien_hang !== undefined ? o.tien_hang : (o.tong_tien - (o.phi_van_chuyen || 0)))}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.9rem;color:var(--dark-300);">
+                        <span>Phí vận chuyển:</span>
+                        <span>+${formatPrice(o.phi_van_chuyen || 0)}</span>
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;font-size:1.2rem;color:var(--danger);font-weight:700;margin-top:4px;border-top:1px solid var(--dark-600);padding-top:8px;">
+                        <span>Tổng thanh toán:</span>
+                        <span>${formatPrice(o.tong_tien)}</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+            ${o.trang_thai_thanh_toan === 'unpaid' && o.phuong_thuc_thanh_toan !== 'cod' && o.trang_thai !== 'da_huy' ? `<button class="btn btn-primary" onclick="retryPayment(${o.id})"><i class="fas fa-credit-card"></i> Thanh toán lại</button>` : ''}
+            ${o.trang_thai === 'cho_xac_nhan' ? `<button class="btn btn-danger" onclick="openCancelModal('cancel')"><i class="fas fa-times"></i> Hủy đơn</button>` : ''}
+            ${o.trang_thai === 'da_xac_nhan' && !hasPending ? `<button class="btn btn-warning" onclick="openCancelModal('request')"><i class="fas fa-paper-plane"></i> Yêu cầu hủy đơn</button>` : ''}
+            ${o.trang_thai === 'da_xac_nhan' && hasPending ? `<button class="btn btn-outline" disabled style="opacity:0.6"><i class="fas fa-hourglass-half"></i> Đang chờ duyệt hủy</button>` : ''}
+            ${o.trang_thai === 'da_xac_nhan' && hasRejected ? `<button class="btn btn-warning" onclick="openCancelModal('request')"><i class="fas fa-rotate-right"></i> Gửi lại yêu cầu hủy</button>` : ''}
+            ${o.trang_thai === 'dang_giao' ? `<button class="btn btn-success" onclick="completeOrder()"><i class="fas fa-check-double"></i> Đã nhận được hàng</button>` : ''}
+            ${o.trang_thai === 'hoan_thanh' ? `<a href="/pages/complaint.html?order_id=${o.id}" class="btn btn-warning"><i class="fas fa-flag"></i> Khiếu nại</a>` : ''}
+            ${o.trang_thai === 'hoan_thanh' ? `<button class="btn btn-primary" onclick="showReviewForm()"><i class="fas fa-star"></i> Đánh giá</button>` : ''}
+            ${['da_giao','hoan_thanh','da_huy'].includes(o.trang_thai) ? `<button class="btn btn-outline" onclick="rebuyOrder(event)"><i class="fas fa-redo"></i> Mua lại</button>` : ''}
+            <a href="/pages/orders.html" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại</a>
+        </div>
+
+        <!-- Review Form -->
+        <div id="review-form" style="display:none;margin-top:1.5rem;">
+            <div class="glass-card" style="padding:1.5rem;">
+                <h3 style="margin-bottom:1rem;"><i class="fas fa-star" style="color:var(--warning)"></i> Đánh giá sản phẩm</h3>
+                ${o.items.map(item => `
+                <div style="padding:1rem 0;border-bottom:1px solid var(--dark-700);" id="review-item-${item.san_pham_id}">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <img src="${getProductImage(item.hinh_anh)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
+                        <strong style="font-size:0.85rem;">${item.ten_san_pham}</strong>
+                    </div>
+                    <div class="star-rating" data-pid="${item.san_pham_id}">
+                        ${[1,2,3,4,5].map(s => `<span class="star" data-v="${s}" onclick="setRating(${item.san_pham_id},${s})">★</span>`).join('')}
+                    </div>
+                    <textarea class="form-control" style="margin-top:8px;" placeholder="Viết bình luận..." id="comment-${item.san_pham_id}"></textarea>
+                    <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="submitReview(${item.san_pham_id})">Gửi đánh giá</button>
+                </div>`).join('')}
+            </div>
+        </div>`;
+    }
+
+    function showReviewForm() { document.getElementById('review-form').style.display = 'block'; }
+
+    const ratings = {};
+    function setRating(pid, val) {
+        ratings[pid] = val;
+        document.querySelectorAll(`[data-pid="${pid}"] .star`).forEach(s => {
+            s.classList.toggle('filled', parseInt(s.dataset.v) <= val);
+        });
+    }
+
+    async function submitReview(pid) {
+        if(!ratings[pid]) { showToast('Vui lòng chọn số sao','warning'); return; }
+        const r = await api.post('/reviews', {
+            san_pham_id: pid, don_hang_id: oid,
+            so_sao: ratings[pid],
+            binh_luan: document.getElementById(`comment-${pid}`).value
+        });
+        if(r.success) {
+            showToast('Đánh giá thành công!');
+            document.getElementById(`review-item-${pid}`).innerHTML = '<p style="color:var(--success);"><i class="fas fa-check"></i> Đã đánh giá</p>';
+        } else showToast(r.message,'error');
+    }
+
+    function openCancelModal(action) {
+        pendingCancelOrder = action;
+        const title = document.getElementById('cancelModalTitle');
+        const body = document.getElementById('cancelModalBody');
+        if (action === 'request') {
+            title.innerHTML = '<i class="fas fa-paper-plane" style="color:var(--warning)"></i> Yêu cầu hủy đơn hàng';
+            body.innerHTML = 'Đơn hàng đã được người bán xác nhận. Bạn cần gửi <strong>yêu cầu hủy</strong> kèm lý do, người bán sẽ xem xét và phản hồi. Trong thời gian chờ, đơn vẫn được xử lý bình thường.';
+        } else {
+            title.innerHTML = '<i class="fas fa-times-circle" style="color:var(--danger)"></i> Hủy đơn hàng';
+            body.innerHTML = 'Vui lòng cho chúng tôi biết lý do bạn muốn hủy đơn hàng này. Có thể chọn nhiều lý do, lý do sẽ được gửi tới người bán.';
+        }
+        document.getElementById('cancelReason').value = '';
+        document.getElementById('cancelModalError').style.display = 'none';
+        renderReasonList(action);
+        document.getElementById('cancelModal').classList.add('show');
+    }
+
+    function closeCancelModal() {
+        document.getElementById('cancelModal').classList.remove('show');
+        pendingCancelOrder = null;
+    }
+
+    async function confirmCancel() {
+        const checked = Array.from(document.querySelectorAll('#reasonList input:checked')).map(cb => cb.value);
+        const extra = document.getElementById('cancelReason').value.trim();
+        const errEl = document.getElementById('cancelModalError');
+        errEl.style.display = 'none';
+
+        if (checked.length === 0 && extra.length < 5) {
+            errEl.textContent = 'Vui lòng chọn ít nhất một lý do hoặc nhập lý do tối thiểu 5 ký tự';
+            errEl.style.display = 'block';
+            return;
+        }
+
+        // Ghép lý do thành chuỗi gửi server
+        const parts = [];
+        checked.forEach(v => {
+            const label = REASON_LABELS[v];
+            if (v === 'khac') {
+                if (extra) parts.push(`Khác: ${extra}`);
+            } else {
+                parts.push(label);
+            }
+        });
+        if (extra && !checked.includes('khac')) parts.push(extra);
+        const ly_do = parts.join('; ');
+
+        const btn = document.getElementById('cancelConfirmBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+        try {
+            const r = await api.put(`/orders/${oid}/cancel`, { ly_do });
+            if (r.success) {
+                const action = r.data?.action || 'cancelled';
+                if (action === 'requested') {
+                    showToast('Đã gửi yêu cầu hủy, vui lòng chờ người bán phản hồi', 'success');
+                } else {
+                    showToast('Hủy đơn hàng thành công', 'success');
+                }
+                closeCancelModal();
+                load();
+            } else {
+                errEl.textContent = r.message || 'Có lỗi xảy ra';
+                errEl.style.display = 'block';
+            }
+        } catch (e) {
+            errEl.textContent = 'Lỗi kết nối';
+            errEl.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Xác nhận';
+        }
+    }
+
+    async function completeOrder() {
+        if(!confirm('Bạn xác nhận đã nhận được đầy đủ hàng và muốn hoàn thành đơn này chứ?')) return;
+        const r = await api.put(`/orders/${oid}/complete`);
+        if(r.success) {
+            showToast('Đã xác nhận nhận hàng! Hãy viết đánh giá sản phẩm nhé.');
+            load();
+        } else {
+            showToast(r.message,'error');
+        }
+    }
+
+    async function retryPayment(orderId) {
+        try {
+            showToast('Đang tạo lại link thanh toán...', 'info');
+            const result = await api.post(`/payment/retry/${orderId}`);
+            if (result.success && result.data && result.data.paymentUrl) {
+                window.location.href = result.data.paymentUrl;
+            } else {
+                showToast(result.message || 'Lỗi khi tạo lại thanh toán', 'error');
+            }
+        } catch (error) {
+            console.error('Retry payment error:', error);
+            showToast('Lỗi kết nối khi thử lại thanh toán', 'error');
+        }
+    }
+
+    async function rebuyOrder(e) {
+        if(e) e.preventDefault();
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+        
+        const r = await api.post(`/orders/${oid}/rebuy`);
+        if (r.success) {
+            showToast(r.message, 'success');
+            setTimeout(() => location.href = '/pages/cart.html', 1500);
+        } else {
+            showToast(r.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-redo"></i> Mua lại';
+        }
+    }
+
+    load();
+    </script>
+<script src="/js/shopee-nav.js"></script>
+</body>
+</html>

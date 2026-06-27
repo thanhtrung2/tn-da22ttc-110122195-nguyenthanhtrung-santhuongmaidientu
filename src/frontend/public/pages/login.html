@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-card glass">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <a href="/" class="navbar-brand" style="justify-content:center;font-size:1.8rem;">
+                    <i class="fas fa-shopping-bag"></i> Vipo
+                </a>
+            </div>
+            <h2>Đăng nhập</h2>
+            <p class="subtitle">Chào mừng bạn trở lại!</p>
+
+            <!-- Google Sign In Button -->
+            <div class="google-auth-section" style="margin-bottom: 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                <div id="g_id_onload"
+                     data-client_id="1014466091823-e4j192870qge7sdd0890oca5075mhu00.apps.googleusercontent.com"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleGoogleLogin"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="rectangular"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left"
+                     data-width="320">
+                </div>
+                <div class="divider" style="margin: 1rem 0; width: 100%; text-align: center; position: relative;">
+                    <span style="background: var(--dark-900); padding: 0 1rem; color: var(--dark-400); font-size: 0.9rem; z-index: 1; position: relative;">hoặc</span>
+                    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--dark-700); z-index: 0;"></div>
+                </div>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Nhập email..." required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <div style="position:relative;">
+                        <input type="password" class="form-control" id="password" placeholder="Nhập mật khẩu..." required>
+                        <button type="button" onclick="togglePassword()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--dark-400);cursor:pointer;">
+                            <i class="fas fa-eye" id="toggle-pw-icon"></i>
+                        </button>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 14px;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--dark-300);">
+                        <input type="checkbox" id="remember-me" style="accent-color:var(--primary);width:15px;height:15px;">
+                        Nhớ mật khẩu
+                    </label>
+                    <a href="/pages/forgot-password.html" style="color:var(--primary-light);font-size:0.85rem;text-decoration:none;">Quên mật khẩu?</a>
+                </div>
+                <div id="error-msg" style="color:var(--danger);font-size:0.85rem;margin-bottom:1rem;display:none;"></div>
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;" id="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </button>
+            </form>
+
+            <p style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--dark-400);">
+                Chưa có tài khoản? <a href="/pages/register.html" style="color:var(--primary-light);font-weight:600;">Đăng ký ngay</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (isLoggedIn()) window.location.href = '/';
+
+        // Khôi phục email và mật khẩu đã nhớ
+        const savedEmail = localStorage.getItem('vipo_remember_email');
+        const savedPassword = localStorage.getItem('vipo_remember_password');
+        if (savedEmail) {
+            document.getElementById('email').value = savedEmail;
+            if (savedPassword) {
+                document.getElementById('password').value = savedPassword;
+            }
+            document.getElementById('remember-me').checked = true;
+        }
+
+        function togglePassword() {
+            const pw = document.getElementById('password');
+            const icon = document.getElementById('toggle-pw-icon');
+            if (pw.type === 'password') { pw.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+            else { pw.type = 'password'; icon.className = 'fas fa-eye'; }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('error-msg');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            errorMsg.style.display = 'none';
+
+            const email = document.getElementById('email').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+
+            // Lưu / xóa email nhớ
+            if (rememberMe) {
+                localStorage.setItem('vipo_remember_email', email);
+                localStorage.setItem('vipo_remember_password', document.getElementById('password').value);
+            } else {
+                localStorage.removeItem('vipo_remember_email');
+                localStorage.removeItem('vipo_remember_password');
+            }
+
+            const result = await api.post('/auth/login', {
+                email,
+                mat_khau: document.getElementById('password').value
+            });
+
+            if (result.success) {
+                auth.login(result.data.token, result.data.user);
+                showToast('Đăng nhập thành công!');
+                const user = result.data.user;
+                setTimeout(() => {
+                    if (user.vai_tro === 'admin') window.location.href = '/pages/admin/dashboard.html';
+                    else if (user.vai_tro === 'seller') window.location.href = '/pages/seller/dashboard.html';
+                    else window.location.href = '/';
+                }, 500);
+            } else {
+                errorMsg.textContent = result.message;
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập';
+            }
+        }
+
+        async function handleGoogleLogin(response) {
+            const btn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('error-msg');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            errorMsg.style.display = 'none';
+
+            try {
+                const result = await api.post('/auth/google-login', {
+                    credential: response.credential
+                });
+
+                if (result.success) {
+                    auth.login(result.data.token, result.data.user);
+                    showToast('Đăng nhập thành công!');
+                    const user = result.data.user;
+                    setTimeout(() => {
+                        if (user.vai_tro === 'admin') window.location.href = '/pages/admin/dashboard.html';
+                        else if (user.vai_tro === 'seller') window.location.href = '/pages/seller/dashboard.html';
+                        else window.location.href = '/';
+                    }, 500);
+                } else {
+                    errorMsg.textContent = result.message || 'Đăng nhập Google thất bại';
+                    errorMsg.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập';
+                }
+            } catch (error) {
+                console.error(error);
+                errorMsg.textContent = 'Đã xảy ra lỗi khi đăng nhập bằng Google';
+                errorMsg.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Đăng nhập';
+            }
+        }
+    </script>
+<script src="/js/shopee-nav.js"></script>
+</body>
+</html>

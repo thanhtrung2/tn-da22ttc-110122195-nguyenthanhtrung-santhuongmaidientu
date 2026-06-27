@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-card glass">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <a href="/" class="navbar-brand" style="justify-content:center;font-size:1.8rem;">
+                    <i class="fas fa-shopping-bag"></i> Vipo
+                </a>
+            </div>
+            <h2>Đăng ký</h2>
+            <p class="subtitle">Tạo tài khoản để bắt đầu mua sắm</p>
+
+            <!-- Google Sign Up Button - Tạm thời vô hiệu hóa -->
+            <div class="google-auth-section" style="margin-bottom: 1.5rem; display: none;">
+                <button class="btn" style="width: 100%; background: #4285f4; color: white; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="showGoogleMessage()">
+                    <i class="fab fa-google"></i> Đăng ký bằng Google
+                </button>
+                <div class="divider" style="margin: 1rem 0; text-align: center; position: relative;">
+                    <span style="background: var(--dark-900); padding: 0 1rem; color: var(--dark-400); font-size: 0.9rem;">hoặc</span>
+                    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--dark-700); z-index: -1;"></div>
+                </div>
+            </div>
+
+            <form id="register-form" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Họ và tên</label>
+                    <input type="text" class="form-control" id="ho_ten" placeholder="Nhập họ tên..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" class="form-control" id="email" placeholder="Nhập email..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Số điện thoại</label>
+                    <input type="tel" class="form-control" id="so_dien_thoai" placeholder="Nhập số điện thoại..." required>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Mật khẩu</label>
+                    <input type="password" class="form-control" id="mat_khau" placeholder="Nhập mật khẩu (6+ ký tự)..." required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Xác nhận mật khẩu</label>
+                    <input type="password" class="form-control" id="mat_khau_confirm" placeholder="Nhập lại mật khẩu..." required>
+                </div>
+
+                <div class="form-group" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                    <label style="display:flex; align-items:flex-start; gap:8px; font-weight:normal; font-size:0.85rem; color:var(--dark-300); cursor:pointer;">
+                        <input type="checkbox" id="terms" required style="margin-top:3px; accent-color:var(--primary); width: 16px; height: 16px;">
+                        <span>Tôi đồng ý với các <a href="#" onclick="openPolicyModal('terms')" style="color:var(--primary-light); text-decoration:none;">Điều khoản dịch vụ</a> và <a href="#" onclick="openPolicyModal('privacy')" style="color:var(--primary-light); text-decoration:none;">Chính sách bảo mật</a> của Vipo.</span>
+                    </label>
+                </div>
+
+                <div id="error-msg" style="color:var(--danger);font-size:0.85rem;margin-bottom:1rem;display:none;"></div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;" id="register-btn">
+                    <i class="fas fa-user-plus"></i> Đăng ký
+                </button>
+            </form>
+
+            <p style="text-align:center;margin-top:1.5rem;font-size:0.9rem;color:var(--dark-400);">
+                Đã có tài khoản? <a href="/pages/login.html" style="color:var(--primary-light);font-weight:600;">Đăng nhập</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+        if (isLoggedIn()) window.location.href = '/';
+
+        // Tạm thời vô hiệu hóa Google OAuth
+        function showGoogleMessage() {
+            showToast('Google OAuth đang được cấu hình lại. Vui lòng sử dụng đăng ký thường.', 'info');
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('register-btn');
+            const errorMsg = document.getElementById('error-msg');
+
+            const mat_khau = document.getElementById('mat_khau').value;
+            const confirm = document.getElementById('mat_khau_confirm').value;
+
+            if (mat_khau !== confirm) {
+                errorMsg.textContent = 'Mật khẩu xác nhận không khớp';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            const terms = document.getElementById('terms').checked;
+            if (!terms) {
+                errorMsg.textContent = 'Bạn cần đồng ý với các điều khoản dịch vụ và chính sách bảo mật.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+            errorMsg.style.display = 'none';
+
+            try {
+                const formData = {
+                    ho_ten: document.getElementById('ho_ten').value,
+                    email: document.getElementById('email').value,
+                    so_dien_thoai: document.getElementById('so_dien_thoai').value,
+                    mat_khau: mat_khau,
+                    vai_tro: 'customer' // Mặc định là customer
+                };
+
+                const result = await api.post('/auth/register', formData);
+
+                if (result.success) {
+                    auth.login(result.data.token, result.data.user);
+                    showToast('Đăng ký thành công! Chào mừng bạn đến với Vipo!');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    errorMsg.textContent = result.message;
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                errorMsg.textContent = 'Có lỗi xảy ra, vui lòng thử lại';
+                errorMsg.style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-plus"></i> Đăng ký';
+        }
+    </script>
+    <!-- Policy Modal -->
+    <div id="policyModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index:9999; align-items:center; justify-content:center; padding: 20px; transition: opacity 0.3s ease;">
+        <div class="glass-card" style="background:white; max-width:850px; width:100%; max-height:85vh; border-radius:20px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; transform: scale(0.95); transition: transform 0.3s ease;" id="policyModalInner">
+            <div style="padding: 25px 30px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap: 15px;">
+                    <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; display:flex; align-items:center; justify-content:center;">
+                        <i id="policyModalIcon" class="fas fa-file-contract" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h3 id="policyModalTitle" style="margin:0; font-size:1.6rem; font-weight:700; letter-spacing:-0.025em;">Chính sách</h3>
+                </div>
+                <button onclick="closePolicyModal()" style="background:rgba(255,255,255,0.2); border:none; width:40px; height:40px; border-radius:50%; font-size:1.2rem; cursor:pointer; color:white; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="policyModalContent" style="padding: 30px; overflow-y:auto; flex:1; line-height:1.8; color:#334155; font-size: 1.05rem;">
+                <!-- Content injected via JS -->
+            </div>
+            
+            <div style="padding: 20px 30px; background: #f8fafc; border-top: 1px solid #e2e8f0; text-align:right; display:flex; justify-content:flex-end; align-items:center; gap:15px;">
+                <span style="color:#64748b; font-size:0.95rem;">Bằng việc tiếp tục, bạn xác nhận đã đọc và hiểu các điều khoản.</span>
+                <button onclick="closePolicyModal()" class="btn btn-primary" style="padding: 12px 30px; font-weight:600; border-radius:10px; background:#4f46e5; border-color:#4f46e5; box-shadow:0 4px 6px -1px rgba(79,70,229,0.3);">
+                    Tôi đã hiểu & Đồng ý
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const policyData = {
+            'terms': {
+                title: 'Điều khoản dịch vụ',
+                icon: 'fa-file-contract',
+                html: `
+                    <div style="margin-bottom: 25px;">
+                        <p style="color:#64748b; font-style:italic; margin-bottom:15px;">Cập nhật lần cuối: Tháng 6, 2026. Cảm ơn bạn đã tin tưởng và sử dụng website Vipo. Việc sử dụng nền tảng đồng nghĩa với việc bạn đã đọc, hiểu và chấp thuận các điều khoản dưới đây. Xin vui lòng đọc kỹ.</p>
+                    </div>
+                    
+                    <h3 style="font-weight:700; color:#1e293b; font-size:1.3rem; margin:25px 0 15px; display:flex; align-items:center; gap:10px;">
+                        <i class="fas fa-user-circle" style="color:#4f46e5;"></i> 1. Tài khoản và Bảo mật
+                    </h3>
+                    <ul style="list-style:none; padding:0;">
+                        <li style="margin-bottom:12px; position:relative; padding-left:25px;"><i class="fas fa-check" style="position:absolute; left:0; top:4px; color:#10b981; font-size:0.85rem;"></i> Khi đăng ký tài khoản, bạn phải cung cấp thông tin chính xác, cập nhật và đầy đủ theo yêu cầu của hệ thống (họ tên, email, số điện thoại).</li>
+                        <li style="margin-bottom:12px; position:relative; padding-left:25px;"><i class="fas fa-check" style="position:absolute; left:0; top:4px; color:#10b981; font-size:0.85rem;"></i> Bạn có trách nhiệm tự bảo mật mật khẩu và thông tin tài khoản của mình. Vipo sẽ không chịu trách nhiệm cho bất kỳ tổn thất nào phát sinh do việc bạn để lộ thông tin.</li>
+                        <li style="margin-bottom:12px; position:relative; padding-left:25px;"><i class="fas fa-check" style="position:absolute; left:0; top:4px; color:#10b981; font-size:0.85rem;"></i> Cấm chia sẻ tài khoản với nhiều người nhằm mục đích trục lợi các mã giảm giá dành cho người dùng mới.</li>
+                    </ul>
+
+                    <h3 style="font-weight:700; color:#1e293b; font-size:1.3rem; margin:30px 0 15px; display:flex; align-items:center; gap:10px;">
+                        <i class="fas fa-balance-scale" style="color:#4f46e5;"></i> 2. Quyền và Trách nhiệm của Người mua
+                    </h3>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:20px; border-radius:12px; margin-bottom:15px;">
+                        <p style="margin-bottom:10px;">Người mua có trách nhiệm tìm hiểu kỹ thông tin, đọc đánh giá sản phẩm trước khi quyết định đặt hàng. Đồng thời có nghĩa vụ thanh toán đầy đủ giá trị đơn hàng theo phương thức đã chọn.</p>
+                        <p style="color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Lưu ý nghiêm ngặt:</p>
+                        <p style="margin-top:5px;">Mọi hành vi đặt hàng ảo (bom hàng), từ chối nhận hàng không có lý do chính đáng từ 3 lần trở lên sẽ dẫn đến việc khóa tài khoản vĩnh viễn và đưa vào danh sách đen của hệ thống.</p>
+                    </div>
+
+                    <h3 style="font-weight:700; color:#1e293b; font-size:1.3rem; margin:30px 0 15px; display:flex; align-items:center; gap:10px;">
+                        <i class="fas fa-shield-alt" style="color:#4f46e5;"></i> 3. Giới hạn trách nhiệm của Vipo
+                    </h3>
+                    <p>Vipo hoạt động như một nền tảng trung gian kết nối. Dù có cơ chế duyệt chặt chẽ, trách nhiệm pháp lý về chất lượng hàng hóa thuộc về Người bán trực tiếp. Vipo cam kết sẽ đứng ra hỗ trợ giải quyết tranh chấp thông qua hệ thống Khiếu nại tích hợp.</p>
+                `
+            },
+            'privacy': {
+                title: 'Chính sách bảo mật',
+                icon: 'fa-user-shield',
+                html: `
+                    <div style="margin-bottom: 25px;">
+                        <p style="color:#64748b; font-style:italic; margin-bottom:15px;">Sự riêng tư của bạn là ưu tiên hàng đầu tại Vipo. Chúng tôi thực hiện các biện pháp kỹ thuật số tiên tiến nhất để giữ an toàn tuyệt đối cho mọi dữ liệu cá nhân của bạn.</p>
+                    </div>
+
+                    <h3 style="font-weight:700; color:#1e293b; font-size:1.3rem; margin:25px 0 15px; display:flex; align-items:center; gap:10px;">
+                        <i class="fas fa-database" style="color:#4f46e5;"></i> 1. Các thông tin chúng tôi thu thập
+                    </h3>
+                    <ul style="list-style:none; padding:0;">
+                        <li style="margin-bottom:12px; position:relative; padding-left:25px;"><i class="fas fa-check" style="position:absolute; left:0; top:4px; color:#10b981; font-size:0.85rem;"></i> <strong>Thông tin định danh:</strong> Họ tên, số điện thoại, địa chỉ email, địa chỉ giao/nhận hàng.</li>
+                        <li style="margin-bottom:12px; position:relative; padding-left:25px;"><i class="fas fa-check" style="position:absolute; left:0; top:4px; color:#10b981; font-size:0.85rem;"></i> <strong>Thông tin giao dịch:</strong> Lịch sử đơn hàng, đánh giá, khiếu nại, phương thức thanh toán đã chọn (không lưu trữ thông tin thẻ tín dụng/ATM thực tế).</li>
+                        <li style="margin-bottom:12px; position:relative; padding-left:25px;"><i class="fas fa-check" style="position:absolute; left:0; top:4px; color:#10b981; font-size:0.85rem;"></i> <strong>Dữ liệu thiết bị:</strong> Địa chỉ IP tĩnh/động, loại thiết bị sử dụng (Mobile/PC), phiên bản trình duyệt.</li>
+                    </ul>
+
+                    <h3 style="font-weight:700; color:#1e293b; font-size:1.3rem; margin:30px 0 15px; display:flex; align-items:center; gap:10px;">
+                        <i class="fas fa-tasks" style="color:#4f46e5;"></i> 2. Mục đích sử dụng dữ liệu
+                    </h3>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:15px; margin-bottom:20px;">
+                        <div style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <h4 style="font-weight:600; color:#334155; margin-bottom:5px;"><i class="fas fa-box-open" style="color:#3b82f6;"></i> Xử lý đơn hàng</h4>
+                            <p style="font-size:0.95rem; color:#64748b; margin:0;">Cung cấp địa chỉ và SĐT cho đơn vị vận chuyển để giao hàng.</p>
+                        </div>
+                        <div style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <h4 style="font-weight:600; color:#334155; margin-bottom:5px;"><i class="fas fa-headset" style="color:#3b82f6;"></i> Chăm sóc khách hàng</h4>
+                            <p style="font-size:0.95rem; color:#64748b; margin:0;">Hỗ trợ, tiếp nhận và xử lý các khiếu nại phát sinh nhanh chóng.</p>
+                        </div>
+                    </div>
+
+                    <div style="background:linear-gradient(to right, #ecfdf5, #d1fae5); border:1px solid #10b981; padding:20px; border-radius:12px; margin-top:25px;">
+                        <h4 style="font-weight:700; color:#065f46; margin-bottom:10px; font-size:1.2rem;">
+                            <i class="fas fa-lock" style="margin-right:8px;"></i> Cam kết bảo mật tuyệt đối
+                        </h4>
+                        <p style="color:#065f46; margin:0;">Mọi dữ liệu nhạy cảm bao gồm mật khẩu đều được mã hóa một chiều (Bcrypt). Vipo cam kết tuyệt đối <strong>KHÔNG</strong> mua bán, trao đổi, chia sẻ thông tin cá nhân của khách hàng cho bất kỳ bên thứ ba nào vì mục đích thương mại tiếp thị.</p>
+                    </div>
+                `
+            }
+        };
+
+        function openPolicyModal(type) {
+            const data = policyData[type];
+            if(data) {
+                document.getElementById('policyModalTitle').textContent = data.title;
+                document.getElementById('policyModalIcon').className = 'fas ' + data.icon;
+                document.getElementById('policyModalContent').innerHTML = data.html;
+                
+                const modal = document.getElementById('policyModal');
+                const inner = document.getElementById('policyModalInner');
+                
+                modal.style.display = 'flex';
+                // Trigger animation
+                setTimeout(() => {
+                    modal.style.opacity = '1';
+                    inner.style.transform = 'scale(1)';
+                }, 10);
+            }
+        }
+
+        function closePolicyModal() {
+            const modal = document.getElementById('policyModal');
+            const inner = document.getElementById('policyModalInner');
+            
+            modal.style.opacity = '0';
+            inner.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+    </script>
+<script src="/js/shopee-nav.js"></script>
+</body>
+</html>

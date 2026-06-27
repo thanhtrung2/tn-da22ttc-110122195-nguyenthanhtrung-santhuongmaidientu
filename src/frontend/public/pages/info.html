@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông tin & Hỗ trợ - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background-color: #f8fafc;
+        }
+        
+        .header-custom {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            padding: 40px 0;
+            color: white;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-custom h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.025em;
+        }
+
+        .header-custom p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .layout-container {
+            max-width: 1200px;
+            margin: -30px auto 40px;
+            padding: 0 20px;
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            padding: 20px 0;
+            position: sticky;
+            top: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            padding: 0 25px 15px;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 15px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 25px;
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-item:hover {
+            background-color: #f8fafc;
+            color: #4f46e5;
+        }
+
+        .nav-item.active {
+            background-color: #e0e7ff;
+            color: #4f46e5;
+            border-left-color: #4f46e5;
+        }
+
+        .nav-item i {
+            width: 24px;
+            margin-right: 12px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            padding: 40px;
+            min-height: 500px;
+        }
+
+        .content-body h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .content-body h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #334155;
+            margin: 30px 0 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .content-body h3::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 20px;
+            background: #4f46e5;
+            border-radius: 4px;
+        }
+
+        .content-body p {
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 16px;
+            font-size: 1.05rem;
+        }
+
+        .content-body ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 20px;
+        }
+
+        .content-body ul li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 12px;
+            color: #475569;
+            line-height: 1.6;
+        }
+
+        .content-body ul li::before {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: #10b981;
+            font-size: 0.9rem;
+        }
+
+        .content-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        /* Top Navigation simple for this page */
+        .top-nav {
+            background: white;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: white;
+            color: #4f46e5;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid #4f46e5;
+        }
+        
+        .back-home:hover {
+            background: #4f46e5;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .layout-container {
+                flex-direction: column;
+                margin-top: 20px;
+            }
+            .sidebar {
+                width: 100%;
+                position: static;
+            }
+            .content-area {
+                padding: 25px;
+            }
+            .top-nav {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="top-nav">
+        <a href="/" style="font-size: 1.8rem; font-weight: 800; color: #4f46e5; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-shopping-bag"></i> Vipo
+        </a>
+        <a href="/" class="back-home">
+            <i class="fas fa-home"></i> Trở về trang chủ
+        </a>
+    </nav>
+
+    <header class="header-custom">
+        <h1>Trung tâm thông tin & Hỗ trợ</h1>
+        <p>Tìm hiểu thêm về chính sách và hướng dẫn sử dụng của Vipo</p>
+    </header>
+
+    <div class="layout-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-title">Về chúng tôi</div>
+            <a onclick="loadContent('about')" class="nav-item" id="nav-about">
+                <i class="fas fa-building"></i> Giới thiệu Vipo
+            </a>
+            <a onclick="loadContent('terms')" class="nav-item" id="nav-terms">
+                <i class="fas fa-file-contract"></i> Điều khoản sử dụng
+            </a>
+            <a onclick="loadContent('privacy')" class="nav-item" id="nav-privacy">
+                <i class="fas fa-user-shield"></i> Chính sách bảo mật
+            </a>
+
+            <div class="sidebar-title" style="margin-top: 20px;">Hỗ trợ khách hàng</div>
+            <a onclick="loadContent('guide_buy')" class="nav-item" id="nav-guide_buy">
+                <i class="fas fa-shopping-cart"></i> Hướng dẫn mua hàng
+            </a>
+            <a onclick="loadContent('guide_sell')" class="nav-item" id="nav-guide_sell">
+                <i class="fas fa-store"></i> Hướng dẫn bán hàng
+            </a>
+            <a onclick="loadContent('return_policy')" class="nav-item" id="nav-return_policy">
+                <i class="fas fa-undo"></i> Chính sách đổi trả
+            </a>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content-area">
+            <div id="content-body" class="content-body">
+                <div style="text-align: center; padding: 60px 0;">
+                    <i class="fas fa-circle-notch fa-spin fa-3x" style="color: #4f46e5;"></i>
+                    <p style="margin-top: 20px; color: #64748b;">Đang tải nội dung...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer style="background: white; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0; color: #64748b; margin-top: 40px;">
+        <p>© 2026 Vipo Ecommerce. Bản quyền thuộc về Khóa luận tốt nghiệp 2026.</p>
+    </footer>
+
+    <script>
+        const contentData = {
+            'about': {
+                title: 'Giới thiệu về Vipo',
+                icon: 'fa-building',
+                html: `
+                    <h2>Giới thiệu Vipo</h2>
+                    <p>Chào mừng bạn đến với <strong>Vipo</strong> - Sàn thương mại điện tử đa người bán hàng đầu. Chúng tôi tự hào mang đến cho khách hàng một nền tảng mua sắm trực tuyến an toàn, tiện lợi và đa dạng, nơi kết nối hàng triệu người tiêu dùng với các nhà cung cấp uy tín trên toàn quốc.</p>
+                    
+                    <div class="content-box">
+                        <h4 style="font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;"><i class="fas fa-bullseye" style="color:#f59e0b"></i> Sứ mệnh của chúng tôi</h4>
+                        <p style="margin-bottom:0;">Sứ mệnh của Vipo là tạo ra một môi trường giao thương minh bạch, tin cậy và mang lại giá trị thực cho cộng đồng. Chúng tôi xóa bỏ mọi khoảng cách địa lý, giúp mọi người mua bán dễ dàng hơn bao giờ hết.</p>
+                    </div>
+
+                    <h3>Tầm nhìn chiến lược</h3>
+                    <p>Trở thành hệ sinh thái thương mại điện tử toàn diện được yêu thích nhất tại Việt Nam vào năm 2030, tiên phong ứng dụng công nghệ AI để cá nhân hóa trải nghiệm người dùng và tối ưu hóa chuỗi cung ứng.</p>
+                    
+                    <h3>Giá trị cốt lõi</h3>
+                    <ul>
+                        <li><strong>Chất lượng hàng đầu:</strong> Cam kết hàng hóa chính hãng, có nguồn gốc rõ ràng, kiểm duyệt nghiêm ngặt.</li>
+                        <li><strong>Khách hàng là trọng tâm:</strong> Lắng nghe thấu đáo, mọi tính năng và dịch vụ đều xoay quanh trải nghiệm người dùng.</li>
+                        <li><strong>Đổi mới sáng tạo:</strong> Liên tục cập nhật công nghệ mới (AI Chatbot, Thanh toán điện tử nhanh chóng) để dẫn đầu xu hướng.</li>
+                        <li><strong>Đồng hành cùng đối tác:</strong> Hỗ trợ người bán khởi nghiệp, cung cấp công cụ quản lý bán hàng chuyên nghiệp, dễ sử dụng.</li>
+                    </ul>
+                `
+            },
+            'terms': {
+                title: 'Điều khoản sử dụng',
+                icon: 'fa-file-contract',
+                html: `
+                    <h2>Điều khoản sử dụng</h2>
+                    <p>Cảm ơn bạn đã tin tưởng và sử dụng website Vipo. Việc sử dụng nền tảng đồng nghĩa với việc bạn đã đọc, hiểu và chấp thuận các điều khoản dưới đây. Xin vui lòng đọc kỹ.</p>
+                    
+                    <h3>1. Tài khoản và Bảo mật</h3>
+                    <ul>
+                        <li>Khi đăng ký tài khoản, bạn phải cung cấp thông tin chính xác, cập nhật và đầy đủ theo yêu cầu của hệ thống.</li>
+                        <li>Bạn có trách nhiệm tự bảo mật mật khẩu và thông tin tài khoản của mình. Vipo sẽ không chịu trách nhiệm cho bất kỳ tổn thất nào phát sinh do việc bạn để lộ thông tin.</li>
+                        <li>Bạn phải thông báo ngay cho chúng tôi nếu phát hiện có truy cập trái phép vào tài khoản của mình.</li>
+                    </ul>
+
+                    <h3>2. Quyền và Trách nhiệm của Người bán</h3>
+                    <ul>
+                        <li>Cam kết cung cấp thông tin sản phẩm trung thực, hình ảnh rõ ràng.</li>
+                        <li>Tuyệt đối không đăng bán hàng giả, hàng nhái, hàng vi phạm sở hữu trí tuệ hoặc các mặt hàng bị cấm theo quy định của pháp luật Việt Nam.</li>
+                        <li>Tuân thủ thời gian giao hàng và chính sách bảo hành đã cam kết với khách hàng.</li>
+                    </ul>
+
+                    <h3>3. Quyền và Trách nhiệm của Người mua</h3>
+                    <p>Người mua có trách nhiệm tìm hiểu kỹ thông tin sản phẩm trước khi đặt hàng. Đồng thời có nghĩa vụ thanh toán đầy đủ giá trị đơn hàng theo phương thức đã chọn. Mọi hành vi đặt hàng ảo (bom hàng) nhiều lần sẽ dẫn đến việc khóa tài khoản vĩnh viễn.</p>
+
+                    <div class="content-box">
+                        <h4 style="font-weight: 700; color: #1e293b; margin-bottom: 10px;"><i class="fas fa-balance-scale" style="color:#3b82f6"></i> 4. Giới hạn trách nhiệm</h4>
+                        <p style="margin-bottom:0;">Vipo hoạt động như một nền tảng trung gian. Mặc dù chúng tôi có cơ chế kiểm duyệt, nhưng trách nhiệm pháp lý cuối cùng về chất lượng sản phẩm, dịch vụ và nội dung mô tả thuộc về Người Bán trực tiếp. Vipo sẽ hỗ trợ giải quyết tranh chấp thông qua hệ thống Khiếu nại.</p>
+                    </div>
+                `
+            },
+            'privacy': {
+                title: 'Chính sách bảo mật',
+                icon: 'fa-user-shield',
+                html: `
+                    <h2>Chính sách bảo mật thông tin</h2>
+                    <p>Tại Vipo, sự riêng tư của khách hàng là ưu tiên hàng đầu. Chính sách này giải thích cách chúng tôi thu thập, sử dụng, chia sẻ và bảo vệ dữ liệu cá nhân của bạn.</p>
+                    
+                    <h3>1. Thông tin chúng tôi thu thập</h3>
+                    <ul>
+                        <li><strong>Thông tin cá nhân:</strong> Họ tên, email, số điện thoại, địa chỉ giao hàng khi bạn tạo tài khoản hoặc đặt hàng.</li>
+                        <li><strong>Thông tin giao dịch:</strong> Lịch sử mua hàng, phương thức thanh toán, sản phẩm đã xem.</li>
+                        <li><strong>Thông tin thiết bị:</strong> Địa chỉ IP, loại trình duyệt, thời gian truy cập để cải thiện hiệu suất website.</li>
+                    </ul>
+
+                    <h3>2. Mục đích sử dụng thông tin</h3>
+                    <p>Chúng tôi sử dụng dữ liệu của bạn nhằm các mục đích chính đáng sau:</p>
+                    <ul>
+                        <li>Xử lý và giao đơn hàng nhanh chóng, chính xác.</li>
+                        <li>Cung cấp dịch vụ chăm sóc khách hàng, hỗ trợ giải quyết khiếu nại.</li>
+                        <li>Gửi email xác nhận đơn hàng, cập nhật trạng thái vận chuyển và thông báo khuyến mãi (nếu bạn đồng ý nhận).</li>
+                        <li>Ngăn chặn các hoạt động gian lận, tài khoản ảo.</li>
+                    </ul>
+
+                    <div class="content-box" style="background-color:#ecfdf5; border-color:#a7f3d0;">
+                        <h4 style="font-weight: 700; color: #065f46; margin-bottom: 10px;"><i class="fas fa-lock"></i> 3. Cam kết bảo mật dữ liệu</h4>
+                        <p style="color: #065f46; margin-bottom:0;">Mọi dữ liệu nhạy cảm bao gồm mật khẩu và thông tin thẻ đều được mã hóa bằng thuật toán chuẩn quốc tế. Vipo cam kết tuyệt đối không trao đổi, mua bán thông tin cá nhân của khách hàng cho bất kỳ bên thứ ba nào vì mục đích thương mại.</p>
+                    </div>
+                `
+            },
+            'guide_buy': {
+                title: 'Hướng dẫn mua hàng',
+                icon: 'fa-shopping-cart',
+                html: `
+                    <h2>Hướng dẫn mua hàng tại Vipo</h2>
+                    <p>Trải nghiệm mua sắm trên Vipo vô cùng đơn giản và trực quan. Hãy làm theo các bước dưới đây để sở hữu sản phẩm bạn yêu thích.</p>
+                    
+                    <h3>Bước 1: Tìm kiếm & Lựa chọn sản phẩm</h3>
+                    <p>Sử dụng thanh tìm kiếm ở đầu trang hoặc duyệt qua hệ thống <strong>Danh mục sản phẩm</strong>. Bạn có thể sử dụng các bộ lọc (giá cả, đánh giá, thương hiệu) để dễ dàng tìm được sản phẩm ưng ý.</p>
+                    
+                    <h3>Bước 2: Xem chi tiết & Thêm vào giỏ</h3>
+                    <p>Nhấp vào sản phẩm để xem hình ảnh chi tiết, mô tả và đánh giá từ những người mua trước. Đừng quên chọn đúng Phân loại hàng (màu sắc, kích cỡ) và Số lượng. Sau đó nhấn nút <strong>"Thêm vào giỏ hàng"</strong>.</p>
+                    
+                    <h3>Bước 3: Đặt hàng & Thanh toán</h3>
+                    <ul>
+                        <li>Vào biểu tượng Giỏ hàng ở góc phải màn hình. Tích chọn các sản phẩm bạn muốn thanh toán.</li>
+                        <li>Nhấn "Mua hàng". Hệ thống sẽ chuyển sang trang thanh toán.</li>
+                        <li>Kiểm tra thông tin <strong>Địa chỉ nhận hàng</strong>.</li>
+                        <li>Chọn <strong>Phương thức thanh toán</strong>: Thanh toán khi nhận hàng (COD), hoặc Thanh toán trực tuyến an toàn qua VNPay / PayOS.</li>
+                        <li>Nhấn <strong>"Đặt hàng"</strong> để hoàn tất.</li>
+                    </ul>
+
+                    <div class="content-box">
+                        <h4 style="font-weight: 700; color: #1e293b; margin-bottom: 10px;"><i class="fas fa-box-open" style="color:#6366f1"></i> Theo dõi trạng thái đơn</h4>
+                        <p style="margin-bottom:0;">Sau khi đặt hàng thành công, bạn có thể vào phần <strong>Hồ sơ cá nhân > Đơn hàng</strong> để theo dõi lộ trình vận chuyển theo thời gian thực.</p>
+                    </div>
+                `
+            },
+            'guide_sell': {
+                title: 'Hướng dẫn bán hàng',
+                icon: 'fa-store',
+                html: `
+                    <h2>Khởi nghiệp cùng Vipo</h2>
+                    <p>Mở gian hàng trên Vipo là cách nhanh nhất để tiếp cận hàng triệu khách hàng trực tuyến với chi phí 0 đồng. Quy trình đăng ký rất chuyên nghiệp và minh bạch.</p>
+                    
+                    <h3>Bước 1: Tạo tài khoản Người Bán (Seller)</h3>
+                    <p>Từ trang chủ hoặc Hồ sơ cá nhân, chọn tính năng <strong>"Trở thành người bán"</strong>. Hệ thống yêu cầu bạn điền các thông tin cơ bản về Shop như Tên Shop, Mô tả, và địa chỉ kho hàng.</p>
+                    
+                    <h3>Bước 2: Xác thực danh tính (Bắt buộc)</h3>
+                    <p>Để đảm bảo môi trường kinh doanh uy tín, Vipo yêu cầu xác minh danh tính:</p>
+                    <ul>
+                        <li>Chụp ảnh mặt trước và mặt sau CCCD/CMND rõ nét.</li>
+                        <li>Chụp ảnh chân dung (selfie) của chủ shop.</li>
+                        <li>Tải lên Giấy phép kinh doanh (Bắt buộc đối với công ty/hộ kinh doanh, không bắt buộc với cá nhân).</li>
+                    </ul>
+                    <p>Sau khi gửi, Ban quản trị sẽ duyệt hồ sơ của bạn trong vòng 24-48 giờ làm việc.</p>
+
+                    <h3>Bước 3: Quản lý cửa hàng</h3>
+                    <p>Sau khi được duyệt, bạn sẽ được cấp quyền truy cập vào <strong>Seller Dashboard (Kênh Người Bán)</strong>. Tại đây bạn có thể:</p>
+                    <ul>
+                        <li>Thêm sản phẩm mới với đầy đủ hình ảnh, thuộc tính (màu, size), quản lý kho.</li>
+                        <li>Tạo các chương trình khuyến mãi, voucher giảm giá thu hút khách.</li>
+                        <li>Theo dõi biểu đồ doanh thu trực quan, thống kê tỷ lệ chuyển đổi.</li>
+                        <li>Xử lý và xác nhận đơn hàng khi có khách mua.</li>
+                    </ul>
+
+                    <div class="content-box" style="background-color:#eff6ff; border-color:#bfdbfe;">
+                        <h4 style="font-weight: 700; color: #1e40af; margin-bottom: 10px;"><i class="fas fa-hand-holding-usd"></i> Rút tiền dễ dàng</h4>
+                        <p style="color: #1e40af; margin-bottom:0;">Tiền hàng sẽ được đối soát và cộng vào số dư tài khoản người bán sau khi đơn hàng giao thành công và hết thời hạn khiếu nại (thường là 3 ngày). Bạn có thể yêu cầu rút tiền về tài khoản ngân hàng bất cứ lúc nào.</p>
+                    </div>
+                `
+            },
+            'return_policy': {
+                title: 'Chính sách đổi trả',
+                icon: 'fa-undo',
+                html: `
+                    <h2>Chính sách Đổi trả & Hoàn tiền</h2>
+                    <p>Để đảm bảo quyền lợi an tâm mua sắm, Vipo áp dụng chính sách đổi trả và hoàn tiền rõ ràng cho mọi giao dịch trên hệ thống.</p>
+                    
+                    <h3>1. Điều kiện được yêu cầu trả hàng/hoàn tiền</h3>
+                    <p>Người mua có thể yêu cầu trả hàng/hoàn tiền trong vòng <strong>03 ngày</strong> kể từ khi cập nhật trạng thái "Giao hàng thành công" đối với các trường hợp sau:</p>
+                    <ul>
+                        <li>Sản phẩm bị lỗi kỹ thuật, không hoạt động do nhà sản xuất.</li>
+                        <li>Sản phẩm bị bể vỡ, móp méo nghiêm trọng trong quá trình vận chuyển.</li>
+                        <li>Sản phẩm giao không đúng với đơn đặt hàng (sai model, sai màu sắc, sai kích thước, thiếu linh phụ kiện).</li>
+                        <li>Sản phẩm là hàng giả, hàng nhái, hàng kém chất lượng không đúng với mô tả trên website.</li>
+                    </ul>
+
+                    <h3>2. Điều kiện về tình trạng hàng hóa trả về</h3>
+                    <p>Sản phẩm gửi trả phải còn nguyên trạng như khi nhận (bao gồm bao bì, tem mác, phụ kiện đi kèm, quà tặng nếu có). Tuyệt đối chưa qua sử dụng, giặt ủi, hoặc sửa chữa.</p>
+
+                    <h3>3. Quy trình giải quyết</h3>
+                    <ul>
+                        <li><strong>Bước 1:</strong> Truy cập "Đơn hàng của tôi", chọn đơn hàng gặp sự cố và bấm "Yêu cầu Trả hàng/Hoàn tiền".</li>
+                        <li><strong>Bước 2:</strong> Điền lý do cụ thể và bắt buộc tải lên hình ảnh/video bằng chứng rõ nét thể hiện lỗi của sản phẩm.</li>
+                        <li><strong>Bước 3:</strong> Người bán sẽ có 2 ngày để phản hồi. Nếu Người bán đồng ý, bạn tiến hành đóng gói và gửi hàng về địa chỉ của Người bán. Nếu Người bán từ chối không hợp lý, Vipo sẽ can thiệp giải quyết dựa trên bằng chứng hai bên cung cấp.</li>
+                        <li><strong>Bước 4:</strong> Tiền sẽ được hoàn về tài khoản Vipo hoặc thẻ/tài khoản ngân hàng của bạn sau khi Người bán xác nhận đã nhận lại hàng nguyên vẹn.</li>
+                    </ul>
+
+                    <div class="content-box">
+                        <h4 style="font-weight: 700; color: #1e293b; margin-bottom: 10px;"><i class="fas fa-truck-loading" style="color:#ef4444"></i> Phí vận chuyển hàng trả</h4>
+                        <p style="margin-bottom:0;">Đối với các trường hợp trả hàng do lỗi sản phẩm/vận chuyển/đóng sai hàng, người mua sẽ được <strong>miễn phí hoàn toàn</strong> cước vận chuyển hàng trả về.</p>
+                    </div>
+                `
+            }
+        };
+
+        function loadContent(type) {
+            // Update URL parameters without reloading
+            const url = new URL(window.location);
+            url.searchParams.set('type', type);
+            window.history.pushState({}, '', url);
+
+            // Set active class on sidebar
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const activeItem = document.getElementById('nav-' + type);
+            if(activeItem) activeItem.classList.add('active');
+
+            // Inject content
+            const contentDiv = document.getElementById('content-body');
+            
+            if (contentData[type]) {
+                document.title = contentData[type].title + ' - Vipo';
+                
+                // Add fade-in animation
+                contentDiv.style.opacity = 0;
+                
+                setTimeout(() => {
+                    contentDiv.innerHTML = contentData[type].html;
+                    contentDiv.style.transition = 'opacity 0.4s ease';
+                    contentDiv.style.opacity = 1;
+                }, 200);
+
+            } else {
+                contentDiv.innerHTML = `
+                    <div style="text-align:center; padding: 40px;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/7486/7486831.png" width="100" style="margin:0 auto 20px; opacity: 0.5;">
+                        <h2>Không tìm thấy trang</h2>
+                        <p>Nội dung bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type') || 'about'; // Default to about
+            loadContent(type);
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type') || 'about';
+            loadContent(type);
+        });
+    </script>
+</body>
+</html>

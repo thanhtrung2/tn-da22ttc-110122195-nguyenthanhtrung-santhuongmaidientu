@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Global Vouchers - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .table th, .table td { padding: 12px; border-bottom: 1px solid var(--dark-700); }
+        .form-group { margin-bottom: 1rem; }
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--dark-600); border-radius: 4px; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1050; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar"><div class="navbar-container"><a href="/" class="navbar-brand"><i class="fas fa-shopping-bag"></i> Vipo</a><div class="navbar-actions" id="nav-actions"></div></div></nav>
+    <div class="dashboard-layout" style="padding:90px 2rem 2rem;">
+        <aside class="sidebar glass">
+            <div style="text-align:center;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--dark-700);">
+                <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#f59e0b);display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:1.5rem;"><i class="fas fa-crown"></i></div>
+                <h4 style="font-size:0.95rem;">Quản trị viên</h4>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="/pages/admin/dashboard.html"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/pages/admin/users.html"><i class="fas fa-users"></i> Người dùng <span class="alert-badge" id="badge-sellers" style="display:none;">0</span></a>
+                <a href="/pages/admin/products.html"><i class="fas fa-box"></i> Sản phẩm <span class="alert-badge" id="badge-products" style="display:none;">0</span></a>
+                <a href="/pages/admin/orders.html"><i class="fas fa-receipt"></i> Đơn hàng</a>
+                <a href="/pages/admin/shops.html"><i class="fas fa-store"></i> Gian hàng</a>
+                <a href="/pages/admin/revenue.html"><i class="fas fa-chart-bar"></i> Doanh thu</a>
+                <a href="/pages/admin/vouchers.html" class="active"><i class="fas fa-ticket-alt"></i> Khuyến mãi toàn sàn</a>
+                <a href="/pages/admin/complaints.html"><i class="fas fa-flag"></i> Khiếu nại <span class="alert-badge" id="badge-complaints" style="display:none;">0</span></a>
+                <a href="/pages/admin/moderation.html"><i class="fas fa-shield-alt"></i> Kiểm duyệt AI</a>
+                <a href="/"><i class="fas fa-arrow-left"></i> Trang chủ</a>
+            </nav>
+        </aside>
+        <main class="dashboard-content">
+            <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;">
+                <h1>🏷️ Khuyến mãi Toàn sàn (Global Vouchers)</h1>
+                <button class="btn btn-primary" onclick="showPromoForm()"><i class="fas fa-plus"></i> Tạo mới</button>
+            </div>
+            
+            <!-- FORM TẠO/SỬA VOUCHER GIỐNG SELLER -->
+            <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;display:none;" id="promo-form">
+                <form id="promo-form-el" onsubmit="savePromo(event)">
+                    <input type="hidden" id="p-id">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="form-group">
+                            <label>Tên khuyến mãi (Mã Code)</label>
+                            <input class="form-control" id="p-ten" required placeholder="VD: TOANSAN10K">
+                        </div>
+                        <div class="form-group">
+                            <label>Loại</label>
+                            <select class="form-control" id="p-loai" onchange="updateValLabel()">
+                                <option value="phan_tram">Phần trăm (%)</option>
+                                <option value="co_dinh">Cố định (VND)</option>
+                                <option value="mien_phi_van_chuyen">Miễn phí vận chuyển (VND)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label id="p-val-label">Giá trị giảm (%)</label>
+                            <input type="number" class="form-control" id="p-val" required placeholder="VD: 10 (cho 10%)">
+                            <small id="p-val-format" style="color:var(--primary);font-weight:bold;margin-top:4px;display:block;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Mô tả</label>
+                            <input class="form-control" id="p-mota">
+                        </div>
+                        <div class="form-group">
+                            <label>Số lượng tối đa</label>
+                            <input type="number" class="form-control" id="p-soluong" value="100" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Đơn tối thiểu (VND)</label>
+                            <input type="number" class="form-control" id="p-tthieu" value="0" min="0" required placeholder="VD: 100000">
+                            <small id="p-tthieu-format" style="color:var(--primary);font-weight:bold;margin-top:4px;display:block;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Ngày bắt đầu</label>
+                            <input type="date" class="form-control" id="p-start" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Ngày kết thúc</label>
+                            <input type="date" class="form-control" id="p-end" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+                    <button type="button" class="btn btn-outline" onclick="document.getElementById('promo-form').style.display='none'">Hủy</button>
+                </form>
+            </div>
+
+            <!-- DANH SÁCH VOUCHER -->
+            <div id="promo-list"><div class="spinner" style="margin:3rem auto;"></div></div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/shopee-nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+            let role = null;
+            if (userStr) {
+                try { role = JSON.parse(userStr).vai_tro; } catch(e) {}
+            }
+            if (!token || role !== 'admin') {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            if (typeof initNav === 'function') initNav();
+            loadPromos();
+        });
+
+        let currentPromos = [];
+
+        function showPromoForm() {
+            document.getElementById('promo-form-el').reset();
+            document.getElementById('p-id').value = '';
+            updateValLabel();
+            document.getElementById('p-val-format').textContent = '';
+            document.getElementById('p-tthieu-format').textContent = '';
+            document.getElementById('promo-form').style.display='block';
+        }
+
+        async function loadPromos() {
+            try {
+                const r = await fetch('/api/admin/vouchers', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+                const res = await r.json();
+                const el = document.getElementById('promo-list');
+                if(!res.success || res.data.length === 0) { 
+                    el.innerHTML='<p style="text-align:center;color:var(--dark-400);padding:3rem;">Chưa có khuyến mãi</p>'; 
+                    currentPromos=[]; 
+                    return; 
+                }
+                currentPromos = res.data;
+                el.innerHTML = `<div class="table-container"><table class="data-table"><thead><tr>
+                    <th>Mã (Code)</th><th>Loại</th><th>Giá trị giảm</th><th>Điều kiện</th><th>Đã dùng/Tổng</th><th>Thời gian</th><th>Trạng thái</th><th>Thao tác</th>
+                </tr></thead><tbody>${res.data.map(p => `<tr>
+                    <td style="font-weight:500;color:var(--white);">${p.ten_khuyen_mai}</td>
+                    <td>${p.loai==='phan_tram'?'Phần trăm':(p.loai==='co_dinh'?'Cố định':'Freeship')}</td>
+                    <td style="color:var(--success);font-weight:600;">${p.loai==='phan_tram' ? p.gia_tri+'%' : formatPrice(p.gia_tri)}</td>
+                    <td style="font-size:0.85rem;">${p.don_toi_thieu > 0 ? 'Từ ' + formatPrice(p.don_toi_thieu) : 'Không giới hạn'}</td>
+                    <td>
+                        <span style="color:${(p.da_dung||0) >= (p.so_luong||0)*0.8 ? 'var(--warning)' : 'var(--success)'}; font-weight:600;">
+                            ${p.da_dung !== null && p.da_dung !== undefined ? p.da_dung : 0}
+                        </span>
+                        / ${p.so_luong !== null && p.so_luong !== undefined ? p.so_luong : '—'}
+                    </td>
+                    <td style="font-size:0.8rem;">${p.ngay_bat_dau.split('T')[0]}<br>đến ${p.ngay_ket_thuc.split('T')[0]}</td>
+                    <td><span class="status ${p.trang_thai==='active'?'status-active':'status-locked'}">${p.trang_thai==='active'?'Hoạt động':'Tắt'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline" onclick="editPromo(${p.id})" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="delPromo(${p.id})" title="Xóa" style="margin-left:4px;"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('')}</tbody></table></div>`;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('promo-list').innerHTML = '<p style="color:red;text-align:center;">Lỗi tải dữ liệu</p>';
+            }
+        }
+
+        function editPromo(id) {
+            const p = currentPromos.find(x => x.id === id);
+            if(!p) return;
+            document.getElementById('p-id').value = p.id;
+            document.getElementById('p-ten').value = p.ten_khuyen_mai;
+            document.getElementById('p-loai').value = p.loai;
+            document.getElementById('p-val').value = p.gia_tri;
+            document.getElementById('p-mota').value = p.mo_ta || '';
+            document.getElementById('p-soluong').value = p.so_luong || '';
+            document.getElementById('p-tthieu').value = p.don_toi_thieu || 0;
+            document.getElementById('p-start').value = p.ngay_bat_dau.split('T')[0];
+            document.getElementById('p-end').value = p.ngay_ket_thuc.split('T')[0];
+            updateValLabel();
+            
+            if (p.loai !== 'phan_tram' && p.gia_tri) document.getElementById('p-val-format').textContent = formatPrice(p.gia_tri);
+            if (p.don_toi_thieu) document.getElementById('p-tthieu-format').textContent = formatPrice(p.don_toi_thieu);
+
+            document.getElementById('promo-form').style.display='block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function savePromo(e) {
+            e.preventDefault();
+            const id = document.getElementById('p-id').value;
+            const data = {
+                ten_khuyen_mai: document.getElementById('p-ten').value.toUpperCase(),
+                loai: document.getElementById('p-loai').value,
+                gia_tri: document.getElementById('p-val').value,
+                mo_ta: document.getElementById('p-mota').value,
+                so_luong: parseInt(document.getElementById('p-soluong').value),
+                don_toi_thieu: parseFloat(document.getElementById('p-tthieu').value),
+                ngay_bat_dau: document.getElementById('p-start').value,
+                ngay_ket_thuc: document.getElementById('p-end').value
+            };
+            
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/admin/vouchers/${id}` : '/api/admin/vouchers';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if(result.success) {
+                    alert(id ? 'Cập nhật thành công!' : 'Tạo thành công!');
+                    document.getElementById('promo-form').style.display='none';
+                    loadPromos();
+                } else {
+                    alert(result.message);
+                }
+            } catch(err) {
+                console.error(err);
+                alert('Lỗi server');
+            }
+        }
+
+        async function delPromo(id) {
+            if(!confirm('Xóa khuyến mãi này?')) return;
+            try {
+                const res = await fetch(`/api/admin/vouchers/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const result = await res.json();
+                if(result.success) {
+                    alert('Đã xóa!');
+                    loadPromos();
+                } else {
+                    alert(result.message);
+                }
+            } catch(err) {
+                alert('Lỗi server');
+            }
+        }
+
+        function updateValLabel() {
+            const loai = document.getElementById('p-loai').value;
+            const label = document.getElementById('p-val-label');
+            const input = document.getElementById('p-val');
+            if (loai === 'phan_tram') {
+                label.textContent = 'Giá trị giảm (%)';
+                input.placeholder = 'VD: 10 (cho 10%)';
+                input.max = 100;
+                document.getElementById('p-val-format').textContent = '';
+            } else {
+                label.textContent = 'Giá trị giảm (VND)';
+                input.placeholder = 'VD: 20000 (cho 20.000đ)';
+                input.removeAttribute('max');
+                if(input.value) document.getElementById('p-val-format').textContent = formatPrice(input.value);
+            }
+        }
+
+        document.getElementById('p-val').addEventListener('input', function() {
+            const val = this.value;
+            const type = document.getElementById('p-loai').value;
+            if(val && type !== 'phan_tram') {
+                document.getElementById('p-val-format').textContent = formatPrice(val);
+            } else {
+                document.getElementById('p-val-format').textContent = '';
+            }
+        });
+
+        document.getElementById('p-tthieu').addEventListener('input', function() {
+            const val = this.value;
+            if(val) {
+                document.getElementById('p-tthieu-format').textContent = formatPrice(val);
+            } else {
+                document.getElementById('p-tthieu-format').textContent = '';
+            }
+        });
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+        }
+    </script>
+</body>
+</html>

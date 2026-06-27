@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết sản phẩm - Vipo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .variant-group-title {
+            font-size: 0.95rem; font-weight: 600; color: var(--dark-200);
+            margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+        }
+        .variant-group-title .selected-value {
+            color: var(--primary-light); font-weight: 700;
+        }
+        .variant-swatch {
+            min-width: 42px; height: 42px; 
+            border-radius: 8px; border: 2px solid var(--dark-600);
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative; display: inline-flex; align-items: center; justify-content: center;
+            background-color: var(--dark-800);
+            color: var(--dark-200); font-weight: 500; font-size: 0.9rem; padding: 0 16px;
+        }
+        .variant-swatch.is-color-code {
+            width: 42px; min-width: 42px; padding: 0; border-radius: 50%;
+        }
+        .variant-swatch:hover:not(.disabled) { 
+            transform: translateY(-2px);
+            border-color: var(--primary-light);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+            color: var(--primary-light);
+        }
+        .variant-swatch.selected {
+            border-color: var(--primary-light);
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary-light);
+        }
+        .variant-swatch.is-color-code.selected {
+            box-shadow: 0 0 0 4px var(--dark-900), 0 0 0 6px var(--primary-light);
+            border-color: transparent;
+        }
+        .variant-swatch.disabled { 
+            opacity: 0.4; cursor: not-allowed; 
+            background: var(--dark-800) !important;
+            color: var(--dark-500) !important;
+            border-style: dashed;
+        }
+        .variant-swatch.is-color-code.disabled::after {
+            content: ''; position: absolute; top: 50%; left: -20%; right: -20%;
+            height: 2px; background: var(--danger); transform: rotate(-45deg);
+        }
+        .size-btn {
+            min-width: 52px; height: 42px; padding: 0 16px; position: relative;
+            border: 2px solid var(--dark-600); border-radius: 8px; background: var(--dark-800);
+            color: var(--dark-200); cursor: pointer; font-weight: 600; font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .size-btn .price-add { font-size: 0.7rem; opacity: 0.8; font-weight: normal; margin-top: -2px; }
+        .size-btn:hover:not(.disabled) { 
+            border-color: var(--primary-light); color: var(--primary-light); 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+        .size-btn.selected { 
+            border-color: var(--primary-light); background: var(--primary-light); color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        .size-btn.disabled { 
+            opacity: 0.4; cursor: not-allowed; 
+            background: var(--dark-800);
+            border-style: dashed;
+            color: var(--dark-500);
+        }
+        .size-btn.disabled::after {
+            content: ''; position: absolute; width: calc(100% + 4px); height: 1.5px; background: currentColor; top: 50%; left: -2px; transform: rotate(-15deg);
+        }
+        .spec-table tr:nth-child(odd) { background: var(--dark-800); }
+        .spec-table td { padding: 10px 14px; }
+        .spec-table td:first-child { color: var(--dark-400); font-weight: 500; width: 40%; }
+        .spec-table td:last-child { color: var(--dark-100); font-weight: 600; }
+        .qty-btn { transition: all 0.2s; }
+        .qty-btn:hover:not(:disabled) { background: var(--primary-light); color: white; border-color: var(--primary-light); }
+    </style>
+</head>
+<body>
+    <nav class="shopee-navbar">
+        <div class="shopee-topbar">
+            <div class="navbar-container">
+                <div class="topbar-left"></div>
+                <div class="topbar-right">
+                    <div class="topbar-notifications">
+                        <a href="#" class="topbar-link" id="notifications-btn" onclick="toggleNotifications()">
+                            <i class="fas fa-bell"></i> Thông Báo
+                            <span class="notification-badge" id="notification-count" style="display: none;">0</span>
+                        </a>
+                        <div class="notifications-dropdown" id="notifications-dropdown">
+                            <div class="notifications-header">
+                                <h4>Thông báo</h4>
+                                <a href="/pages/profile.html#notifications" class="view-all-link">Xem tất cả</a>
+                            </div>
+                            <div class="notifications-list" id="navbar-notifications-list"></div>
+                        </div>
+                    </div>
+                    <a href="/pages/support.html" class="topbar-link"><i class="fas fa-question-circle"></i> Hỗ Trợ</a>
+                    <div class="topbar-user" id="topbar-user"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="shopee-main-nav">
+            <div class="navbar-container">
+                <a href="/" class="shopee-logo">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Vipo</span>
+                </a>
+                <div class="shopee-search">
+                    <div class="search-box" style="position:relative;">
+                        <input type="text" id="search-input" placeholder="Tìm sản phẩm, thương hiệu và tên shop" onkeypress="if(event.key==='Enter') searchProducts()" autocomplete="off">
+                        <button class="search-btn" onclick="searchProducts()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="shopee-actions">
+                    <a href="/pages/cart.html" class="cart-btn">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container" id="product-detail">
+        <div class="breadcrumb" style="margin-bottom:1.5rem;">
+            <a href="/">Trang chủ</a> / <a href="/pages/products.html">Sản phẩm</a> / <span id="bc-name"></span>
+        </div>
+
+        <div id="product-content" style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;">
+            <div><div class="skeleton" style="padding-top:100%;border-radius:16px;"></div></div>
+            <div><div class="skeleton" style="height:30px;margin-bottom:1rem;"></div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:2rem;">
+            <div class="glass-card" style="padding:2rem;display:none;" id="specs-card">
+                <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.2rem;border-bottom:1px solid var(--dark-700);padding-bottom:0.75rem;">
+                    <i class="fas fa-list-ul" style="color:var(--primary-light);margin-right:8px;"></i> Thông số kỹ thuật
+                </h3>
+                <table class="spec-table" id="specs-table" style="width:100%;font-size:0.9rem;border-collapse:collapse;border-radius:8px;overflow:hidden;"></table>
+            </div>
+            <div class="glass-card" style="padding:2rem;display:none;" id="desc-card">
+                <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:1.2rem;border-bottom:1px solid var(--dark-700);padding-bottom:0.75rem;">
+                    <i class="fas fa-file-alt" style="color:var(--primary-light);margin-right:8px;"></i> Mô tả chi tiết
+                </h3>
+                <div id="desc-content" style="font-size:0.95rem;color:var(--dark-200);line-height:1.8;margin:0;white-space:pre-line;"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:2rem;" id="reviews-section"></div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script>
+    const pid = new URLSearchParams(location.search).get('id');
+    let product = null;
+    let selectedColor = null;
+    let selectedSize = null;
+    let selectedVariant = null;
+
+    async function load() {
+        if (!pid) { location.href = '/pages/products.html'; return; }
+        const r = await api.get(`/products/${pid}`);
+        if (!r.success) { location.href = '/pages/products.html'; return; }
+        product = r.data;
+        document.title = product.ten_san_pham + ' - Vipo';
+        document.getElementById('bc-name').textContent = product.ten_san_pham;
+
+        renderProduct();
+        renderSpecs();
+        renderDescription();
+        loadReviews();
+    }
+
+    function renderProduct() {
+        const hd = product.gia_khuyen_mai && product.gia_khuyen_mai < product.gia;
+        const basePrice = hd ? parseFloat(product.gia_khuyen_mai) : parseFloat(product.gia);
+
+        const variantsHtml = renderVariantSelectors();
+        const initialVariant = product.variants && product.variants[0];
+        const initialStock = initialVariant ? initialVariant.so_luong_ton : product.so_luong_ton;
+        const initialPrice = basePrice + parseFloat(initialVariant?.gia_them || 0);
+
+        document.getElementById('product-content').innerHTML = `
+        <div>
+            <div class="glass" style="border-radius:20px;overflow:hidden;position:relative;" id="main-product-media">
+                ${hd ? `<div class="badge badge-sale" style="position:absolute;top:16px;left:16px;z-index:2;padding:6px 14px;font-size:0.85rem;">-${Math.round((1-product.gia_khuyen_mai/product.gia)*100)}%</div>` : ''}
+                ${product.video_url ? `<video src="${getProductImage(product.video_url)}" controls autoplay style="width:100%;display:block;"></video>` : `<img src="${getProductImage(product.hinh_anh)}" alt="${product.ten_san_pham}" style="width:100%;display:block;">`}
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;" id="image-gallery">
+                ${product.video_url ? `
+                    <div onclick="document.getElementById('main-product-media').innerHTML='<video src=\\'${getProductImage(product.video_url)}\\' controls autoplay style=\\'width:100%;display:block;\\'></video>'" style="width:64px;height:64px;border:1.5px solid var(--primary-light);border-radius:8px;overflow:hidden;cursor:pointer;padding:4px;background:white;position:relative;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-play" style="font-size:24px;color:var(--primary-light);"></i>
+                    </div>
+                ` : ''}
+                ${(function() {
+                    let imgs = [];
+                    if(product.hinh_anh) imgs.push(product.hinh_anh);
+                    if(product.hinh_anh_phu) {
+                        try {
+                            const hap = typeof product.hinh_anh_phu === 'string' ? JSON.parse(product.hinh_anh_phu) : product.hinh_anh_phu;
+                            if(Array.isArray(hap)) imgs = imgs.concat(hap);
+                        } catch(e) {}
+                    }
+                    return imgs.map(img => `
+                        <div onclick="document.getElementById('main-product-media').innerHTML='<img src=\\'${getProductImage(img)}\\' style=\\'width:100%;display:block;\\'>'" style="width:64px;height:64px;border:1.5px solid var(--dark-700);border-radius:8px;overflow:hidden;cursor:pointer;padding:4px;background:white;">
+                            <img src="${getProductImage(img)}" style="width:100%;height:100%;object-fit:contain;">
+                        </div>
+                    `).join('');
+                })()}
+            </div>
+        </div>
+        <div>
+            <div class="glass-card" style="padding:2rem;">
+                <div style="font-size:0.85rem;color:var(--primary-light);margin-bottom:8px;">${product.ten_danh_muc || 'Chưa phân loại'}</div>
+                <h1 style="font-size:1.6rem;font-weight:700;margin-bottom:0.5rem;">${product.ten_san_pham}</h1>
+                ${product.thuoc_tinh && product.thuoc_tinh['Thương hiệu'] ? `<div style="font-size:0.85rem;color:var(--dark-400);margin-bottom:1rem;">Thương hiệu: <strong>${product.thuoc_tinh['Thương hiệu']}</strong></div>` : ''}
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+                    <div class="rating" style="font-size:1rem;">${renderStars(product.diem_trung_binh, product.so_danh_gia)}</div>
+                    <span style="color:var(--dark-500);font-size:0.85rem;"><i class="fas fa-eye"></i> ${product.luot_xem} lượt xem</span>
+                </div>
+
+                <div id="price-box" style="padding:1.2rem;background:var(--dark-900);border-radius:12px;margin-bottom:1.5rem;">
+                    <span style="font-family:'Outfit';font-size:2rem;font-weight:800;color:var(--danger);" id="display-price">${formatPrice(initialPrice)}</span>
+                    ${hd ? `<span style="font-size:1rem;color:var(--dark-500);text-decoration:line-through;margin-left:12px;" id="display-old-price">${formatPrice(product.gia)}</span>` : ''}
+                </div>
+
+                ${variantsHtml}
+
+                <div id="stock-display" style="margin-bottom:1.5rem;font-size:0.9rem;padding:8px 12px;background:var(--dark-900);border-radius:8px;">
+                    <i class="fas fa-cubes"></i> Kho: <strong id="stock-qty" style="color:${initialStock > 0 ? 'var(--success)' : 'var(--danger)'}">${initialStock > 0 ? initialStock + ' sản phẩm' : 'Hết hàng'}</strong>
+                    ${initialVariant ? `<span style="color:var(--dark-500);"> · Đã chọn: <strong id="selected-variant-label" style="color:var(--primary-light);">${initialVariant.mau_sac}${initialVariant.kich_thuoc && initialVariant.kich_thuoc !== 'Mặc định' ? ' / ' + initialVariant.kich_thuoc : ''}</strong></span>` : ''}
+                </div>
+
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:1.5rem;">
+                    <span style="font-size:0.95rem;font-weight:500;color:var(--dark-300);">Số lượng:</span>
+                    <div style="display:flex;align-items:center;background:var(--dark-900);border:1px solid var(--dark-700);border-radius:24px;padding:4px;">
+                        <button class="qty-btn" onclick="chgQty(-1)" style="width:34px;height:34px;border-radius:50%;background:white;border:1px solid var(--dark-700);color:var(--dark-200);cursor:pointer;font-weight:bold;font-size:1.1rem;display:flex;align-items:center;justify-content:center;">-</button>
+                        <input type="number" id="qty" value="1" min="1" max="${initialStock}" style="width:50px;text-align:center;background:transparent;border:none;color:var(--dark-100);font-weight:700;font-size:1.1rem;outline:none;-moz-appearance:textfield;appearance:textfield;">
+                        <button class="qty-btn" onclick="chgQty(1)" style="width:34px;height:34px;border-radius:50%;background:white;border:1px solid var(--dark-700);color:var(--dark-200);cursor:pointer;font-weight:bold;font-size:1.1rem;display:flex;align-items:center;justify-content:center;">+</button>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                    <button class="btn btn-outline btn-lg" style="flex:1;min-width:140px;" onclick="addCart()" id="btn-add-cart" ${initialStock <= 0 ? 'disabled' : ''}>
+                        <i class="fas fa-cart-plus"></i> Thêm vào giỏ
+                    </button>
+                    <button class="btn btn-primary btn-lg" style="flex:2;min-width:140px;" onclick="buyNow()" id="btn-buy-now" ${initialStock <= 0 ? 'disabled' : ''}>
+                        <i class="fas fa-bolt"></i> Mua ngay
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shop Info Section -->
+            <div class="glass-card" style="padding:1.5rem;margin-top:1.5rem;display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+                <div style="width:64px;height:64px;border-radius:50%;overflow:hidden;background:white;border:1px solid var(--dark-700);flex-shrink:0;">
+                    <img src="${product.shop_logo ? getProductImage(product.shop_logo) : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(product.ten_gian_hang || 'Shop') + '&background=6366f1&color=fff'}" alt="Shop Logo" style="width:100%;height:100%;object-fit:cover;">
+                </div>
+                <div style="flex:1;min-width:200px;">
+                    <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:6px;">${product.ten_gian_hang || 'Gian hàng Vipo'}</h3>
+                    <div style="display:flex;gap:1rem;font-size:0.85rem;color:var(--dark-400);">
+                        <span><i class="fas fa-store" style="color:var(--primary-light);"></i> Gian hàng uy tín</span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;flex-shrink:0;">
+                    <button class="btn btn-outline" style="padding:8px 16px;font-size:0.85rem;" onclick="location.href='/pages/shop.html?id=${product.gian_hang_id}'">
+                        <i class="fas fa-store"></i> Xem Shop
+                    </button>
+                    <button class="btn btn-primary" style="padding:8px 16px;font-size:0.85rem;" onclick="location.href='/pages/chat.html?userId=${product.nguoi_ban_id}&shopName=${encodeURIComponent(product.ten_gian_hang || '')}'">
+                        <i class="fas fa-comment-dots"></i> Nhắn tin
+                    </button>
+                </div>
+            </div>
+        </div>`;
+
+        if (initialVariant) {
+            selectedColor = initialVariant.mau_sac;
+            selectedSize = initialVariant.kich_thuoc;
+            selectedVariant = initialVariant;
+        }
+    }
+
+    function renderVariantSelectors() {
+        if (!product.variants_grouped || product.variants_grouped.length === 0) {
+            return '';
+        }
+
+        const groups = product.variants_grouped;
+        const firstGroup = groups[0];
+        const allSameSize = firstGroup && firstGroup.kich_thuoc.every(s => s.ten === firstGroup.kich_thuoc[0].ten);
+        const showSize = firstGroup && firstGroup.kich_thuoc.length > 1;
+
+        const colorList = groups.map(g => ({
+            mau_sac: g.mau_sac,
+            ma_mau: g.ma_mau,
+            tong_ton: g.tong_ton
+        }));
+
+        let html = '';
+
+        if (groups.length > 0 && colorList.some(c => c.mau_sac && c.mau_sac !== 'Mặc định')) {
+            html += `
+            <div style="margin-bottom:1.5rem;">
+                <div class="variant-group-title">
+                    Màu sắc: <span id="color-label" class="selected-value">${firstGroup.mau_sac}</span>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;" id="color-list">
+                    ${colorList.map(c => {
+                        const hasColorCode = c.ma_mau && c.ma_mau !== 'Mặc định' && c.ma_mau.startsWith('#');
+                        return `
+                        <div class="variant-swatch ${hasColorCode ? 'is-color-code' : ''} ${c.mau_sac === firstGroup.mau_sac ? 'selected' : ''} ${c.tong_ton <= 0 ? 'disabled' : ''}"
+                             data-color="${c.mau_sac}"
+                             style="${hasColorCode ? `background:${c.ma_mau};${c.ma_mau === '#f8fafc' || c.ma_mau === '#eab308' || c.ma_mau === '#ffffff' ? 'border:2px solid var(--dark-500);' : ''}` : ''}"
+                             title="${c.mau_sac}${c.tong_ton <= 0 ? ' (Hết hàng)' : ''}"
+                             onclick="selectColor('${c.mau_sac}')">
+                             ${!hasColorCode ? c.mau_sac : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+        }
+
+        if (showSize) {
+            const sizes = firstGroup.kich_thuoc;
+            html += `
+            <div style="margin-bottom:1.5rem;">
+                <div class="variant-group-title">
+                    ${sizes[0].ten.match(/GB$/) ? 'Dung lượng' : 'Kích thước'}: <span id="size-label" class="selected-value">${sizes[0].ten}</span>
+                </div>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;" id="size-list">
+                    ${sizes.map(s => `
+                        <button type="button" class="size-btn ${s.ten === sizes[0].ten ? 'selected' : ''} ${s.so_luong_ton <= 0 ? 'disabled' : ''}"
+                                data-size="${s.ten}"
+                                data-id="${s.id}"
+                                data-stock="${s.so_luong_ton}"
+                                onclick="selectSize(${s.id}, '${s.ten}', ${s.so_luong_ton}, ${s.gia_them})">
+                            ${s.ten}${s.gia_them > 0 ? `<span class="price-add">(+${(s.gia_them/1000).toFixed(0)}k)</span>` : ''}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>`;
+        }
+
+        return html;
+    }
+
+    function selectColor(color) {
+        const swatch = document.querySelector(`.variant-swatch[data-color="${color}"]`);
+        if (!swatch || swatch.classList.contains('disabled')) return;
+
+        document.querySelectorAll('.variant-swatch').forEach(s => s.classList.remove('selected'));
+        swatch.classList.add('selected');
+        selectedColor = color;
+        document.getElementById('color-label').textContent = color;
+
+        const group = product.variants_grouped.find(g => g.mau_sac === color);
+        if (group) {
+            if (group.hinh_anh) {
+                document.getElementById('main-product-media').innerHTML = `<img src="${getProductImage(group.hinh_anh)}" style="width:100%;display:block;">`;
+            }
+
+            renderSizeList(group.kich_thuoc);
+            const firstAvailable = group.kich_thuoc.find(s => s.so_luong_ton > 0) || group.kich_thuoc[0];
+            if (firstAvailable) {
+                selectSize(firstAvailable.id, firstAvailable.ten, firstAvailable.so_luong_ton, firstAvailable.gia_them);
+            }
+        }
+    }
+
+    function renderSizeList(sizes) {
+        const container = document.getElementById('size-list');
+        if (!container) return;
+        container.innerHTML = sizes.map(s => `
+            <button type="button" class="size-btn ${s.so_luong_ton > 0 && sizes.indexOf(s) === 0 ? 'selected' : ''} ${s.so_luong_ton <= 0 ? 'disabled' : ''}"
+                    data-size="${s.ten}"
+                    data-id="${s.id}"
+                    data-stock="${s.so_luong_ton}"
+                    onclick="selectSize(${s.id}, '${s.ten}', ${s.so_luong_ton}, ${s.gia_them})">
+                ${s.ten}${s.gia_them > 0 ? `<span class="price-add">(+${(s.gia_them/1000).toFixed(0)}k)</span>` : ''}
+            </button>
+        `).join('');
+    }
+
+    function selectSize(id, ten, stock, giaThem) {
+        document.querySelectorAll('.size-btn').forEach(s => s.classList.remove('selected'));
+        const btn = document.querySelector(`.size-btn[data-size="${ten}"]`);
+        if (btn) btn.classList.add('selected');
+
+        selectedSize = ten;
+        selectedVariant = product.variants.find(v => v.id === id);
+
+        const sizeLabel = document.getElementById('size-label');
+        if (sizeLabel) sizeLabel.textContent = ten;
+
+        updatePriceAndStock(stock, giaThem);
+    }
+
+    function updatePriceAndStock(stock, giaThem) {
+        const hd = product.gia_khuyen_mai && product.gia_khuyen_mai < product.gia;
+        const basePrice = hd ? parseFloat(product.gia_khuyen_mai) : parseFloat(product.gia);
+        const finalPrice = basePrice + parseFloat(giaThem || 0);
+        const variantLabel = selectedColor && selectedSize && selectedSize !== 'Mặc định'
+            ? `${selectedColor} / ${selectedSize}`
+            : selectedColor || selectedSize;
+
+        document.getElementById('display-price').textContent = formatPrice(finalPrice);
+        const stockEl = document.getElementById('stock-qty');
+        if (stockEl) {
+            stockEl.textContent = stock > 0 ? `${stock} sản phẩm` : 'Hết hàng';
+            stockEl.style.color = stock > 0 ? 'var(--success)' : 'var(--danger)';
+        }
+        const stockBox = document.getElementById('stock-display');
+        const labelEl = document.getElementById('selected-variant-label');
+        if (labelEl) labelEl.textContent = variantLabel;
+        else if (stockBox && variantLabel) {
+            stockBox.innerHTML = `<i class="fas fa-cubes"></i> Kho: <strong id="stock-qty" style="color:${stock > 0 ? 'var(--success)' : 'var(--danger)'}">${stock > 0 ? stock + ' sản phẩm' : 'Hết hàng'}</strong> <span style="color:var(--dark-500);"> · Đã chọn: <strong style="color:var(--primary-light);">${variantLabel}</strong></span>`;
+        }
+        const qty = document.getElementById('qty');
+        if (qty) {
+            qty.max = stock;
+            if (parseInt(qty.value) > stock) qty.value = Math.max(1, stock);
+        }
+        const addBtn = document.getElementById('btn-add-cart');
+        const buyBtn = document.getElementById('btn-buy-now');
+        if (addBtn) addBtn.disabled = stock <= 0;
+        if (buyBtn) buyBtn.disabled = stock <= 0;
+    }
+    function chgQty(d) {
+        const i = document.getElementById('qty');
+        const max = parseInt(i.max) || 999;
+        let v = parseInt(i.value) || 1;
+        v += d;
+        i.value = Math.max(1, Math.min(v, max));
+    }
+
+    async function addCart() {
+        if (!isLoggedIn()) { showToast('Vui lòng đăng nhập', 'warning'); return; }
+        const body = { san_pham_id: pid, so_luong: parseInt(document.getElementById('qty').value) };
+        if (selectedVariant) body.bien_the_id = selectedVariant.id;
+        const r = await api.post('/cart', body);
+        if (r.success) { showToast('Đã thêm vào giỏ!'); updateNavbarCartCount(); }
+        else showToast(r.message, 'error');
+    }
+
+    async function buyNow() {
+        if (!isLoggedIn()) { showToast('Vui lòng đăng nhập', 'warning'); location.href = '/pages/login.html'; return; }
+        const qty = parseInt(document.getElementById('qty').value) || 1;
+        let url = `/pages/checkout.html?buy_now=${pid}&qty=${qty}`;
+        if (selectedVariant) url += `&variant=${selectedVariant.id}`;
+        location.href = url;
+    }
+
+    function renderSpecs() {
+        if (!product.thuoc_tinh || Object.keys(product.thuoc_tinh).length === 0) {
+            document.getElementById('specs-card').style.display = 'none';
+            return;
+        }
+        document.getElementById('specs-card').style.display = 'block';
+        const table = document.getElementById('specs-table');
+        table.innerHTML = Object.entries(product.thuoc_tinh).map(([k, v]) =>
+            `<tr><td>${k}</td><td>${v}</td></tr>`
+        ).join('');
+    }
+
+    function renderDescription() {
+        if (!product.mo_ta) {
+            document.getElementById('desc-card').style.display = 'none';
+            return;
+        }
+        document.getElementById('desc-card').style.display = 'block';
+        document.getElementById('desc-content').textContent = product.mo_ta;
+    }
+
+    async function loadReviews() {
+        const r = await api.get(`/reviews/product/${pid}`);
+        if (!r.success) return;
+        const { reviews, stats } = r.data;
+        const avg = parseFloat(stats.trung_binh || 0);
+        const total = parseInt(stats.tong || 0);
+        const counts = [stats.sao_5, stats.sao_4, stats.sao_3, stats.sao_2, stats.sao_1].map(n => parseInt(n || 0));
+        const barRows = counts.map((c, i) => {
+            const star = 5 - i;
+            const pct = total > 0 ? (c / total * 100) : 0;
+            return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <span style="width:54px;font-size:0.85rem;font-weight:600;color:var(--text-primary);">${star} <i class="fas fa-star" style="color:var(--warning);font-size:0.75rem;"></i></span>
+                <div style="flex:1;height:10px;background:var(--dark-700);border-radius:6px;overflow:hidden;">
+                    <div style="height:100%;width:${pct}%;background:var(--warning);"></div>
+                </div>
+                <span style="width:36px;text-align:right;font-size:0.85rem;color:var(--text-secondary);font-weight:600;">${c}</span>
+            </div>`;
+        }).join('');
+
+        document.getElementById('reviews-section').innerHTML = `
+        <div class="glass-card" style="padding:2rem;">
+            <h2 style="font-size:1.4rem;margin-bottom:1.5rem;color:var(--text-primary);"><i class="fas fa-star" style="color:var(--warning)"></i> Đánh giá sản phẩm <span style="color:var(--text-muted);font-weight:500;font-size:1rem;">(${total} lượt)</span></h2>
+            <div style="display:grid;grid-template-columns:200px 1fr;gap:2rem;align-items:center;margin-bottom:2rem;padding:1.25rem;background:var(--dark-800);border:1px solid var(--dark-700);border-radius:12px;">
+                <div style="text-align:center;">
+                    <div style="font-family:'Outfit';font-size:3rem;font-weight:800;color:var(--warning);line-height:1;">${avg.toFixed(1)}</div>
+                    <div class="rating" style="justify-content:center;margin-top:6px;">${renderStars(avg, total)}</div>
+                    <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:6px;font-weight:500;">trên 5 sao</div>
+                </div>
+                <div>${barRows}</div>
+            </div>
+            <div>${reviews.length > 0 ? reviews.map(rv => `
+                <div style="padding:1.25rem 0;border-top:1px solid var(--dark-700);">
+                    <div style="display:flex;gap:14px;">
+                        <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--dark-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--dark-600);">
+                            ${rv.avatar ? `<img src="${rv.avatar}" alt="${rv.ho_ten}" style="width:100%;height:100%;object-fit:cover;">` : `<i class="fas fa-user" style="font-size:1rem;color:var(--text-muted);"></i>`}
+                        </div>
+                        <div style="flex:1;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:6px;">
+                                <strong style="font-size:0.95rem;color:var(--text-primary);">${rv.ho_ten}</strong>
+                                <span style="font-size:0.8rem;color:var(--text-muted);font-weight:500;">${formatDate(rv.ngay_tao)}</span>
+                            </div>
+                            <div class="rating" style="font-size:0.85rem;margin-bottom:6px;">${renderStars(rv.so_sao, 0).replace(/<span>[^<]*<\/span>/, '')}</div>
+                            <p style="font-size:0.95rem;color:var(--text-secondary);line-height:1.6;margin:0;">${rv.binh_luan || '<em style="color:var(--text-muted);">Không có bình luận</em>'}</p>
+                        </div>
+                    </div>
+                    ${rv.phan_hoi ? `
+                    <div style="margin-left:58px;margin-top:10px;background:rgba(99,102,241,0.06);border-left:3px solid var(--primary-light);border-radius:0 10px 10px 0;padding:10px 14px;">
+                        <div style="font-size:0.78rem;color:var(--primary-light);font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:4px;">
+                            <i class="fas fa-store" style="font-size:0.7rem;"></i> Phản hồi từ Shop ${rv.ten_nguoi_phan_hoi ? `<span style="font-weight:400;color:var(--text-muted);">(${rv.ten_nguoi_phan_hoi})</span>` : ''}
+                            ${rv.ngay_phan_hoi ? `<span style="font-weight:400;color:var(--text-muted);margin-left:4px;">${formatDate(rv.ngay_phan_hoi)}</span>` : ''}
+                        </div>
+                        <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.5;margin:0;">${rv.phan_hoi}</p>
+                    </div>` : ''}
+                </div>`).join('') : '<p style="text-align:center;color:var(--text-muted);padding:2rem;font-weight:500;"><i class="far fa-comment-dots" style="font-size:2rem;display:block;margin-bottom:10px;color:var(--dark-600);"></i>Sản phẩm chưa có đánh giá nào</p>'}</div>
+        </div>`;
+    }
+
+    load();
+    </script>
+    <script src="/js/seller-registration.js"></script>
+    <script src="/js/shopee-nav.js"></script>
+</body>
+</html>
