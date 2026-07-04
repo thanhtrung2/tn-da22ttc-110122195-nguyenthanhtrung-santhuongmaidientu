@@ -310,21 +310,37 @@ POST /api/orders/:id/cancel         # Hủy đơn hàng
 
 ## 🎯 HƯỚNG DẪN CHẠY WEB
 
-### Cách 1: Chạy từ thư mục gốc
-```bash
-npm run setup    # Cài đặt dependencies (lần đầu)
-npm start        # Chạy web
-```
+### Cách 1: Chạy tự động bằng Docker (KHUYÊN DÙNG NHẤT) 🐳
 
-### Cách 2: Chạy từ thư mục backend
+Hệ thống đã được đóng gói hoàn chỉnh bằng Docker, bạn không cần tự cài đặt Node.js hay MySQL. Chỉ cần 1 lệnh duy nhất!
+
+1. Đảm bảo đã bật **Docker Desktop**.
+2. Mở Terminal tại thư mục gốc dự án (`KHOALUANTN2026`) và gõ:
+```bash
+docker-compose up -d --build
+```
+3. Chờ báo `✔ Built` và `✔ Started` là xong! Truy cập ngay:
+- 🌍 **Trang Khách hàng (Vipo):** [http://localhost:3000](http://localhost:3000)
+- 🏪 **Trang Người Bán (Seller Dashboard):** [http://localhost:5173](http://localhost:5173)
+- 🗄️ **Cơ sở dữ liệu MySQL:** kết nối qua host `127.0.0.1`, cổng `3307`, user `root`, pass `02032004`.
+
+*(Lệnh để tắt toàn bộ web: `docker-compose down`)*
+
+---
+
+### Cách 2: Chạy thủ công (Không dùng Docker)
+
+**1. Khởi động Backend & Website khách hàng:**
 ```bash
 cd backend
 npm install
-npm start
+npm run dev
 ```
 
-### Cách 3: Chạy với nodemon (tự động restart)
+**2. Khởi động Seller Dashboard:**
 ```bash
+cd seller-dashboard
+npm install
 npm run dev
 ```
 
