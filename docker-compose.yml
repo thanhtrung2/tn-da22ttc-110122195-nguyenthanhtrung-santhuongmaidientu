@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0-oracle
+    container_name: kltn2026_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 02032004
+      MYSQL_DATABASE: kltn2026
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Map init scripts so they run alphabetically when the db is first created
+      - ./src/backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./src/backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    command: --default-authentication-plugin=mysql_native_password
+
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: kltn2026_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=02032004
+      - DB_NAME=kltn2026
+      # Variables from .env will be overridden by these
+    volumes:
+      - ./src/backend:/app/backend
+      - ./src/frontend:/app/frontend
+      - /app/backend/node_modules # Anonymous volume to prevent local node_modules from overriding container's
+    depends_on:
+      - mysql
+
+  seller-dashboard:
+    build:
+      context: ./src/seller-dashboard
+      dockerfile: Dockerfile
+    container_name: kltn2026_seller_dashboard
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src/seller-dashboard:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Helps hot-reloading work correctly in Docker for Windows/Mac
+
+volumes:
+  mysql_data:
