@@ -850,6 +850,9 @@ const testModeration = async (req, res) => {
 
 const adminGetVouchers = async (req, res) => {
     try {
+        // Tự động vô hiệu hóa các voucher đã hết hạn
+        await pool.query("UPDATE khuyen_mai SET trang_thai = 'inactive' WHERE DATE(ngay_ket_thuc) < CURDATE() AND trang_thai = 'active'");
+        
         const [rows] = await pool.query(
             `SELECT * FROM khuyen_mai WHERE gian_hang_id IS NULL ORDER BY ngay_tao DESC`
         );
@@ -862,15 +865,30 @@ const adminGetVouchers = async (req, res) => {
 
 const adminCreateVoucher = async (req, res) => {
     try {
+        // Fix database schema dynamically if not already applied
+        const alterQueries = [
+            'ALTER TABLE khuyen_mai MODIFY gian_hang_id INT NULL',
+            "ALTER TABLE khuyen_mai MODIFY loai ENUM('phan_tram', 'co_dinh', 'mien_phi_van_chuyen') NOT NULL",
+            'ALTER TABLE khuyen_mai ADD COLUMN so_luong INT DEFAULT 100',
+            'ALTER TABLE khuyen_mai ADD COLUMN da_dung INT DEFAULT 0',
+            'ALTER TABLE khuyen_mai ADD COLUMN don_toi_thieu DECIMAL(15,2) DEFAULT 0'
+        ];
+        for (let q of alterQueries) {
+            try { await pool.query(q); } catch (e) { }
+        }
+
         const { ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, so_luong, don_toi_thieu } = req.body;
+        const finalSoLuong = so_luong !== undefined && so_luong !== '' && !isNaN(so_luong) ? so_luong : 100;
+        const finalDonToiThieu = don_toi_thieu !== undefined && don_toi_thieu !== '' && !isNaN(don_toi_thieu) ? don_toi_thieu : 0;
+        
         const [result] = await pool.query(
-            'INSERT INTO khuyen_mai (gian_hang_id, ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, so_luong, don_toi_thieu) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, so_luong !== undefined && so_luong !== '' && !isNaN(so_luong) ? so_luong : 100, don_toi_thieu !== undefined && don_toi_thieu !== '' && !isNaN(don_toi_thieu) ? don_toi_thieu : 0]
+            'INSERT INTO khuyen_mai (gian_hang_id, ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, so_luong, don_toi_thieu, trang_thai, da_dung) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
+            [ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, finalSoLuong, finalDonToiThieu, 'active']
         );
         res.status(201).json({ success: true, message: 'Tạo Global Voucher thành công', data: { id: result.insertId } });
     } catch (error) {
         console.error('adminCreateVoucher error:', error);
-        res.status(500).json({ success: false, message: 'Lỗi server' });
+        res.status(500).json({ success: false, message: 'Lỗi server: ' + error.message });
     }
 };
 
@@ -888,12 +906,27 @@ const adminUpdateVoucher = async (req, res) => {
     try {
         const { ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, so_luong, don_toi_thieu } = req.body;
         await pool.query(
-            'UPDATE khuyen_mai SET ten_khuyen_mai = ?, mo_ta = ?, loai = ?, gia_tri = ?, ngay_bat_dau = ?, ngay_ket_thuc = ?, so_luong = ?, don_toi_thieu = ? WHERE id = ? AND gian_hang_id IS NULL',
+            "UPDATE khuyen_mai SET ten_khuyen_mai = ?, mo_ta = ?, loai = ?, gia_tri = ?, ngay_bat_dau = ?, ngay_ket_thuc = ?, so_luong = ?, don_toi_thieu = ?, trang_thai = 'active' WHERE id = ? AND gian_hang_id IS NULL",
             [ten_khuyen_mai, mo_ta, loai, gia_tri, ngay_bat_dau, ngay_ket_thuc, so_luong !== undefined && so_luong !== '' && !isNaN(so_luong) ? so_luong : 100, don_toi_thieu !== undefined && don_toi_thieu !== '' && !isNaN(don_toi_thieu) ? don_toi_thieu : 0, req.params.id]
         );
         res.json({ success: true, message: 'Cập nhật Global Voucher thành công' });
     } catch (error) {
         console.error('adminUpdateVoucher error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+};
+
+const adminToggleVoucher = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.query('SELECT trang_thai FROM khuyen_mai WHERE id = ? AND gian_hang_id IS NULL', [id]);
+        if (rows.length === 0) return res.status(404).json({ success: false, message: 'Voucher không tồn tại' });
+        
+        const newStatus = rows[0].trang_thai === 'active' ? 'inactive' : 'active';
+        await pool.query('UPDATE khuyen_mai SET trang_thai = ? WHERE id = ?', [newStatus, id]);
+        res.json({ success: true, message: `Đã ${newStatus === 'active' ? 'bật' : 'tắt'} voucher thành công`, newStatus });
+    } catch (error) {
+        console.error('adminToggleVoucher error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server' });
     }
 };
@@ -910,5 +943,5 @@ module.exports = {
     getPendingProducts, approveProduct,
     getTrainingData, addTrainingSample, deleteTrainingSample,
     trainModerationModel, testModeration,
-    adminGetVouchers, adminCreateVoucher, adminDeleteVoucher, adminUpdateVoucher
+    adminGetVouchers, adminCreateVoucher, adminDeleteVoucher, adminUpdateVoucher, adminToggleVoucher
 };

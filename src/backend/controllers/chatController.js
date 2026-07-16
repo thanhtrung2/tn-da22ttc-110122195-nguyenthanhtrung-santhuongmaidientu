@@ -6,7 +6,7 @@ const getConversations = async (req, res) => {
         const [rows] = await pool.query(
             `SELECT DISTINCT 
                 CASE WHEN tn.nguoi_gui_id = ? THEN tn.nguoi_nhan_id ELSE tn.nguoi_gui_id END as user_id,
-                nd.ho_ten, nd.avatar, nd.vai_tro,
+                COALESCE(gh.ten_gian_hang, nd.ho_ten) as ho_ten, nd.avatar, nd.vai_tro,
                 (SELECT noi_dung FROM tin_nhan WHERE 
                     (nguoi_gui_id = ? AND nguoi_nhan_id = nd.id) OR 
                     (nguoi_gui_id = nd.id AND nguoi_nhan_id = ?) 
@@ -18,6 +18,7 @@ const getConversations = async (req, res) => {
                 (SELECT COUNT(*) FROM tin_nhan WHERE nguoi_gui_id = nd.id AND nguoi_nhan_id = ? AND da_doc = FALSE) as unread
             FROM tin_nhan tn
             JOIN nguoi_dung nd ON (CASE WHEN tn.nguoi_gui_id = ? THEN tn.nguoi_nhan_id ELSE tn.nguoi_gui_id END) = nd.id
+            LEFT JOIN gian_hang gh ON nd.id = gh.nguoi_ban_id AND nd.vai_tro = 'seller'
             WHERE tn.nguoi_gui_id = ? OR tn.nguoi_nhan_id = ?
             ORDER BY last_time DESC`,
             [req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id, req.user.id]
@@ -41,9 +42,10 @@ const getMessages = async (req, res) => {
         );
 
         const [rows] = await pool.query(
-            `SELECT tn.*, ng.ho_ten as ten_nguoi_gui, ng.avatar as avatar_nguoi_gui
+            `SELECT tn.*, COALESCE(gh.ten_gian_hang, ng.ho_ten) as ten_nguoi_gui, ng.avatar as avatar_nguoi_gui
             FROM tin_nhan tn
             JOIN nguoi_dung ng ON tn.nguoi_gui_id = ng.id
+            LEFT JOIN gian_hang gh ON ng.id = gh.nguoi_ban_id AND ng.vai_tro = 'seller'
             WHERE (tn.nguoi_gui_id = ? AND tn.nguoi_nhan_id = ?) OR (tn.nguoi_gui_id = ? AND tn.nguoi_nhan_id = ?)
             ORDER BY tn.ngay_tao ASC LIMIT 100`,
             [req.user.id, otherUserId, otherUserId, req.user.id]

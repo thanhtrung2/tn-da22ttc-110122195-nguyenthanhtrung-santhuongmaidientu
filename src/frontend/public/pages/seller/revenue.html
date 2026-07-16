@@ -64,27 +64,60 @@
                         <p class="text-gray-500 dark:text-gray-400 text-sm">Cập nhật dữ liệu bán hàng mới nhất của bạn</p>
                     </div>
                     
-                    <div id="revenue-controls" class="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-                        <div class="flex gap-2" id="rev-quick">
-                            <button type="button" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rev-quick-btn" data-range="today">Hôm nay</button>
-                            <button type="button" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rev-quick-btn" data-range="week">7 ngày</button>
-                            <button type="button" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rev-quick-btn" data-range="month">30 ngày</button>
-                            <button type="button" class="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rev-quick-btn" data-range="year">1 năm</button>
+                    <div id="revenue-controls" class="flex flex-wrap items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                        <!-- Mode tabs: Ngày / Tháng / Năm -->
+                        <div class="flex gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg" id="rev-mode-tabs">
+                            <button type="button" class="rev-mode-btn px-3 py-1 text-xs font-semibold rounded-md transition-all bg-white dark:bg-gray-600 text-blue-600 shadow-sm" data-mode="day">📅 Ngày</button>
+                            <button type="button" class="rev-mode-btn px-3 py-1 text-xs font-semibold rounded-md transition-all text-gray-500 hover:text-gray-700" data-mode="month">📆 Tháng</button>
+                            <button type="button" class="rev-mode-btn px-3 py-1 text-xs font-semibold rounded-md transition-all text-gray-500 hover:text-gray-700" data-mode="year">🗓️ Năm</button>
                         </div>
-                        <div class="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-3">
-                            <input type="date" id="rev-from" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg px-2 py-1.5 outline-none">
-                            <span class="text-gray-400">-</span>
-                            <input type="date" id="rev-to" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg px-2 py-1.5 outline-none">
-                            <select id="rev-group" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-sm rounded-lg px-2 py-1.5 outline-none hidden">
-                                <option value="day">Ngày</option>
-                                <option value="week">Tuần</option>
-                                <option value="month" selected>Tháng</option>
-                                <option value="year">Năm</option>
+
+                        <div class="w-px h-6 bg-gray-200 dark:bg-gray-600 hidden sm:block"></div>
+
+                        <!-- Quick range buttons (hiện khi ở chế độ Ngày) -->
+                        <div class="flex gap-1" id="rev-quick">
+                            <button type="button" class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 rev-quick-btn" data-range="today">Hôm nay</button>
+                            <button type="button" class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 rev-quick-btn" data-range="week">7 ngày</button>
+                            <button type="button" class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 rev-quick-btn" data-range="month">30 ngày</button>
+                            <button type="button" class="px-2.5 py-1 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 rev-quick-btn" data-range="year">1 năm</button>
+                        </div>
+
+                        <!-- Picker nhóm: From-To (chế độ Ngày) -->
+                        <div class="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-2" id="picker-day">
+                            <input type="date" id="rev-from" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs rounded-lg px-2 py-1.5 outline-none focus:border-blue-400">
+                            <span class="text-gray-400 text-xs">→</span>
+                            <input type="date" id="rev-to" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs rounded-lg px-2 py-1.5 outline-none focus:border-blue-400">
+                        </div>
+
+                        <!-- Picker chế độ Tháng: chọn tháng + năm -->
+                        <div class="items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-2 hidden" id="picker-month">
+                            <label class="text-xs text-gray-500 font-medium">Tháng:</label>
+                            <select id="rev-month-month" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs rounded-lg px-2 py-1.5 outline-none">
+                                <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+                                <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+                                <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+                                <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
                             </select>
-                            <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1" onclick="fetchRevenueRange()">
-                                <i class="fas fa-filter"></i> Lọc
-                            </button>
+                            <select id="rev-month-year" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs rounded-lg px-2 py-1.5 outline-none"></select>
                         </div>
+
+                        <!-- Picker chế độ Năm: chọn năm -->
+                        <div class="items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-2 hidden" id="picker-year">
+                            <label class="text-xs text-gray-500 font-medium">Năm:</label>
+                            <select id="rev-year-year" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs rounded-lg px-2 py-1.5 outline-none"></select>
+                        </div>
+
+                        <!-- Nút lọc -->
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all" onclick="fetchRevenueRange()">
+                            <i class="fas fa-filter"></i> Lọc
+                        </button>
+
+                        <select id="rev-group" class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs rounded-lg px-2 py-1.5 outline-none hidden">
+                            <option value="day">Ngày</option>
+                            <option value="week">Tuần</option>
+                            <option value="month" selected>Tháng</option>
+                            <option value="year">Năm</option>
+                        </select>
                     </div>
                 </div>
 
@@ -96,7 +129,10 @@
                 <!-- Charts Row 1 -->
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
                     <div class="glass-card p-5 xl:col-span-2">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Biểu đồ Doanh thu & Đơn hàng</h3>
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Biểu đồ Doanh thu & Đơn hàng</h3>
+                            <span id="rev-period-label" class="text-xs font-semibold bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-full"></span>
+                        </div>
                         <div class="chart-container" style="height: 350px;">
                             <canvas id="revenueLineChart"></canvas>
                         </div>
@@ -384,9 +420,60 @@
 
     load();
 
-    // Quick-range buttons logic
+    // ─── Utility ───────────────────────────────────────────
     function pad(n){ return n<10 ? '0'+n : ''+n; }
     function toISO(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+
+    // ─── Populate year dropdowns ────────────────────────────
+    (function initYearDropdowns() {
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth() + 1;
+        ['rev-month-year', 'rev-year-year'].forEach(id => {
+            const sel = document.getElementById(id);
+            for (let y = curYear; y >= curYear - 5; y--) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.textContent = 'Năm ' + y;
+                sel.appendChild(opt);
+            }
+        });
+        // Set default month
+        document.getElementById('rev-month-month').value = curMonth;
+    })();
+
+    // ─── Mode switching ─────────────────────────────────────
+    let currentMode = 'day';
+    function switchMode(mode) {
+        currentMode = mode;
+        // Update tab styles
+        document.querySelectorAll('.rev-mode-btn').forEach(btn => {
+            const isActive = btn.dataset.mode === mode;
+            btn.classList.toggle('bg-white', isActive);
+            btn.classList.toggle('dark:bg-gray-600', isActive);
+            btn.classList.toggle('text-blue-600', isActive);
+            btn.classList.toggle('shadow-sm', isActive);
+            btn.classList.toggle('text-gray-500', !isActive);
+        });
+        // Show/hide pickers and quick buttons
+        const pickerDay   = document.getElementById('picker-day');
+        const pickerMonth = document.getElementById('picker-month');
+        const pickerYear  = document.getElementById('picker-year');
+        const quickBtns   = document.getElementById('rev-quick');
+        pickerDay.classList.toggle('flex', mode === 'day');
+        pickerDay.classList.toggle('hidden', mode !== 'day');
+        pickerMonth.classList.toggle('flex', mode === 'month');
+        pickerMonth.classList.toggle('hidden', mode !== 'month');
+        pickerYear.classList.toggle('flex', mode === 'year');
+        pickerYear.classList.toggle('hidden', mode !== 'year');
+        quickBtns.style.display = mode === 'day' ? '' : 'none';
+        // Auto fetch when switching mode
+        fetchRevenueRange();
+    }
+    document.querySelectorAll('.rev-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+    });
+
+    // ─── Quick range buttons (day mode only) ───────────────
     function applyQuickRange(range) {
         const today = new Date();
         let from, to = new Date(today);
@@ -419,14 +506,45 @@
     });
 
     async function fetchRevenueRange() {
-        const from = document.getElementById('rev-from').value;
-        const to = document.getElementById('rev-to').value;
-        const group = document.getElementById('rev-group').value;
+        let from, to, group;
+
+        if (currentMode === 'day') {
+            from = document.getElementById('rev-from').value;
+            to   = document.getElementById('rev-to').value;
+            group = document.getElementById('rev-group').value || 'day';
+        } else if (currentMode === 'month') {
+            const m = parseInt(document.getElementById('rev-month-month').value);
+            const y = parseInt(document.getElementById('rev-month-year').value);
+            const lastDay = new Date(y, m, 0).getDate();
+            from  = `${y}-${pad(m)}-01`;
+            to    = `${y}-${pad(m)}-${pad(lastDay)}`;
+            group = 'day';
+        } else if (currentMode === 'year') {
+            const y = parseInt(document.getElementById('rev-year-year').value);
+            from  = `${y}-01-01`;
+            to    = `${y}-12-31`;
+            group = 'month';
+        }
+
         const q = [];
         if (from) q.push(`from=${from}`);
-        if (to) q.push(`to=${to}`);
+        if (to)   q.push(`to=${to}`);
         if (group) q.push(`groupBy=${group}`);
-        const qs = q.length?`?${q.join('&')}`:'';
+        const qs = q.length ? `?${q.join('&')}` : '';
+
+        // Update period label
+        const labelEl = document.getElementById('rev-period-label');
+        if (labelEl) {
+            if (currentMode === 'month') {
+                const m = document.getElementById('rev-month-month').value;
+                const y = document.getElementById('rev-month-year').value;
+                labelEl.textContent = `Tháng ${m}/${y}`;
+            } else if (currentMode === 'year') {
+                labelEl.textContent = `Năm ${document.getElementById('rev-year-year').value}`;
+            } else {
+                labelEl.textContent = from && to ? `${from} → ${to}` : '';
+            }
+        }
         
         const r = await api.get(`/admin/seller-revenue${qs}`);
         if(!r.success) return;

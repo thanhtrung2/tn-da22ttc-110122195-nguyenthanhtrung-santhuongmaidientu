@@ -40,7 +40,11 @@ const initSocket = (io) => {
                 );
 
                 // Get sender info
-                const [sender] = await pool.query('SELECT ho_ten, avatar FROM nguoi_dung WHERE id = ?', [socket.userId]);
+                const [sender] = await pool.query(`
+                    SELECT nd.ho_ten, nd.avatar, gh.ten_gian_hang 
+                    FROM nguoi_dung nd 
+                    LEFT JOIN gian_hang gh ON nd.id = gh.nguoi_ban_id AND nd.vai_tro = 'seller'
+                    WHERE nd.id = ?`, [socket.userId]);
 
                 const message = {
                     id: result.insertId,
@@ -49,7 +53,7 @@ const initSocket = (io) => {
                     noi_dung,
                     da_doc: false,
                     ngay_tao: new Date(),
-                    ten_nguoi_gui: sender[0].ho_ten,
+                    ten_nguoi_gui: sender[0].ten_gian_hang || sender[0].ho_ten,
                     avatar_nguoi_gui: sender[0].avatar
                 };
 

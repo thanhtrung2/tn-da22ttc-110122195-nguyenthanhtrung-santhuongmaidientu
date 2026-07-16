@@ -150,7 +150,7 @@
                         / ${p.so_luong !== null && p.so_luong !== undefined ? p.so_luong : '—'}
                     </td>
                     <td style="font-size:0.8rem;">${p.ngay_bat_dau.split('T')[0]}<br>đến ${p.ngay_ket_thuc.split('T')[0]}</td>
-                    <td><span class="status ${p.trang_thai==='active'?'status-active':'status-locked'}">${p.trang_thai==='active'?'Hoạt động':'Tắt'}</span></td>
+                    <td><span onclick="togglePromoStatus(${p.id})" class="status ${p.trang_thai==='active'?'status-active':'status-locked'}" style="cursor:pointer; display:inline-block; padding: 4px 10px; border-radius: 4px; transition: 0.3s;" title="Nhấn để Bật/Tắt">${p.trang_thai==='active'?'Hoạt động':'Tắt'}</span></td>
                     <td>
                         <button class="btn btn-sm btn-outline" onclick="editPromo(${p.id})" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-danger" onclick="delPromo(${p.id})" title="Xóa" style="margin-left:4px;"><i class="fas fa-trash"></i></button>
@@ -224,21 +224,37 @@
         }
 
         async function delPromo(id) {
-            if(!confirm('Xóa khuyến mãi này?')) return;
+            if(!confirm('Bạn chắc chắn muốn xóa voucher này?')) return;
             try {
-                const res = await fetch(`/api/admin/vouchers/${id}`, {
+                const res = await fetch('/api/admin/vouchers/'+id, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
-                const result = await res.json();
-                if(result.success) {
-                    alert('Đã xóa!');
+                const data = await res.json();
+                if(data.success) loadPromos();
+                else alert(data.message);
+            } catch (err) {
+                console.error(err);
+                alert('Lỗi khi xóa');
+            }
+        }
+
+        async function togglePromoStatus(id) {
+            if(!confirm('Bạn muốn thay đổi trạng thái hoạt động của voucher này?')) return;
+            try {
+                const res = await fetch(`/api/admin/vouchers/${id}/toggle`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                const data = await res.json();
+                if(data.success) {
                     loadPromos();
                 } else {
-                    alert(result.message);
+                    alert(data.message || 'Lỗi hệ thống');
                 }
-            } catch(err) {
-                alert('Lỗi server');
+            } catch (err) {
+                console.error(err);
+                alert('Lỗi kết nối');
             }
         }
 

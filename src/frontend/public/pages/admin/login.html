@@ -187,9 +187,6 @@
         </div>
     </div>
 
-    <!-- Toast notification container -->
-    <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
-
     <script src="/js/api.js"></script>
     <script>
         // Redirect if already logged in as admin
@@ -208,38 +205,6 @@
                 passwordInput.type = 'password';
                 toggleIcon.className = 'fas fa-eye';
             }
-        }
-
-        // Simple toast function
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const colors = {
-                success: '#10b981',
-                error: '#ef4444',
-                warning: '#f59e0b',
-                info: '#6366f1'
-            };
-            
-            toast.style.cssText = `
-                background: ${colors[type] || colors.info};
-                color: white;
-                padding: 12px 20px;
-                border-radius: 8px;
-                margin-bottom: 10px;
-                font-size: 0.9rem;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                animation: slideIn 0.3s ease;
-            `;
-            
-            toast.textContent = message;
-            container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => container.removeChild(toast), 300);
-            }, 3000);
         }
 
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
@@ -278,8 +243,16 @@
                     localStorage.setItem('token', result.data.token);
                     localStorage.setItem('user', JSON.stringify(result.data.user));
                     
+                    // Xử lý ghi nhớ đăng nhập
                     if (remember) {
-                        localStorage.setItem('remember_admin', 'true');
+                        localStorage.setItem('admin_remember_email', email);
+                        // Lưu mật khẩu mã hóa base64 đơn giản
+                        localStorage.setItem('admin_remember_pw', btoa(unescape(encodeURIComponent(password))));
+                        localStorage.setItem('admin_remember', 'true');
+                    } else {
+                        localStorage.removeItem('admin_remember_email');
+                        localStorage.removeItem('admin_remember_pw');
+                        localStorage.removeItem('admin_remember');
                     }
 
                     showToast('Đăng nhập admin thành công!', 'success');
@@ -301,10 +274,21 @@
             loginBtn.disabled = false;
         });
 
-        // Auto fill if remembered
-        if (localStorage.getItem('remember_admin')) {
-            document.getElementById('remember').checked = true;
-        }
+        // Tự điền thông tin nếu đã ghi nhớ
+        (function autoFillRemembered() {
+            const remembered = localStorage.getItem('admin_remember');
+            const savedEmail = localStorage.getItem('admin_remember_email');
+            const savedPw = localStorage.getItem('admin_remember_pw');
+            if (remembered && savedEmail) {
+                document.getElementById('email').value = savedEmail;
+                document.getElementById('remember').checked = true;
+                if (savedPw) {
+                    try {
+                        document.getElementById('password').value = decodeURIComponent(escape(atob(savedPw)));
+                    } catch(e) {}
+                }
+            }
+        })();
 
         // Add CSS animations
         const style = document.createElement('style');

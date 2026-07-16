@@ -219,7 +219,7 @@ function renderCard(c) {
                 <p class="text-sm text-gray-500 mt-1">Đơn #${c.don_hang_id} &bull; ${formatDate(c.ngay_tao)}</p>
             </div>
             <div class="flex gap-2 flex-wrap">
-                <a href="/pages/chat.html?user=${c.khach_id}" class="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
+                <a href="/pages/seller/chat.html?userId=${c.khach_id}&name=${encodeURIComponent(c.ten_khach)}" class="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
                     <i class="fas fa-comments"></i> Chat với khách
                 </a>
                 <button onclick="openDetail(${c.id})" class="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
@@ -285,7 +285,7 @@ async function openDetail(id) {
         ${c.phan_hoi_admin ? `<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-sm border border-purple-200 dark:border-purple-700"><p class="font-semibold text-purple-700 dark:text-purple-300 mb-1"><i class="fas fa-shield-alt mr-1"></i>Quyết định Admin:</p><p>${c.phan_hoi_admin}</p>${c.quyet_dinh_admin==='cuong_che_hoan_tien'?'<p class="text-green-600 font-semibold mt-1">✅ Đã cưỡng chế hoàn tiền</p>':''}</div>` : ''}
         <div class="flex flex-wrap gap-3 pt-2">
             ${canRespond ? `<button onclick="closeModal();openRespondModal(${c.id})" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-sm transition-colors"><i class="fas fa-paper-plane mr-2"></i>Đề xuất giải pháp</button>` : ''}
-            <a href="/pages/chat.html?user=${c.nguoi_gui_id}" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-medium transition-colors">
+            <a href="/pages/seller/chat.html?userId=${c.nguoi_gui_id}&name=${encodeURIComponent(c.ten_khach)}" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-medium transition-colors">
                 <i class="fas fa-comments"></i> Chat với khách
             </a>
         </div>

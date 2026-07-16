@@ -41,7 +41,7 @@ const getShopPromotions = async (req, res) => {
             `SELECT * FROM khuyen_mai 
              WHERE gian_hang_id = ? AND trang_thai = 'active'
              AND DATE(ngay_bat_dau) <= CURDATE() AND DATE(ngay_ket_thuc) >= CURDATE()
-             AND da_dung < so_luong
+             AND COALESCE(da_dung, 0) < COALESCE(so_luong, 100)
              ORDER BY ngay_tao DESC`, 
              [shopId]
         );
@@ -61,7 +61,7 @@ const savePromotion = async (req, res) => {
             `SELECT * FROM khuyen_mai 
              WHERE id = ? AND trang_thai = 'active'
              AND CURDATE() >= ngay_bat_dau AND CURDATE() <= ngay_ket_thuc
-             AND da_dung < so_luong`,
+             AND COALESCE(da_dung, 0) < COALESCE(so_luong, 100)`,
             [id]
         );
 
@@ -108,6 +108,9 @@ const getMyWalletPromotions = async (req, res) => {
 
 const getHomePromotions = async (req, res) => {
     try {
+        // Tự động vô hiệu hóa các voucher đã hết hạn toàn hệ thống
+        await pool.query("UPDATE khuyen_mai SET trang_thai = 'inactive' WHERE DATE(ngay_ket_thuc) < CURDATE() AND trang_thai = 'active'");
+        
         const [rows] = await pool.query(
             `SELECT km.*, gh.ten_gian_hang, gh.logo 
              FROM khuyen_mai km
@@ -115,7 +118,7 @@ const getHomePromotions = async (req, res) => {
              WHERE km.trang_thai = 'active'
              AND km.gian_hang_id IS NULL
              AND DATE(km.ngay_bat_dau) <= CURDATE() AND DATE(km.ngay_ket_thuc) >= CURDATE()
-             AND km.da_dung < km.so_luong
+             AND COALESCE(km.da_dung, 0) < COALESCE(km.so_luong, 100)
              ORDER BY km.ngay_tao DESC LIMIT 10`
         );
         res.json({ success: true, data: rows });

@@ -708,49 +708,6 @@
     let pickerTarget = null; // {variantId, slotIdx}
     let pickerSelected = null;
 
-    function openImgPicker(vid) {
-        pickerTarget = { variantId: vid };
-        const v = variantCards.find(vc=>vc.id===vid);
-        pickerSelected = v.imageId || null;
-        renderImgPickerGrid();
-        document.getElementById('img-picker-modal').classList.add('show');
-    }
-
-    function closeImgPicker() {
-        document.getElementById('img-picker-modal').classList.remove('show');
-    }
-
-    function selectPickerImg(id) {
-        pickerSelected = id;
-        renderImgPickerGrid();
-    }
-
-    function confirmImgPick() {
-        if (pickerTarget && pickerSelected) {
-            const v = variantCards.find(vc => vc.id === pickerTarget.variantId);
-            if (v) {
-                if (v.imageId) {
-                    let oldImg = null;
-                    if(String(v.imageId).startsWith('existing_')) {
-                        const oldIdx = parseInt(v.imageId.split('_')[1]);
-                        oldImg = { id: v.imageId, isExisting: true };
-                    } else {
-                        oldImg = uploadedImages.find(i=>i.id===v.imageId);
-                    }
-                    if (oldImg && !oldImg.isExisting) oldImg.linkedVariantId = null;
-                }
-                v.imageId = pickerSelected;
-                if (!String(pickerSelected).startsWith('existing_')) {
-                    const newImg = uploadedImages.find(i=>i.id===pickerSelected);
-                    if (newImg) newImg.linkedVariantId = v.id;
-                }
-            }
-            renderVariantCards();
-            renderImgPreviews();
-        }
-        closeImgPicker();
-    }
-
     function renderImgPickerGrid() {
         const grid = document.getElementById('img-picker-grid');
         if (!grid) return;
@@ -767,11 +724,16 @@
 
         uploadedImages.forEach(img => {
             const isSelected = pickerSelected === img.id;
-            grid.innerHTML += `<div class="img-thumb ${isSelected ? 'selected' : ''}" onclick="selectPickerImg('${img.id}')">
+            grid.innerHTML += `<div class="img-thumb ${isSelected ? 'selected' : ''}" onclick="selectPickerImg(${img.id})">
                 <img src="${img.dataUrl}">
                 ${isSelected ? '<div class="check-mark" style="position:absolute;top:5px;right:5px;background:#10b981;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-check"></i></div>' : ''}
             </div>`;
         });
+    }
+
+    function selectPickerImg(id) {
+        pickerSelected = id;
+        renderImgPickerGrid();
     }
 
     // Handle file selection
@@ -996,7 +958,17 @@
         if(pickerTarget) {
             const v = variantCards.find(vc=>vc.id===pickerTarget.variantId);
             if(v) {
+                // Unlink old image
+                if(v.imageId && !String(v.imageId).startsWith('existing_')) {
+                    const oldImg = uploadedImages.find(i=>i.id===v.imageId);
+                    if(oldImg) oldImg.linkedVariantId = null;
+                }
                 v.imageId = pickerSelected;
+                // Link new uploaded image
+                if(pickerSelected && !String(pickerSelected).startsWith('existing_')) {
+                    const newImg = uploadedImages.find(i=>i.id===pickerSelected);
+                    if(newImg) newImg.linkedVariantId = v.id;
+                }
             }
         }
         closeImgPicker();
@@ -1324,11 +1296,15 @@
         }
         if (p.hinh_anh_phu) {
             try {
-                const hap = JSON.parse(p.hinh_anh_phu);
-                hap.forEach(url => {
-                    if (!url.startsWith('data:image/svg+xml')) existingImageUrls.push(getProductImage(url));
-                });
-            } catch(e) {}
+                // hinh_anh_phu có thể là array (mysql2 tự parse JSON) hoặc string JSON
+                let hap = p.hinh_anh_phu;
+                if (typeof hap === 'string') hap = JSON.parse(hap);
+                if (Array.isArray(hap)) {
+                    hap.forEach(url => {
+                        if (url && !url.startsWith('data:image/svg+xml')) existingImageUrls.push(getProductImage(url));
+                    });
+                }
+            } catch(e) { console.warn('Parse hinh_anh_phu error:', e); }
         }
         renderImgPreviews();
         // Video
@@ -1340,15 +1316,30 @@
         // Variants
         clearVariants();
         if(p.variants&&p.variants.length>0) {
-            // Group by color
+            // Group by color, also capture hinh_anh for image restoration
             const colorMap={};
             p.variants.forEach(v=>{
                 const key=v.mau_sac||'__none__';
-                if(!colorMap[key]) colorMap[key]={colorCode:v.ma_mau||'#6366f1',colorName:v.mau_sac||'',sizes:[]};
+                if(!colorMap[key]) colorMap[key]={colorCode:v.ma_mau||'#6366f1',colorName:v.mau_sac||'',sizes:[],_hinh_anh:v.hinh_anh||null};
                 const parsedPriceAdd = v.gia_them ? parseInt(v.gia_them) : 0;
                 colorMap[key].sizes.push({size:v.kich_thuoc||'',qty:v.so_luong_ton||0,priceAdd:parsedPriceAdd});
             });
-            Object.values(colorMap).forEach(c=>addVariantCard(c));
+            Object.values(colorMap).forEach(c=>{
+                // Restore imageId: match variant's hinh_anh against existingImageUrls
+                if(c._hinh_anh) {
+                    const varImgUrl = c._hinh_anh;
+                    // Try to find index in existingImageUrls (compare path suffix)
+                    const matchIdx = existingImageUrls.findIndex(eu => {
+                        // Strip host part for comparison
+                        const euPath = eu.split('/').slice(-2).join('/');
+                        const viPath = varImgUrl.split('/').slice(-2).join('/');
+                        return euPath === viPath || eu === varImgUrl || eu.endsWith(varImgUrl) || varImgUrl.endsWith(eu.replace(/^https?:\/\/[^/]+/, ''));
+                    });
+                    if(matchIdx >= 0) c.imageId = 'existing_' + matchIdx;
+                }
+                delete c._hinh_anh;
+                addVariantCard(c);
+            });
         }
         // Specs
         clearSpecs();
@@ -1453,8 +1444,28 @@
         el.innerHTML=`<table class="data-table"><thead><tr>
             <th>Hình</th><th>Tên sản phẩm</th><th>Danh mục</th><th>Giá</th>
             <th>Tồn kho</th><th>Trạng thái</th><th>Duyệt</th><th>Thao tác</th>
-        </tr></thead><tbody>${r.data.map(p=>`<tr>
-            <td><img src="${getProductImage(p.hinh_anh)}" style="width:55px;height:55px;object-fit:cover;border-radius:8px;" title="${p.hinh_anh}"></td>
+        </tr></thead><tbody>${r.data.map(p=>{
+            // Build all image URLs for mini gallery
+            let allImgUrls = p.hinh_anh ? [getProductImage(p.hinh_anh)] : [];
+            if (p.hinh_anh_phu) {
+                try {
+                    let phu = p.hinh_anh_phu;
+                    if (typeof phu === 'string') phu = JSON.parse(phu);
+                    if (Array.isArray(phu)) phu.forEach(u => { if(u) allImgUrls.push(getProductImage(u)); });
+                } catch(e) {}
+            }
+            const extraImgs = allImgUrls.slice(1, 4); // show up to 3 extras
+            const moreCount = allImgUrls.length > 4 ? allImgUrls.length - 4 : 0;
+            return `<tr>
+            <td style="position:relative;min-width:70px;">
+                <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:flex-start;">
+                    <img src="${allImgUrls[0]||''}" style="width:55px;height:55px;object-fit:cover;border-radius:8px;flex-shrink:0;" onerror="this.src='/img/placeholder.jpg'">
+                    ${extraImgs.length > 0 ? `<div style="display:flex;flex-direction:column;gap:3px;">
+                        ${extraImgs.map((u, i) => i < 2 ? `<img src="${u}" style="width:26px;height:26px;object-fit:cover;border-radius:4px;" onerror="this.src='/img/placeholder.jpg'">` : '').join('')}
+                        ${extraImgs.length > 2 || moreCount > 0 ? `<div style="width:26px;height:26px;background:rgba(99,102,241,0.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:700;color:#6366f1;">+${allImgUrls.length-3}</div>` : ''}
+                    </div>` : ''}
+                </div>
+            </td>
             <td style="font-weight:500;color:var(--white);max-width:180px;">
                 <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.ten_san_pham}">${p.ten_san_pham}</div>
             </td>
@@ -1476,7 +1487,7 @@
                 <button class="btn btn-sm btn-outline" onclick="editProduct(${p.id})" title="Sửa"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})" style="margin-left:4px;" title="Xóa"><i class="fas fa-trash"></i></button>
             </td>
-        </tr>`).join('')}</tbody></table>`;
+        </tr>`;}).join('')}</tbody></table>`;
     }
 
     async function deleteProduct(id) {

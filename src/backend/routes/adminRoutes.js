@@ -11,7 +11,7 @@ const {
     getPendingProducts, approveProduct,
     getTrainingData, addTrainingSample, deleteTrainingSample,
     trainModerationModel, testModeration,
-    adminGetVouchers, adminCreateVoucher, adminDeleteVoucher, adminUpdateVoucher
+    adminGetVouchers, adminCreateVoucher, adminDeleteVoucher, adminUpdateVoucher, adminToggleVoucher
 } = require('../controllers/adminController');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/role');
@@ -35,6 +35,7 @@ router.put('/shops/:id', authenticate, authorize('admin'), adminUpdateShop);
 router.get('/vouchers', authenticate, authorize('admin'), adminGetVouchers);
 router.post('/vouchers', authenticate, authorize('admin'), adminCreateVoucher);
 router.put('/vouchers/:id', authenticate, authorize('admin'), adminUpdateVoucher);
+router.put('/vouchers/:id/toggle', authenticate, authorize('admin'), adminToggleVoucher);
 router.delete('/vouchers/:id', authenticate, authorize('admin'), adminDeleteVoucher);
 
 // Admin revenue report (toàn sàn)

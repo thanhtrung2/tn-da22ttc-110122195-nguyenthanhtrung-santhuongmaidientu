@@ -306,7 +306,7 @@ function renderComplaintCard(c) {
         ${adminHtml}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px;">
             <span style="font-size:0.7rem;color:var(--dark-500);">${formatDate(c.ngay_tao)}</span>
-            <a href="/pages/chat.html?shop_id=${c.gian_hang_id||''}" class="btn btn-sm btn-outline" style="font-size:0.75rem;">
+            <a href="/pages/chat.html?userId=${c.nguoi_ban_id}&shopName=${encodeURIComponent(c.ten_gian_hang||c.ten_nguoi_ban||'Shop')}" class="btn btn-sm btn-outline" style="font-size:0.75rem;">
                 <i class="fas fa-comments"></i> Chat với người bán
             </a>
         </div>

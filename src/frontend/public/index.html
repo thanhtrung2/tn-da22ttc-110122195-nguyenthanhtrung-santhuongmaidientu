@@ -166,10 +166,10 @@
 
     <!-- GLOBAL VOUCHERS SECTION -->
     <section class="section" style="background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); padding: 40px 0;">
-        <div class="section-header">
-            <h2>Săn Voucher Hot <i class="fas fa-fire" style="color: #ef4444;"></i></h2>
-            <p>Voucher độc quyền toàn sàn - Lưu ngay kẻo lỡ</p>
-            <div class="accent-line"></div>
+        <div class="section-header" style="text-align: center; margin-bottom: 2.5rem; display: flex; flex-direction: column; align-items: center;">
+            <h2 style="font-size: 2.2rem; color: #111827; margin-bottom: 0.5rem; font-weight: 800;">Săn Voucher Hot <i class="fas fa-fire" style="color: #ef4444; animation: pulse 2s infinite;"></i></h2>
+            <p style="color: #4b5563; font-size: 1.1rem; margin-bottom: 1rem; max-width: 600px; text-align: center;">Voucher độc quyền toàn sàn - Số lượng có hạn, lưu ngay kẻo lỡ!</p>
+            <div class="accent-line" style="margin: 0 auto; width: 80px; height: 4px; background: linear-gradient(90deg, #ef4444, #f97316); border-radius: 2px;"></div>
         </div>
         <div class="vouchers-container" id="global-vouchers-container" style="max-width: 1200px; margin: 0 auto; padding: 0 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
             <!-- Vouchers will be injected here via JS -->
@@ -203,6 +203,17 @@
             <div class="accent-line"></div>
         </div>
         <div class="products-grid" id="featured-products">
+            <!-- Loaded dynamically -->
+        </div>
+    </section>
+
+    <!-- NEW PRODUCTS -->
+    <section class="section">
+        <div class="section-header">
+            <h2>Sản Phẩm Mới Nhất 🌟</h2>
+            <p>Những sản phẩm vừa được ra mắt</p>
+            <div class="accent-line"></div>
+        </div>
         <div class="products-grid" id="new-products">
             <!-- Loaded dynamically -->
         </div>
@@ -580,24 +591,7 @@
                 const result = await res.json();
                 
                 if (result.success && result.data.length > 0) {
-                    // AUTO DELETE FAKE VOUCHERS QUICK FIX
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        let deleted = false;
-                        for (const v of result.data) {
-                            if (v.ten_khuyen_mai === 'WELCOME20' || v.ten_khuyen_mai === 'FREESHIP') {
-                                await fetch(`/api/admin/vouchers/${v.id}`, {
-                                    method: 'DELETE',
-                                    headers: { 'Authorization': `Bearer ${token}` }
-                                });
-                                deleted = true;
-                            }
-                        }
-                        if (deleted) {
-                            loadGlobalVouchers();
-                            return;
-                        }
-                    }
+                    // Auto delete logic removed to prevent accidental voucher deletion
                     
                     let html = '';
                     result.data.forEach(v => {
@@ -607,22 +601,23 @@
                         const iconClass = isFreeship ? 'fas fa-truck' : (isPercent ? 'fas fa-percent' : 'fas fa-tag');
                         
                         html += `
-                            <div class="voucher-card" style="position: relative; border: 1px dashed rgba(238,77,45,0.4); background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 12px; display: flex; flex-direction: row; padding: 0; min-height: 110px; overflow: hidden;">
-                                <div class="voucher-icon" style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: white; width: 80px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="${iconClass}" style="font-size: 2rem;"></i>
+                            <div class="global-voucher-card" style="position: relative; border: 1px solid #fee2e2; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(239,68,68,0.1); border-radius: 16px; display: flex; flex-direction: row; padding: 0; min-height: 120px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 15px 30px -5px rgba(239,68,68,0.15)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 25px -5px rgba(239,68,68,0.1)';">
+                                <div class="global-voucher-icon" style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: white; width: 110px; min-width: 110px; display: flex; align-items: center; justify-content: center; position: relative;">
+                                    <i class="${iconClass}" style="font-size: 2.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));"></i>
+                                    <div style="position: absolute; right: -6px; top: -5px; bottom: -5px; width: 12px; background-image: radial-gradient(circle at 10px 10px, transparent 12px, #ffffff 13px); background-size: 20px 20px; background-position: -10px 0;"></div>
                                 </div>
-                                <div class="voucher-info" style="padding: 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                                    <h4 style="margin: 0 0 0.25rem 0; color: #1f2937; font-size: 1.1rem; font-weight: bold;">${typeText}</h4>
-                                    <p style="margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.85rem;">Đơn tối thiểu ${new Intl.NumberFormat('vi-VN').format(v.don_toi_thieu)}đ - TOÀN SÀN</p>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        <div class="voucher-code" style="background: #f3f4f6; padding: 0.2rem 0.6rem; border-radius: 4px; color: #ef4444; font-weight: bold; font-family: 'Outfit'; font-size: 0.8rem; display: inline-block;">Mã: ${v.ten_khuyen_mai}</div>
-                                        <div class="voucher-expiry" style="color: #9ca3af; font-size: 0.75rem;">HSD: ${new Date(v.ngay_ket_thuc).toLocaleDateString('vi-VN')}</div>
+                                <div class="global-voucher-info" style="padding: 1.25rem 1rem; flex: 1; display: flex; flex-direction: column; justify-content: center; background: white; margin-left: 5px;">
+                                    <h4 style="margin: 0 0 0.4rem 0; color: #111827; font-size: 1.2rem; font-weight: 800;">${typeText}</h4>
+                                    <p style="margin: 0 0 0.75rem 0; color: #4b5563; font-size: 0.9rem; font-weight: 500;">Đơn tối thiểu ${new Intl.NumberFormat('vi-VN').format(v.don_toi_thieu)}đ - TOÀN SÀN</p>
+                                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                        <div class="global-voucher-code" style="background: #fef2f2; border: 1px dashed #fca5a5; padding: 0.25rem 0.75rem; border-radius: 6px; color: #ef4444; font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 0.85rem; letter-spacing: 0.5px;">${v.ten_khuyen_mai}</div>
+                                        <div class="global-voucher-expiry" style="color: #9ca3af; font-size: 0.8rem; font-weight: 500;"><i class="far fa-clock" style="margin-right: 4px;"></i>HSD: ${new Date(v.ngay_ket_thuc).toLocaleDateString('vi-VN')}</div>
                                     </div>
                                 </div>
-                                <div class="voucher-action" style="padding: 1rem; display: flex; align-items: center; justify-content: center; border-left: 2px dashed #e5e7eb; position: relative;">
-                                    <div style="position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; background: #fef2f2; border-radius: 50%;"></div>
-                                    <div style="position: absolute; left: -8px; bottom: -8px; width: 16px; height: 16px; background: #fef2f2; border-radius: 50%;"></div>
-                                    <button class="btn btn-primary btn-sm" style="font-size: 0.85rem; padding: 6px 12px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.2);" onclick="saveGlobalVoucher(${v.id}, this)">Lưu ngay</button>
+                                <div class="global-voucher-action" style="padding: 1.25rem 1rem; display: flex; align-items: center; justify-content: center; border-left: 2px dashed #f3f4f6; position: relative; background: white; min-width: 120px;">
+                                    <div style="position: absolute; left: -10px; top: -12px; width: 20px; height: 20px; background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); border-radius: 50%; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.03);"></div>
+                                    <div style="position: absolute; left: -10px; bottom: -12px; width: 20px; height: 20px; background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);"></div>
+                                    <button class="btn btn-primary" style="font-size: 0.95rem; font-weight: 700; padding: 8px 18px; border-radius: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); transition: all 0.2s; border: none; cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="saveGlobalVoucher(${v.id}, this)">Lưu ngay</button>
                                 </div>
                             </div>
                         `;

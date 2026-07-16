@@ -1580,19 +1580,22 @@ select.form-control {
     padding: 14px 24px;
     border-radius: var(--radius);
     color: var(--white);
-    font-size: 0.85rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
     font-weight: 500;
+    line-height: 1.5;
     z-index: 9999;
     animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     box-shadow: var(--shadow-lg);
 }
 
 .toast-success { background: linear-gradient(135deg, #10b981, #059669); }
 .toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
 .toast-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.toast-info { background: linear-gradient(135deg, #6366f1, #4f46e5); }
 
 @keyframes fadeOut {
     to { opacity: 0; transform: translateY(-20px); }

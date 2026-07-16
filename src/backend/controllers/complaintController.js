@@ -118,7 +118,7 @@ const createComplaint = [
 const getMyComplaints = async (req, res) => {
     try {
         const [rows] = await pool.query(
-            `SELECT kn.*, dh.ma_giao_dich, dh.tong_tien, gh.ten_gian_hang, nd_ban.ho_ten as ten_nguoi_ban
+            `SELECT kn.*, dh.ma_giao_dich, dh.tong_tien, gh.ten_gian_hang, gh.nguoi_ban_id, nd_ban.ho_ten as ten_nguoi_ban
              FROM khieu_nai kn
              JOIN don_hang dh ON kn.don_hang_id = dh.id
              JOIN gian_hang gh ON kn.gian_hang_id = gh.id
